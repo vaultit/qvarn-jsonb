@@ -1,0 +1,43 @@
+---
+title: apiw integration tests
+...
+
+
+# Introduction
+
+This is an integration test suite for the Python `apifw` module, using
+`yarn`.
+
+
+# Basic scenario
+
+
+    SCENARIO runs apitest OK
+
+    GIVEN a running apitest using gunicorn3
+    WHEN client requests GET /version
+    THEN HTTP status code is 200
+    AND HTTP body is "version: 4.2"
+
+    FINALLY stop apitest
+
+
+# Step implementations
+
+    IMPLEMENTS GIVEN a running apitest using gunicorn3
+    gunicorn --daemon --bind 127.0.0.1:12765 -p "$DATADIR/pid" apitest:app
+
+    IMPLEMENTS FINALLY stop apitest
+    cat "$DATADIR/pid"
+    kill "$(cat "$DATADIR/pid")"
+
+    IMPLEMENTS WHEN client requests GET /version
+    curl -sv "http://127.0.0.1:12765/version" > "$DATADIR/out" 2> "$DATADIR/err"
+
+    IMPLEMENTS THEN HTTP status code is (\d+)
+    cat "$DATADIR/err"
+    tr -d '\r' < "$DATADIR/err" |
+    grep -Fx "< HTTP/1.1 $MATCH_1 OK"
+
+    IMPLEMENTS THEN HTTP body is "(.+)"
+    grep -Fx "$MATCH_1" "$DATADIR/out"
