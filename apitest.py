@@ -34,7 +34,7 @@ def dict_logger(log, stack_info=None):
 
 
 logfile = os.environ.get('APITEST_LOG')
-if logfile in os.environ:
+if logfile:
     logging.basicConfig(filename=logfile, level=logging.DEBUG)
 
 api = Api()
