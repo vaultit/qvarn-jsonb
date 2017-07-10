@@ -25,10 +25,12 @@ This is an integration test suite for the Python `apifw` module, using
 # Step implementations
 
     IMPLEMENTS GIVEN a running apitest using gunicorn3
-    gunicorn --daemon --bind 127.0.0.1:12765 -p "$DATADIR/pid" apitest:app
+    gunicorn --daemon --bind 127.0.0.1:12765 -p "$DATADIR/pid" \
+        --log-file "$DATADIR/log" --log-level=debug \
+        apitest:app
+    sleep 1 # Wait for 
 
     IMPLEMENTS FINALLY stop apitest
-    cat "$DATADIR/pid"
     kill "$(cat "$DATADIR/pid")"
 
     IMPLEMENTS WHEN client requests GET /version
