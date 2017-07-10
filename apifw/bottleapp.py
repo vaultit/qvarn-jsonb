@@ -82,7 +82,7 @@ class BottleApplication(object):
                 raise
 
 
-def create_bottle_application(config, api, logger=None):
+def create_bottle_application(api, logger):
     bottleapp = bottle.Bottle()
     app = BottleApplication(bottleapp, api)
     # FIXME: Should add an authenticaion plugin here.

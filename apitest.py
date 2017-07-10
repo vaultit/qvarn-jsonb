@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import logging
+import os
 
 import yaml
 
@@ -32,12 +33,12 @@ def dict_logger(log, stack_info=None):
         logging.info('Traceback', exc_info=True)
 
 
-config = {}
-
-logging.basicConfig(filename='apitest.log', level=logging.DEBUG)
+logfile = os.environ.get('APITEST_LOG')
+if logfile in os.environ:
+    logging.basicConfig(filename=logfile, level=logging.DEBUG)
 
 api = Api()
-app = apifw.create_bottle_application(config, api, logger=dict_logger)
+app = apifw.create_bottle_application(api, dict_logger)
 
 if __name__ == '__main__':
     print('running in debug mode')
