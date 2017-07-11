@@ -15,4 +15,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+set -eu
+
+python3 -m CoverageTestRunner --ignore-missing-from=without-tests
+
 yarn apifw.yarn "$@"
