@@ -59,6 +59,22 @@ class BottleLoggingPlugin(apifw.HttpTransaction):
         }
 
 
+class BottleAuthorizationPlugin(object):
+
+    def apply(self, callback, route):
+
+        def wrapper(*args, **kwargs):
+            value = bottle.request.get_header('Authorization')
+            if value and value.lower() == 'bearer valid-token':
+                return callback(*args, **kwargs)
+            headers = {
+                'WWW-Authenticate': 'Bearer',
+            }
+            raise bottle.HTTPError(401, headers=headers)
+
+        return wrapper
+
+
 class BottleApplication(object):
 
     # Provide the interface to bottle.Bottle that we need.
@@ -105,6 +121,7 @@ def create_bottle_application(api, logger):
         plugin.set_dict_logger(logger)
     app.add_plugin(plugin)
 
-    # FIXME: Should add an authenticaion plugin here.
+    authz = BottleAuthorizationPlugin()
+    app.add_plugin(authz)
 
     return bottleapp

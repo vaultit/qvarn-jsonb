@@ -39,11 +39,18 @@ class Api(apifw.Api):
                 'path': '/version',
                 'callback': self.version,
             },
+            {
+                'path': '/private',
+                'callback': self.private,
+            },
         ]
 
     def version(self):
         logging.info('/version called!\n')
         return 'version: 4.2'
+
+    def private(self):
+        return 'welcome'
 
 
 # We want logging. gunicorn provides logging, but only of its own

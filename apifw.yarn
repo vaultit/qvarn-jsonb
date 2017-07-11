@@ -22,8 +22,14 @@ It's a silly name. Please suggest something better.
     SCENARIO runs apitest OK
 
     GIVEN a running apitest using gunicorn3
-    WHEN client requests GET /version
-    THEN HTTP status code is 200
+
+    WHEN client requests GET /version without token
+    THEN HTTP status code is 401 Unauthorized
+    AND response has header WWW-Authenticate containing "Bearer"
+
+    WHEN client gets an authorization token
+    AND client requests GET /version using token
+    THEN HTTP status code is 200 OK
     AND HTTP body is "version: 4.2"
 
     FINALLY stop apitest
@@ -46,13 +52,27 @@ It's a silly name. Please suggest something better.
     IMPLEMENTS FINALLY stop apitest
     kill "$(cat "$DATADIR/pid")"
 
-    IMPLEMENTS WHEN client requests GET /version
+    IMPLEMENTS WHEN client requests GET /version without token
     curl -sv "http://127.0.0.1:12765/version" > "$DATADIR/out" 2> "$DATADIR/err"
 
-    IMPLEMENTS THEN HTTP status code is (\d+)
+    IMPLEMENTS WHEN client requests GET /version using token
+    token="$(cat "$DATADIR/token")"
+    curl -sv -H "Authorization: Bearer $token" \
+        "http://127.0.0.1:12765/version" > "$DATADIR/out" 2> "$DATADIR/err"
+
+    IMPLEMENTS WHEN client gets an authorization token
+    echo valid-token > "$DATADIR/token"
+
+    IMPLEMENTS THEN HTTP status code is (.+)
     cat "$DATADIR/err"
     tr -d '\r' < "$DATADIR/err" |
-    grep -Fx "< HTTP/1.1 $MATCH_1 OK"
+    grep -Fx "< HTTP/1.1 $MATCH_1"
 
     IMPLEMENTS THEN HTTP body is "(.+)"
     grep -Fx "$MATCH_1" "$DATADIR/out"
+
+    IMPLEMENTS THEN response has header WWW-Authenticate containing "(.+)"
+    cat "$DATADIR/err"
+    tr -d '\r' < "$DATADIR/err" |
+    grep -Fix "< WWW-Authenticate: $MATCH_1"
+
