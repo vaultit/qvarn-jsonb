@@ -18,6 +18,7 @@ import time
 import unittest
 
 import Crypto.PublicKey.RSA
+import jwt
 
 import apifw
 
@@ -55,7 +56,17 @@ class TokenTests(unittest.TestCase):
         now = int(time.time())
         claims = self.make_claimes(now - 86400)
         encoded = apifw.create_token(claims, token_signing_key)
-        with self.assertRaises(Exception):
+        with self.assertRaises(jwt.ExpiredSignatureError):
+            apifw.decode_token(
+                encoded,
+                token_signing_key,
+                claims['aud'])
+
+    def test_wronly_signed_token_is_invalid(self):
+        now = int(time.time())
+        claims = self.make_claimes(now - 86400)
+        encoded = apifw.create_token(claims, wrong_signing_key)
+        with self.assertRaises(jwt.DecodeError):
             apifw.decode_token(
                 encoded,
                 token_signing_key,
