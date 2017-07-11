@@ -48,10 +48,31 @@ oUsjuoDAFR6Is2R1KQ+LQQJBAIfQquABIx9Kq+wi6dEXtATMlQwa+Gxl9sp4hUrD
 '''
 
 
+# This is another key, used to test invalid signatures.
+
+other_key = b'''\
+-----BEGIN RSA PRIVATE KEY-----
+MIICXQIBAAKBgQDJyeup0HGCOyeaxC3/MDAgjRpKNF7227gHV/PlNm/LXm2bS0w0
+Fd7jYnHIm4sgKfWhgV9wlC9dUEkdhLfUsMFogPDo7s1oBPkKKdPjMTkBHnpD/E/2
+UcX8oe+/qa2rFMdmZMeWUPlzqjpNU/6vqOX5lL9qNlIaNw8Uoj69YoU86QIDAQAB
+AoGAH2fl3dArWnGKgHP4FLeTRf2wEcyE2zbnNX1i4FHQpH5V4M2fVpvwzMMNooNS
+6/ab3D8ec48csBFGz+lQEzJPZ4VR6sYV5+XbHHsHxwHZwEdaPhSNaIWYCkI9Yngd
+cpB4Ejz3HISsWbzf9D7CoPK5QrOIZUZ9YRidOeUUbepv0uECQQDN6X/CCa2FwFxP
+c8b/e4GD0kFNditNnrgbs2q/bPF9+oGxlhfeyJXblCfqOSAzRquePjyEDtSbQTPt
+1UyU7EwnAkEA+t+nN5cBFCC6JcNyfZ4fZpcCHGQ09HplZVDk8K4VzSWSc+mTbvTf
+LpTZv++7f2fAfY4CJ3RGD3+CRzouXzkIbwJBAKWhKO7/seBgduBCFNP0mJ1cRsL0
+RqjM/vLpQvhvvWDEXAZo4RKG7mQNrH2vLcORGQLUtQDUnRe1PvwUEuHHoQkCQQD2
+iGDYJSGfOQYU5DuXrJLpCw68/dB4S+tmpBdHWZv9DKYeGHSU/jhwm0Bc+OaFrlyg
+RbRiN0Y+JqzM+CTn2LErAkAMYJlhsX/TgSlhlVpmDNHK+f9decLOetzlMg7LatqO
+ux3VzoZr+a4ryiEpWqOHOk0OX97VIZn3VYr4Q24qg3zz
+-----END RSA PRIVATE KEY-----
+'''
+
 class TokenTests(unittest.TestCase):
 
     def setUp(self):
         self.key = Crypto.PublicKey.RSA.importKey(token_signing_key)
+        self.other_key = Crypto.PublicKey.RSA.importKey(token_signing_key)
 
     def test_valid_token_is_valid(self):
         now = int(time.time())
@@ -65,3 +86,5 @@ class TokenTests(unittest.TestCase):
         }
         encoded = apifw.create_token(claims, self.key)
         self.assertTrue(encoded is not None)
+
+    def test_vqali
