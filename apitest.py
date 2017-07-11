@@ -14,6 +14,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# This is a test application for apifw, used by the apifw.yarn test
+# suite. It also acts as an example of how apifw can be used.
+
 import logging
 import os
 
@@ -21,6 +24,11 @@ import yaml
 
 import apifw
 
+
+# We need to give apifw a class that defines the routes, on demand.
+# The apifw.Api class provides the interface, which consists of the
+# single method find_missing_route; see below. There may be other
+# methods, such as callbacks for particular routes.
 
 class Api(apifw.Api):
 
@@ -38,6 +46,28 @@ class Api(apifw.Api):
         return 'version: 4.2'
 
 
+# We want logging. gunicorn provides logging, but only of its own
+# stuff, and if we log something ourselves, using logging.debug and
+# its sibling functions, they don't end up in the log file defined by
+# gunicorn. So instead we define our own logger. The logging in
+# apifw.HttpTransaction are based on logging *dicts*, with arbitrary
+# key/value pairs. This is because Lars liked log files that are easy
+# to process programmatically. To use this, we define a "dict logger"
+# function, which we tell apifw to use; by default, there is no
+# logging. We also configure the Python logging library to write a log
+# file; the name of the log file will be gotten from the APITEST_LOG
+# environment variable.
+#
+# Ideally, we would parse command line arguments and a configuration
+# file here, instead of using environment variables. Unfortunately,
+# gunicorn wants to hog all of the command line for itself. Thus, Lars
+# concludes that the sensible way is for a web app to no have command
+# line options and to read configuration file from a fixed location,
+# or have the name of the configuration file given using an
+# environment variable.
+#
+# See also <https://stackoverflow.com/questions/8495367/>.
+
 def dict_logger(log, stack_info=None):
     logging.info('Start log entry')
     for key in sorted(log.keys()):
@@ -51,8 +81,25 @@ logfile = os.environ.get('APITEST_LOG')
 if logfile:
     logging.basicConfig(filename=logfile, level=logging.DEBUG)
 
+
+# Here is the magic part. We create an instance of our Api class, and
+# create a new Bottle application, using the
+# apifw.create_bottle_application function. We assign the Bottle app
+# to the variable "app", and when we start this program using
+# gunicorn, we tell it to use the "app" variable.
+#
+#    gunicorn3 --bind 127.0.0.1:12765 apitest:app
+#
+# gunicorn and Bottle then collaborate, using mysterious, unclear, and
+# undocumented magic to run a web service. We don't know, and
+# hopefully don't need to care, how the magic works.
+    
 api = Api()
 app = apifw.create_bottle_application(api, dict_logger)
+
+# If we are running this program directly with Python, and not via
+# gunicorn, we can use the Bottle built-in debug server, which can
+# make some things easier to debug.
 
 if __name__ == '__main__':
     print('running in debug mode')
