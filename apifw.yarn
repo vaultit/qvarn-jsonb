@@ -6,7 +6,11 @@ title: apiw integration tests
 # Introduction
 
 This is an integration test suite for the Python `apifw` module, using
-`yarn`.
+`yarn`. It starts a little test application, `apitest.py` using
+`gunicorn3` and verifies that it can do HTTP requests to it. It then
+kills the test application. Very simple, but it makes sure the
+interaction between `gunicorn3`, `bottle.py`, and the `apifw` module
+works correctly.
 
 
 # Basic scenario
