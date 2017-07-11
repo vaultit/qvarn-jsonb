@@ -26,6 +26,13 @@ import apifw
 
 class BottleLoggingPlugin(apifw.HttpTransaction):
 
+    # This a binding between Bottle and apifw.HttpTransaction, as a
+    # Bottle plugin. We arrange the perform_transaction method to be
+    # called with the right arguments, in particular the callback
+    # function to call. We also provide Bottle specific methods to log
+    # the HTTP request and response, and to amend the response by
+    # adding a Date header.
+
     def apply(self, callback, route):
 
         def wrapper(*args, **kwargs):
@@ -55,6 +62,10 @@ class BottleLoggingPlugin(apifw.HttpTransaction):
 class BottleApplication(object):
 
     # Provide the interface to bottle.Bottle that we need.
+    # Specifically, we set up a hook to call the
+    # Api.find_missing_route method when a request would otherwise
+    # return 404, and we add the routes it returns to Bottle so that
+    # they are there for this and future requests.
 
     def __init__(self, bottleapp, api):
         self._bottleapp = bottleapp
@@ -83,13 +94,17 @@ class BottleApplication(object):
 
 
 def create_bottle_application(api, logger):
+    # Create a new bottle.Bottle application, set it up, and return it
+    # so that gunicorn can execute it from the main program.
+
     bottleapp = bottle.Bottle()
     app = BottleApplication(bottleapp, api)
-    # FIXME: Should add an authenticaion plugin here.
 
     plugin = BottleLoggingPlugin()
     if logger:
         plugin.set_dict_logger(logger)
     app.add_plugin(plugin)
+
+    # FIXME: Should add an authenticaion plugin here.
 
     return bottleapp
