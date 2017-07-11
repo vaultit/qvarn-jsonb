@@ -68,11 +68,10 @@ ux3VzoZr+a4ryiEpWqOHOk0OX97VIZn3VYr4Q24qg3zz
 -----END RSA PRIVATE KEY-----
 '''
 
-class TokenTests(unittest.TestCase):
+token_signing_key = Crypto.PublicKey.RSA.generate(1024)
+wrong_signing_key = Crypto.PublicKey.RSA.generate(1024)
 
-    def setUp(self):
-        self.key = Crypto.PublicKey.RSA.importKey(token_signing_key)
-        self.other_key = Crypto.PublicKey.RSA.importKey(token_signing_key)
+class TokenTests(unittest.TestCase):
 
     def test_valid_token_is_valid(self):
         now = int(time.time())
@@ -81,9 +80,14 @@ class TokenTests(unittest.TestCase):
             'sub': 'subject-uuid',
             'aud': 'audience-uuid',
             'exp': now + 3600,
-
             'scope': 'openid person_resource_id uapi_orgs_get uapi_orgs_post'
         }
-        encoded = apifw.create_token(claims, self.key)
+        encoded = apifw.create_token(claims, token_signing_key.exportKey('PEM'))
         self.assertTrue(isinstance(encoded, bytes))
         self.assertEqual(len(encoded.split(b'.')), 3)
+
+        decoded = apifw.decode_token(
+            encoded,
+            token_signing_key.exportKey('OpenSSH'),
+            claims['aud'])
+        self.assertEqual(decoded, claims)

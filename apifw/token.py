@@ -22,4 +22,8 @@ JWT_SIGNING_ALGORITHM = 'RS512'
 
 def create_token(claims, signing_key):
     return jwt.encode(
-        claims, signing_key.exportKey('PEM'), algorithm=JWT_SIGNING_ALGORITHM)
+        claims, signing_key, algorithm=JWT_SIGNING_ALGORITHM)
+
+
+def decode_token(token, key, audience):
+    return jwt.decode(token, key=key, audience=audience)
