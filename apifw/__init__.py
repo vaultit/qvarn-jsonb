@@ -16,4 +16,5 @@
 
 from .apixface import Api
 from .http import HttpTransaction
+from .token import create_token
 from .bottleapp import BottleApplication, create_bottle_application
