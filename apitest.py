@@ -25,10 +25,10 @@ import yaml
 import apifw
 
 
-# We need to give apifw a class that defines the routes, on demand.
-# The apifw.Api class provides the interface, which consists of the
-# single method find_missing_route; see below. There may be other
-# methods, such as callbacks for particular routes.
+# apifw requires a class to define routes on demand. This interface is provided
+# by the apifw.Api class. This interface consists of a single method
+# find_missing_route. In addition callback methods for particular routes
+# may also be present.
 
 class Api(apifw.Api):
 
@@ -49,7 +49,9 @@ class Api(apifw.Api):
 # We want logging. gunicorn provides logging, but only of its own
 # stuff, and if we log something ourselves, using logging.debug and
 # its sibling functions, they don't end up in the log file defined by
-# gunicorn. So instead we define our own logger. The logging in
+# gunicorn.
+#
+# Instead a separate logger is defined. The logging in
 # apifw.HttpTransaction are based on logging *dicts*, with arbitrary
 # key/value pairs. This is because Lars liked log files that are easy
 # to process programmatically. To use this, we define a "dict logger"
@@ -60,11 +62,12 @@ class Api(apifw.Api):
 #
 # Ideally, we would parse command line arguments and a configuration
 # file here, instead of using environment variables. Unfortunately,
-# gunicorn wants to hog all of the command line for itself. Thus, Lars
-# concludes that the sensible way is for a web app to no have command
-# line options and to read configuration file from a fixed location,
-# or have the name of the configuration file given using an
-# environment variable.
+# gunicorn wants to hog all of the command line for itself.
+#
+# It has been concluded that the sensible way is for a web app to no
+# have command line options and to read configuration file from a
+# fixed location, or have the name of the configuration file given
+# using an environment variable.
 #
 # See also <https://stackoverflow.com/questions/8495367/>.
 

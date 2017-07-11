@@ -1,5 +1,5 @@
 ---
-title: apiw integration tests
+title: apifw integration tests
 ...
 
 
@@ -11,6 +11,9 @@ This is an integration test suite for the Python `apifw` module, using
 kills the test application. Very simple, but it makes sure the
 interaction between `gunicorn3`, `bottle.py`, and the `apifw` module
 works correctly.
+
+`apifw` is short for "application programming interface framework".
+It's a silly name. Please suggest something better.
 
 
 # Basic scenario
@@ -29,6 +32,8 @@ works correctly.
 # Step implementations
 
     IMPLEMENTS GIVEN a running apitest using gunicorn3
+    # FIXME: It would be good for the test suite to pick a random free
+    # port. But that's not simple.
     gunicorn --daemon --bind 127.0.0.1:12765 -p "$DATADIR/pid" \
         --log-file "$DATADIR/log" --log-level=debug \
         apitest:app
