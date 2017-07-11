@@ -85,6 +85,4 @@ class TokenTests(unittest.TestCase):
             'scope': 'openid person_resource_id uapi_orgs_get uapi_orgs_post'
         }
         encoded = apifw.create_token(claims, self.key)
-        self.assertTrue(encoded is not None)
-
-    def test_vqali
+        self.assertTrue(isinstance(encoded, bytes))
