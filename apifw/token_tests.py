@@ -41,22 +41,22 @@ class TokenTests(unittest.TestCase):
     def test_valid_token_is_valid(self):
         now = int(time.time())
         claims = self.make_claimes(now)
-        encoded = apifw.create_token(claims, token_signing_key.exportKey('PEM'))
+        encoded = apifw.create_token(claims, token_signing_key)
         self.assertTrue(isinstance(encoded, bytes))
         self.assertEqual(len(encoded.split(b'.')), 3)
 
         decoded = apifw.decode_token(
             encoded,
-            token_signing_key.exportKey('OpenSSH'),
+            token_signing_key,
             claims['aud'])
         self.assertEqual(decoded, claims)
 
     def test_expired_token_is_invalid(self):
         now = int(time.time())
         claims = self.make_claimes(now - 86400)
-        encoded = apifw.create_token(claims, token_signing_key.exportKey('PEM'))
+        encoded = apifw.create_token(claims, token_signing_key)
         with self.assertRaises(Exception):
             apifw.decode_token(
                 encoded,
-                token_signing_key.exportKey('OpenSSH'),
+                token_signing_key,
                 claims['aud'])
