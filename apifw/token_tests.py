@@ -86,3 +86,4 @@ class TokenTests(unittest.TestCase):
         }
         encoded = apifw.create_token(claims, self.key)
         self.assertTrue(isinstance(encoded, bytes))
+        self.assertEqual(len(encoded.split(b'.')), 3)
