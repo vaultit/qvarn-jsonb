@@ -79,19 +79,8 @@ class BottleAuthorizationPlugin(object):
     def apply(self, callback, route):
 
         def wrapper(*args, **kwargs):
-            logging.info('request for route %r' % route)
-            value = bottle.request.get_header('Authorization', '')
-            words = value.split()
-            if len(words) == 2:
-                if words[0].lower() == 'bearer':
-                    try:
-                        claims = apifw.decode_token(
-                            words[1], self.pubkey, audience=self.aud)
-                    except jwt.InvalidTokenError as e:
-                        raise bottle.HTTPError(400, body=str(e))
-
-                    if self.scope_allows_route(claims['scope'], route):
-                        return callback(*args, **kwargs)
+            if self.is_authorized(route):
+                return callback(*args, **kwargs)
 
             headers = {
                 'WWW-Authenticate': 'Bearer',
@@ -100,9 +89,21 @@ class BottleAuthorizationPlugin(object):
 
         return wrapper
 
+    def is_authorized(self, route):
+        value = bottle.request.get_header('Authorization', '')
+        words = value.split()
+        if len(words) == 2:
+            if words[0].lower() == 'bearer':
+                try:
+                    claims = apifw.decode_token(
+                        words[1], self.pubkey, audience=self.aud)
+                except jwt.InvalidTokenError as e:
+                    raise bottle.HTTPError(400, body=str(e))
+
+                return self.scope_allows_route(claims['scope'], route)
+
     def scope_allows_route(self, claim_scopes, route):
         scopes = claim_scopes.split(' ')
-        logging.debug('route: %r' % route)
         route_scope = self.get_scope_for_route(route['method'], route['rule'])
         return route_scope in scopes
 
