@@ -38,6 +38,14 @@ It's a silly name. Please suggest something better.
 # Step implementations
 
     IMPLEMENTS GIVEN a running apitest using gunicorn3
+    # Set the "aud" field for access tokens.
+    export APITEST_AUD=test-audience
+    echo "$APITEST_AUD" > "$DATADIR/aud"
+
+    # Generate an RSA key for signing access tokens for the API.
+    ./generate-rsa-key "$DATADIR/signing-key"
+    export APITEST_PUBKEY="$(cat "$DATADIR/signing-key.pub")"
+
     # FIXME: It would be good for the test suite to pick a random free
     # port. But that's not simple.
     gunicorn --daemon --bind 127.0.0.1:12765 -p "$DATADIR/pid" \
@@ -61,7 +69,8 @@ It's a silly name. Please suggest something better.
         "http://127.0.0.1:12765/version" > "$DATADIR/out" 2> "$DATADIR/err"
 
     IMPLEMENTS WHEN client gets an authorization token
-    echo valid-token > "$DATADIR/token"
+    aud="$(cat "$DATADIR/aud")"
+    ./create-token "$DATADIR/signing-key" "$aud" > "$DATADIR/token"
 
     IMPLEMENTS THEN HTTP status code is (.+)
     cat "$DATADIR/err"

@@ -19,6 +19,8 @@ import time
 
 
 import bottle
+import Crypto.PublicKey.RSA
+import jwt
 
 
 import apifw
@@ -61,12 +63,30 @@ class BottleLoggingPlugin(apifw.HttpTransaction):
 
 class BottleAuthorizationPlugin(object):
 
+    def __init__(self):
+        self.pubkey = None
+        self.aud = None
+
+    def set_token_signing_public_key(self, pubkey):
+        self.pubkey = Crypto.PublicKey.RSA.importKey(pubkey)
+
+    def set_expected_audience(self, aud):
+        self.aud = aud
+
     def apply(self, callback, route):
 
         def wrapper(*args, **kwargs):
-            value = bottle.request.get_header('Authorization')
-            if value and value.lower() == 'bearer valid-token':
-                return callback(*args, **kwargs)
+            value = bottle.request.get_header('Authorization', '')
+            words = value.split()
+            if len(words) == 2:
+                if words[0].lower() == 'bearer':
+                    try:
+                        claims = apifw.decode_token(
+                            words[1], self.pubkey, audience=self.aud)
+                    except jwt.InvalidTokenError as e:
+                        raise bottle.HTTPError(400, body=str(e))
+                    return callback(*args, **kwargs)
+
             headers = {
                 'WWW-Authenticate': 'Bearer',
             }
@@ -109,7 +129,7 @@ class BottleApplication(object):
                 raise
 
 
-def create_bottle_application(api, logger):
+def create_bottle_application(api, logger, config):
     # Create a new bottle.Bottle application, set it up, and return it
     # so that gunicorn can execute it from the main program.
 
@@ -122,6 +142,8 @@ def create_bottle_application(api, logger):
     app.add_plugin(plugin)
 
     authz = BottleAuthorizationPlugin()
+    authz.set_token_signing_public_key(config['token-public-key'])
+    authz.set_expected_audience(config['token-audience'])
     app.add_plugin(authz)
 
     return bottleapp

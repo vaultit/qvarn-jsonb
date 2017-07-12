@@ -92,6 +92,22 @@ if logfile:
     logging.basicConfig(filename=logfile, level=logging.DEBUG)
 
 
+
+# Here is some configuaration for the framework.
+#
+# To validate the access tokens we'll be using in the API, we need to
+# tell apifw which public key to use. We get that from an environment
+# variable. It should be in OpenSSH public key format.
+#
+# The framework also needs to know the "audience" for which a token is
+# created. We get that from the environment as well.
+
+config = {
+    'token-public-key': os.environ['APITEST_PUBKEY'],
+    'token-audience': os.environ['APITEST_AUD'],
+}
+
+
 # Here is the magic part. We create an instance of our Api class, and
 # create a new Bottle application, using the
 # apifw.create_bottle_application function. We assign the Bottle app
@@ -103,9 +119,9 @@ if logfile:
 # gunicorn and Bottle then collaborate, using mysterious, unclear, and
 # undocumented magic to run a web service. We don't know, and
 # hopefully don't need to care, how the magic works.
-    
+
 api = Api()
-app = apifw.create_bottle_application(api, dict_logger)
+app = apifw.create_bottle_application(api, dict_logger, config)
 
 # If we are running this program directly with Python, and not via
 # gunicorn, we can use the Bottle built-in debug server, which can
