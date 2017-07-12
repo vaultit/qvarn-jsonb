@@ -15,6 +15,7 @@
 
 
 import logging
+import re
 import time
 
 
@@ -63,6 +64,8 @@ class BottleLoggingPlugin(apifw.HttpTransaction):
 
 class BottleAuthorizationPlugin(object):
 
+    route_pat = re.compile(r'<[^>]*>')
+
     def __init__(self):
         self.pubkey = None
         self.aud = None
@@ -76,6 +79,7 @@ class BottleAuthorizationPlugin(object):
     def apply(self, callback, route):
 
         def wrapper(*args, **kwargs):
+            logging.info('request for route %r' % route)
             value = bottle.request.get_header('Authorization', '')
             words = value.split()
             if len(words) == 2:
@@ -85,7 +89,9 @@ class BottleAuthorizationPlugin(object):
                             words[1], self.pubkey, audience=self.aud)
                     except jwt.InvalidTokenError as e:
                         raise bottle.HTTPError(400, body=str(e))
-                    return callback(*args, **kwargs)
+
+                    if self.scope_allows_route(claims['scope'], route):
+                        return callback(*args, **kwargs)
 
             headers = {
                 'WWW-Authenticate': 'Bearer',
@@ -93,6 +99,18 @@ class BottleAuthorizationPlugin(object):
             raise bottle.HTTPError(401, headers=headers)
 
         return wrapper
+
+    def scope_allows_route(self, claim_scopes, route):
+        scopes = claim_scopes.split(' ')
+        logging.debug('route: %r' % route)
+        route_scope = self.get_scope_for_route(route['method'], route['rule'])
+        return route_scope in scopes
+
+    def get_scope_for_route(self, method, rule):
+        scope = re.sub(self.route_pat, 'id', rule)
+        scope = scope.replace('/', '_')
+        scope = 'uapi%s_%s' % (scope, method)
+        return scope.lower()
 
 
 class BottleApplication(object):

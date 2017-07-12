@@ -27,7 +27,12 @@ It's a silly name. Please suggest something better.
     THEN HTTP status code is 401 Unauthorized
     AND response has header WWW-Authenticate containing "Bearer"
 
-    WHEN client gets an authorization token
+    WHEN client gets an authorization token with scope "no_version_scope"
+    AND client requests GET /version using token
+    THEN HTTP status code is 401 Unauthorized
+    AND response has header WWW-Authenticate containing "Bearer"
+
+    WHEN client gets an authorization token with scope "uapi_version_get"
     AND client requests GET /version using token
     THEN HTTP status code is 200 OK
     AND HTTP body is "version: 4.2"
@@ -42,12 +47,15 @@ It's a silly name. Please suggest something better.
     export APITEST_AUD=test-audience
     echo "$APITEST_AUD" > "$DATADIR/aud"
 
-    # Generate an RSA key for signing access tokens for the API.
-    ./generate-rsa-key "$DATADIR/signing-key"
-    export APITEST_PUBKEY="$(cat "$DATADIR/signing-key.pub")"
+    # Generate an RSA key for signing access tokens for the API. Key
+    # generation is disabled, to make test suite faster. Using
+    # pre-generated key instead.
+    #./generate-rsa-key "$DATADIR/signing-key" 
+    export APITEST_PUBKEY="$(cat "$SRCDIR/apitest.key.pub")"
 
     # FIXME: It would be good for the test suite to pick a random free
     # port. But that's not simple.
+    export APITEST_LOG="$DATADIR/apitest.log"
     gunicorn --daemon --bind 127.0.0.1:12765 -p "$DATADIR/pid" \
         --log-file "$DATADIR/log" --log-level=debug \
         apitest:app
@@ -68,9 +76,9 @@ It's a silly name. Please suggest something better.
     curl -sv -H "Authorization: Bearer $token" \
         "http://127.0.0.1:12765/version" > "$DATADIR/out" 2> "$DATADIR/err"
 
-    IMPLEMENTS WHEN client gets an authorization token
+    IMPLEMENTS WHEN client gets an authorization token with scope "(.+)"
     aud="$(cat "$DATADIR/aud")"
-    ./create-token "$DATADIR/signing-key" "$aud" > "$DATADIR/token"
+    ./create-token "$SRCDIR/apitest.key" "$aud" "$MATCH_1" > "$DATADIR/token"
 
     IMPLEMENTS THEN HTTP status code is (.+)
     cat "$DATADIR/err"
