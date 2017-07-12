@@ -25,6 +25,7 @@ import apifw
 
 filename = sys.argv[1]
 aud = sys.argv[2]
+scopes = sys.argv[3]
 
 key_text = open(filename, 'r').read()
 key = Crypto.PublicKey.RSA.importKey(key_text)
@@ -35,7 +36,7 @@ claims = {
     'sub': 'subject-uuid',
     'aud': aud,
     'exp': now + 3600,
-    'scope': 'openid person_resource_id uapi_orgs_get uapi_orgs_post'
+    'scope': scopes,
 }
 
 token = apifw.create_token(claims, key)
