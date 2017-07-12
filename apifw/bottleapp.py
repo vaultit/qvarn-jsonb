@@ -91,16 +91,23 @@ class BottleAuthorizationPlugin(object):
 
     def is_authorized(self, route):
         value = bottle.request.get_header('Authorization', '')
+        if not value:
+            raise bottle.HTTPError(400, body='No Authorization header')
         words = value.split()
-        if len(words) == 2:
-            if words[0].lower() == 'bearer':
-                try:
-                    claims = apifw.decode_token(
-                        words[1], self.pubkey, audience=self.aud)
-                except jwt.InvalidTokenError as e:
-                    raise bottle.HTTPError(400, body=str(e))
+        if len(words) != 2:
+            raise bottle.HTTPError(
+                400, body='Authorization should be "Bearer TOKEN"')
+        if words[0].lower() != 'bearer':
+            raise bottle.HTTPError(
+                400, body='Authorization should be "Bearer TOKEN"')
 
-                return self.scope_allows_route(claims['scope'], route)
+        try:
+            claims = apifw.decode_token(
+                words[1], self.pubkey, audience=self.aud)
+        except jwt.InvalidTokenError as e:
+            raise bottle.HTTPError(400, body=str(e))
+
+        return self.scope_allows_route(claims['scope'], route)
 
     def scope_allows_route(self, claim_scopes, route):
         scopes = claim_scopes.split(' ')
