@@ -77,7 +77,6 @@ def read_config(config_filename):
 
 
 def check_config(config):
-    yaml.safe_dump(config, stream=sys.stdout)
     for key in config:
         if config[key] is None:
             raise Exception('Configration %s should not be None' % key)
