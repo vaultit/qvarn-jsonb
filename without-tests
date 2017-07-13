@@ -4,3 +4,4 @@ apifw/__init__.py
 apifw/http.py
 apifw/bottleapp.py
 apifw/apixface.py
+slog/__init__.py
