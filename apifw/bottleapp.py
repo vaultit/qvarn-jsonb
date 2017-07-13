@@ -83,30 +83,22 @@ class BottleAuthorizationPlugin(object):
     def apply(self, callback, route):
 
         def wrapper(*args, **kwargs):
-            logging.debug('authz wrapper')
             if self.is_authorized(route):
-                result = callback(*args, **kwargs)
-                logging.debug('authz wrapper ends')
-                return result
+                return callback(*args, **kwargs)
 
             self.raise_unauthorized('Something went wrong')
 
         return wrapper
 
     def is_authorized(self, route):
-        logging.debug('is_authorized: %r', route)
         value = self.get_authorization_header(bottle.request)
-        logging.debug('value: %r', value)
         token = self.parse_authorization_header(value)
-        logging.debug('token: %r', token)
         claims = self.parse_token(token)
-        logging.debug('claims: %r', claims)
         self.check_issuer(claims)
         return self.scope_allows_route(claims['scope'], route)
 
     def get_authorization_header(self, request):
         value = request.get_header('Authorization', '')
-        logging.debug('Authorization header: %r', value)
         if not value:
             self.raise_unauthorized('No Authorization header')
         return value
@@ -174,7 +166,6 @@ class BottleApplication(object):
                         'path': route['path'],
                         'callback': route['callback'],
                     }
-                    logging.info('adding route: %r', route_dict)
                     self._bottleapp.route(**route_dict)
             else:
                 raise
