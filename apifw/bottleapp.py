@@ -68,10 +68,14 @@ class BottleAuthorizationPlugin(object):
 
     def __init__(self):
         self.pubkey = None
+        self.iss = None
         self.aud = None
 
     def set_token_signing_public_key(self, pubkey):
         self.pubkey = Crypto.PublicKey.RSA.importKey(pubkey)
+
+    def set_expected_issuer(self, iss):
+        self.iss = iss
 
     def set_expected_audience(self, aud):
         self.aud = aud
@@ -106,6 +110,11 @@ class BottleAuthorizationPlugin(object):
                 words[1], self.pubkey, audience=self.aud)
         except jwt.InvalidTokenError as e:
             raise bottle.HTTPError(400, body=str(e))
+
+        if claims['iss'] != self.iss:
+            raise bottle.HTTPError(
+                400,
+                body='Expected issuer %s, got %s' % (self.iss, claims['iss']))
 
         return self.scope_allows_route(claims['scope'], route)
 
@@ -169,6 +178,7 @@ def create_bottle_application(api, logger, config):
 
     authz = BottleAuthorizationPlugin()
     authz.set_token_signing_public_key(config['token-public-key'])
+    authz.set_expected_issuer(config['token-issuer'])
     authz.set_expected_audience(config['token-audience'])
     app.add_plugin(authz)
 
