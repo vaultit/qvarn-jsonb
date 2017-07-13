@@ -24,15 +24,16 @@ import apifw
 
 
 filename = sys.argv[1]
-aud = sys.argv[2]
-scopes = sys.argv[3]
+iss = sys.argv[2]
+aud = sys.argv[3]
+scopes = sys.argv[4]
 
 key_text = open(filename, 'r').read()
 key = Crypto.PublicKey.RSA.importKey(key_text)
 
 now = time.time()
 claims = {
-    'iss': 'https://idp.example.com',
+    'iss': iss,
     'sub': 'subject-uuid',
     'aud': aud,
     'exp': now + 3600,
