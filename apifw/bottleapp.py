@@ -83,40 +83,50 @@ class BottleAuthorizationPlugin(object):
     def apply(self, callback, route):
 
         def wrapper(*args, **kwargs):
+            logging.debug('authz wrapper')
             if self.is_authorized(route):
-                return callback(*args, **kwargs)
+                result = callback(*args, **kwargs)
+                logging.debug('authz wrapper ends')
+                return result
 
-            headers = {
-                'WWW-Authenticate': 'Bearer',
-            }
-            raise bottle.HTTPError(401, headers=headers)
+            self.raise_unauthorized('Something went wrong')
 
         return wrapper
 
     def is_authorized(self, route):
-        value = bottle.request.get_header('Authorization', '')
-        if not value:
-            raise bottle.HTTPError(400, body='No Authorization header')
-        words = value.split()
-        if len(words) != 2:
-            raise bottle.HTTPError(
-                400, body='Authorization should be "Bearer TOKEN"')
-        if words[0].lower() != 'bearer':
-            raise bottle.HTTPError(
-                400, body='Authorization should be "Bearer TOKEN"')
-
-        try:
-            claims = apifw.decode_token(
-                words[1], self.pubkey, audience=self.aud)
-        except jwt.InvalidTokenError as e:
-            raise bottle.HTTPError(400, body=str(e))
-
-        if claims['iss'] != self.iss:
-            raise bottle.HTTPError(
-                400,
-                body='Expected issuer %s, got %s' % (self.iss, claims['iss']))
-
+        logging.debug('is_authorized: %r', route)
+        value = self.get_authorization_header(bottle.request)
+        logging.debug('value: %r', value)
+        token = self.parse_authorization_header(value)
+        logging.debug('token: %r', token)
+        claims = self.parse_token(token)
+        logging.debug('claims: %r', claims)
+        self.check_issuer(claims)
         return self.scope_allows_route(claims['scope'], route)
+
+    def get_authorization_header(self, request):
+        value = request.get_header('Authorization', '')
+        logging.debug('Authorization header: %r', value)
+        if not value:
+            self.raise_unauthorized('No Authorization header')
+        return value
+        
+    def parse_authorization_header(self, value):
+        words = value.split()
+        if len(words) != 2 or words[0].lower() != 'bearer':
+            self.raise_unauthorized('Authorization should be "Bearer TOKEN"')
+        return words[1]
+
+    def parse_token(self, token):
+        try:
+            return apifw.decode_token(token, self.pubkey, audience=self.aud)
+        except jwt.InvalidTokenError as e:
+            self.raise_unauthorized(str(e))
+
+    def check_issuer(self, claims):
+        if claims['iss'] != self.iss:
+            self.raise_unauthorized(
+                'Expected issuer %s, got %s' % (self.iss, claims['iss']))
 
     def scope_allows_route(self, claim_scopes, route):
         scopes = claim_scopes.split(' ')
@@ -128,6 +138,12 @@ class BottleAuthorizationPlugin(object):
         scope = scope.replace('/', '_')
         scope = 'uapi%s_%s' % (scope, method)
         return scope.lower()
+
+    def raise_unauthorized(self, explanation):
+        headers = {
+            'WWW-Authenticate': 'Bearer',
+        }
+        raise bottle.HTTPError(401, body=explanation, headers=headers)
 
 
 class BottleApplication(object):
