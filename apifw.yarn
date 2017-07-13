@@ -47,6 +47,10 @@ It's a silly name. Please suggest something better.
     export APITEST_AUD=test-audience
     echo "$APITEST_AUD" > "$DATADIR/aud"
 
+    # Set the "iss" field for access tokens.
+    export APITEST_ISS=test-issuer
+    echo "$APITEST_ISS" > "$DATADIR/iss"
+
     # Generate an RSA key for signing access tokens for the API. Key
     # generation is disabled, to make test suite faster. Using
     # pre-generated key instead.
@@ -77,8 +81,9 @@ It's a silly name. Please suggest something better.
         "http://127.0.0.1:12765/version" > "$DATADIR/out" 2> "$DATADIR/err"
 
     IMPLEMENTS WHEN client gets an authorization token with scope "(.+)"
+    iss="$(cat "$DATADIR/iss")"
     aud="$(cat "$DATADIR/aud")"
-    ./create-token "$SRCDIR/apitest.key" "$aud" "$MATCH_1" > "$DATADIR/token"
+    ./create-token "$SRCDIR/apitest.key" "$iss" "$aud" "$MATCH_1" > "$DATADIR/token"
 
     IMPLEMENTS THEN HTTP status code is (.+)
     cat "$DATADIR/err"
