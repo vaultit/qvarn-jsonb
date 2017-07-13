@@ -98,7 +98,7 @@ if logfile:
 config = {
     'token-public-key': os.environ['APITEST_PUBKEY'],
     'token-audience': os.environ['APITEST_AUD'],
-    'token-issuer': 'https://idp.example.com',
+    'token-issuer': os.environ['APITEST_ISS'],
 }
 
 
