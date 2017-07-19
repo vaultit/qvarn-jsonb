@@ -22,7 +22,8 @@ class ObjectStoreInterface(object):  # pragma: no cover
     values corresponding to they keys can serialised into JSON, so
     they're strings, integers, booleans, or JSON-like objects, or
     lists of such values. JSON would support more types, but Qvarn
-    doesn't need them.
+    doesn't need them. Value strings (but not key names) may be
+    Unicode text or binary strings.
 
     The object store stores the JSON-like object, and a set of keys
     that identify the object. The caller gets to define the keys. The
