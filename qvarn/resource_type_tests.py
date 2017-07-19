@@ -38,3 +38,7 @@ class ResourceTypeTests(unittest.TestCase):
         rt = qvarn.ResourceType()
         rt.set_path('/subjects')
         self.assertEqual(rt.get_path(), '/subjects')
+
+    def test_initially_has_no_latest_version(self):
+        rt = qvarn.ResourceType()
+        self.assertEqual(rt.get_latest_version(), None)

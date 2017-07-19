@@ -19,6 +19,7 @@ class ResourceType:
     def __init__(self):
         self._name = None
         self._path = None
+        self._version = None
 
     def set_name(self, name):
         self._name = name
@@ -31,3 +32,6 @@ class ResourceType:
 
     def get_path(self):
         return self._path
+
+    def get_latest_version(self):
+        return self._version
