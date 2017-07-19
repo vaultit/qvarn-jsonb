@@ -24,4 +24,17 @@ from .objstore import (
     All,
 )
 
+from .idgen import ResourceIdGenerator
 from .resource_type import ResourceType
+
+from .collection import (
+    CollectionAPI,
+    NotSetUp,
+    HasId,
+    HasRevision,
+    NoId,
+    NoRevision,
+    NoType,
+    NoSuchResource,
+    WrongRevision,
+)
