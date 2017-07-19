@@ -4,5 +4,5 @@ apifw/http.py
 apifw/bottleapp.py
 apifw/apixface.py
 slog/__init__.py
-qvarn-backend.py
+qvarnbackend.py
 qvarn/__init__.py

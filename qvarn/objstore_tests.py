@@ -49,6 +49,12 @@ class ObjectStoreTests(unittest.TestCase):
         store.create_object(self.obj1, key='1st')
         self.assertEqual(self.get_all_objects(store), [self.obj1])
 
+    def test_adds_object_with_binary_data(self):
+        store = self.create_store(key=str)
+        self.obj1['data'] = bytes(range(0, 256))
+        store.create_object(self.obj1, key='1st')
+        self.assertEqual(self.get_all_objects(store), [self.obj1])
+
     def test_raises_error_for_surprising_keys(self):
         store = self.create_store(key=str)
         with self.assertRaises(qvarn.UnknownKey):
