@@ -69,3 +69,5 @@ class ResourceTypeTests(unittest.TestCase):
         self.assertEqual(rt.get_path(), spec['path'])
         self.assertEqual(
             rt.get_latest_version(), spec['versions'][-1]['version'])
+        self.assertEqual(
+            rt.get_latest_prototype(), spec['versions'][-1]['prototype'])

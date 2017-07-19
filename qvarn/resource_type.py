@@ -25,7 +25,7 @@ class ResourceType:
         self.set_type(spec['type'])
         self.set_path(spec['path'])
         versions = spec['versions']
-        self.set_latest_version(versions[-1]['version'])
+        self.set_version_spec(versions[-1])
 
     def set_type(self, type_name):
         self._type = type_name
@@ -39,8 +39,12 @@ class ResourceType:
     def get_path(self):
         return self._path
 
-    def set_latest_version(self, version):
-        self._version = version
+    def set_version_spec(self, version_spec):
+        self._version = version_spec['version']
+        self._prototype = version_spec['prototype']
 
     def get_latest_version(self):
         return self._version
+
+    def get_latest_prototype(self):
+        return self._prototype
