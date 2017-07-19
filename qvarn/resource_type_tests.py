@@ -24,3 +24,8 @@ class ResourceTypeTests(unittest.TestCase):
     def test_initially_has_no_name(self):
         rt = qvarn.ResourceType()
         self.assertEqual(rt.get_name(), None)
+
+    def test_sets_name(self):
+        rt = qvarn.ResourceType()
+        rt.set_name('subject')
+        self.assertEqual(rt.get_name(), 'subject')
