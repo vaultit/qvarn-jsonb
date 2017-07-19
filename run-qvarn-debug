@@ -42,5 +42,5 @@ token-public-key: $(cat "$tmp/key.pub")
 EOF
 export QVARN_CONFIG="$tmp/qvarn.yaml"
 
-gunicorn --bind 127.0.0.1:12765 -p "$tmp/pid" -w1 \
-         --log-file "qvarn.gunicorn.log" --log-level=debug qvarn:app
+gunicorn3 --bind 127.0.0.1:12765 -p "$tmp/pid" -w1 \
+          --log-file "qvarn.gunicorn.log" --log-level=debug qvarnbackend:app
