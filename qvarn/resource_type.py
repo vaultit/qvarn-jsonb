@@ -17,21 +17,21 @@
 class ResourceType:
 
     def __init__(self):
-        self._name = None
+        self._type = None
         self._path = None
         self._version = None
 
     def from_spec(self, spec):
-        self.set_name(spec['type'])
+        self.set_type(spec['type'])
         self.set_path(spec['path'])
         versions = spec['versions']
         self.set_latest_version(versions[-1]['version'])
 
-    def set_name(self, name):
-        self._name = name
+    def set_type(self, type_name):
+        self._type = type_name
 
-    def get_name(self):
-        return self._name
+    def get_type(self):
+        return self._type
 
     def set_path(self, path):
         self._path = path

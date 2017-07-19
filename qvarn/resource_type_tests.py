@@ -21,14 +21,14 @@ import qvarn
 
 class ResourceTypeTests(unittest.TestCase):
     
-    def test_initially_has_no_name(self):
+    def test_initially_has_no_type(self):
         rt = qvarn.ResourceType()
-        self.assertEqual(rt.get_name(), None)
+        self.assertEqual(rt.get_type(), None)
 
-    def test_sets_name(self):
+    def test_sets_type(self):
         rt = qvarn.ResourceType()
-        rt.set_name('subject')
-        self.assertEqual(rt.get_name(), 'subject')
+        rt.set_type('subject')
+        self.assertEqual(rt.get_type(), 'subject')
     
     def test_initially_has_no_path(self):
         rt = qvarn.ResourceType()
@@ -65,7 +65,7 @@ class ResourceTypeTests(unittest.TestCase):
         }
         rt = qvarn.ResourceType()
         rt.from_spec(spec)
-        self.assertEqual(rt.get_name(), spec['type'])
+        self.assertEqual(rt.get_type(), spec['type'])
         self.assertEqual(rt.get_path(), spec['path'])
         self.assertEqual(
             rt.get_latest_version(), spec['versions'][-1]['version'])
