@@ -29,3 +29,12 @@ class ResourceTypeTests(unittest.TestCase):
         rt = qvarn.ResourceType()
         rt.set_name('subject')
         self.assertEqual(rt.get_name(), 'subject')
+    
+    def test_initially_has_no_path(self):
+        rt = qvarn.ResourceType()
+        self.assertEqual(rt.get_path(), None)
+
+    def test_sets_path(self):
+        rt = qvarn.ResourceType()
+        rt.set_path('/subjects')
+        self.assertEqual(rt.get_path(), '/subjects')

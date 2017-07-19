@@ -18,9 +18,16 @@ class ResourceType:
 
     def __init__(self):
         self._name = None
+        self._path = None
 
     def set_name(self, name):
         self._name = name
 
     def get_name(self):
         return self._name
+
+    def set_path(self, path):
+        self._path = path
+
+    def get_path(self):
+        return self._path
