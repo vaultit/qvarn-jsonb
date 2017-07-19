@@ -23,4 +23,4 @@ class ResourceTypeTests(unittest.TestCase):
     
     def test_initially_has_no_name(self):
         rt = qvarn.ResourceType()
-        self.assertEqual(rt.get_path(), None)
+        self.assertEqual(rt.get_name(), None)

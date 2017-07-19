@@ -16,5 +16,5 @@
 
 class ResourceType:
 
-    def get_path(self):
+    def get_name(self):
         return None
