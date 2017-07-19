@@ -28,7 +28,7 @@ import syslog
 import slog
 
 
-class StructuredLog(object):
+class StructuredLog:
 
     '''A structured logging system.
 
@@ -150,7 +150,7 @@ class StructuredLog(object):
         return traceback.format_exc()
 
 
-class SlogWriter(object):  # pragma: no cover
+class SlogWriter:  # pragma: no cover
 
     def write(self, log_obj):
         raise NotImplementedError()

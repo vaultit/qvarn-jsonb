@@ -19,7 +19,7 @@
 import re
 
 
-class FilterRule(object):  # pragma: no cover
+class FilterRule:  # pragma: no cover
 
     def allow(self, log_obj):
         raise NotImplementedError()

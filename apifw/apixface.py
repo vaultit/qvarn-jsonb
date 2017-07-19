@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-class Api(object):
+class Api:
 
     def find_missing_route(self, path):
         # Return list of dicts to describe "routes" that should be

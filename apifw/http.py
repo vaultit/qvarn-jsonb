@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-class HttpTransaction(object):
+class HttpTransaction:
 
     # This class executes HTTP transactions. It is called by the web
     # framework, by some method that we don't specify. See the

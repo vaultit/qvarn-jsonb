@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-class ObjectStoreInterface(object):  # pragma: no cover
+class ObjectStoreInterface:  # pragma: no cover
 
     '''Store and retrieve JSON-like objects.
 
@@ -127,7 +127,7 @@ class KeyValueError(Exception):
         super().__init__('Key %r value %r has the wrong type' % (key, value))
 
 
-class Condition(object):
+class Condition:
 
     def matches(self, obj):  # pragma: no cover
         raise NotImplementedError()

@@ -17,7 +17,7 @@
 import _thread
 
 
-class Counter(object):
+class Counter:
 
     '''A threadsafe incrementing counter.'''
 

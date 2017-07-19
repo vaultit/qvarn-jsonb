@@ -62,7 +62,7 @@ class BottleLoggingPlugin(apifw.HttpTransaction):
         }
 
 
-class BottleAuthorizationPlugin(object):
+class BottleAuthorizationPlugin:
 
     route_pat = re.compile(r'<[^>]*>')
 
@@ -138,7 +138,7 @@ class BottleAuthorizationPlugin(object):
         raise bottle.HTTPError(401, body=explanation, headers=headers)
 
 
-class BottleApplication(object):
+class BottleApplication:
 
     # Provide the interface to bottle.Bottle that we need.
     # Specifically, we set up a hook to call the
