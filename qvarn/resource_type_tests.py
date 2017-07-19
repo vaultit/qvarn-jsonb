@@ -42,3 +42,30 @@ class ResourceTypeTests(unittest.TestCase):
     def test_initially_has_no_latest_version(self):
         rt = qvarn.ResourceType()
         self.assertEqual(rt.get_latest_version(), None)
+
+    def test_load_resource_spec(self):
+        spec = {
+            'type': 'subject',
+            'path': '/subjects',
+            'versions': [
+                {
+                    'version': 'v0',
+                    'prototype': {
+                        'foo': '',
+                    },
+                },
+                {
+                    'version': 'v1',
+                    'prototype': {
+                        'foo': '',
+                        'bar': '',
+                    },
+                },
+            ],
+        }
+        rt = qvarn.ResourceType()
+        rt.from_spec(spec)
+        self.assertEqual(rt.get_name(), spec['type'])
+        self.assertEqual(rt.get_path(), spec['path'])
+        self.assertEqual(
+            rt.get_latest_version(), spec['versions'][-1]['version'])
