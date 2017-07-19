@@ -14,14 +14,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from .objstore import (
-    ObjectStoreInterface,
-    MemoryObjectStore,
-    KeyCollision,
-    UnknownKey,
-    KeyValueError,
-    Equal,
-    All,
-)
+import unittest
 
-from .resource_type import ResourceType
+import qvarn
+
+
+class ResourceTypeTests(unittest.TestCase):
+    
+    def test_initially_has_no_name(self):
+        rt = qvarn.ResourceType()
+        self.assertEqual(rt.get_path(), None)

@@ -14,14 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from .objstore import (
-    ObjectStoreInterface,
-    MemoryObjectStore,
-    KeyCollision,
-    UnknownKey,
-    KeyValueError,
-    Equal,
-    All,
-)
+class ResourceType:
 
-from .resource_type import ResourceType
+    def get_path(self):
+        return None
