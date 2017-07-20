@@ -50,9 +50,9 @@ class StructuredLogTests(unittest.TestCase):
             return [json.loads(line) for line in f]
 
     def test_logs_in_json(self):
-        slog, writer, _ = self.create_structured_log()
-        slog.log('testmsg', foo='foo', bar='bar', number=12765)
-        slog.close()
+        log, writer, _ = self.create_structured_log()
+        log.log('testmsg', foo='foo', bar='bar', number=12765)
+        log.close()
 
         objs = self.read_log_entries(writer)
         self.assertEqual(len(objs), 1)
@@ -63,10 +63,10 @@ class StructuredLogTests(unittest.TestCase):
         self.assertEqual(obj['number'], 12765)
 
     def test_logs_two_lines_in_json(self):
-        slog, writer, _ = self.create_structured_log()
-        slog.log('testmsg1', foo='foo')
-        slog.log('testmsg2', bar='bar')
-        slog.close()
+        log, writer, _ = self.create_structured_log()
+        log.log('testmsg1', foo='foo')
+        log.log('testmsg2', bar='bar')
+        log.close()
 
         objs = self.read_log_entries(writer)
         self.assertEqual(len(objs), 2)
@@ -79,9 +79,9 @@ class StructuredLogTests(unittest.TestCase):
         self.assertEqual(obj2['bar'], 'bar')
 
     def test_adds_some_extra_fields(self):
-        slog, writer, _ = self.create_structured_log()
-        slog.log('testmsg')
-        slog.close()
+        log, writer, _ = self.create_structured_log()
+        log.log('testmsg')
+        log.close()
 
         objs = self.read_log_entries(writer)
         self.assertEqual(len(objs), 1)
@@ -93,10 +93,10 @@ class StructuredLogTests(unittest.TestCase):
         self.assertEqual(obj['_context'], None)
 
     def test_adds_context_when_given(self):
-        slog, writer, _ = self.create_structured_log()
-        slog.set_context('request 123')
-        slog.log('testmsg')
-        slog.close()
+        log, writer, _ = self.create_structured_log()
+        log.set_context('request 123')
+        log.log('testmsg')
+        log.close()
 
         objs = self.read_log_entries(writer)
         self.assertEqual(len(objs), 1)
@@ -104,11 +104,11 @@ class StructuredLogTests(unittest.TestCase):
         self.assertEqual(obj['_context'], 'request 123')
 
     def test_resets_context_when_requested(self):
-        slog, writer, _ = self.create_structured_log()
-        slog.set_context('request 123')
-        slog.reset_context()
-        slog.log('testmsg')
-        slog.close()
+        log, writer, _ = self.create_structured_log()
+        log.set_context('request 123')
+        log.reset_context()
+        log.log('testmsg')
+        log.close()
 
         objs = self.read_log_entries(writer)
         self.assertEqual(len(objs), 1)
@@ -116,10 +116,10 @@ class StructuredLogTests(unittest.TestCase):
         self.assertEqual(obj['_context'], None)
 
     def test_counts_messages(self):
-        slog, writer, _ = self.create_structured_log()
-        slog.log('testmsg')
-        slog.log('testmsg')
-        slog.close()
+        log, writer, _ = self.create_structured_log()
+        log.log('testmsg')
+        log.log('testmsg')
+        log.close()
 
         objs = self.read_log_entries(writer)
         self.assertEqual(len(objs), 2)
@@ -127,9 +127,9 @@ class StructuredLogTests(unittest.TestCase):
         self.assertEqual(objs[1]['_msg_number'], 2)
 
     def test_logs_traceback(self):
-        slog, writer, _ = self.create_structured_log()
-        slog.log('testmsg', exc_info=True)
-        slog.close()
+        log, writer, _ = self.create_structured_log()
+        log.log('testmsg', exc_info=True)
+        log.close()
 
         objs = self.read_log_entries(writer)
         self.assertEqual(len(objs), 1)
@@ -145,28 +145,28 @@ class StructuredLogTests(unittest.TestCase):
         self.assertEqual(objs[0]['text'], 'foo')
 
     def test_logs_nonutf8(self):
-        slog, writer, _ = self.create_structured_log()
+        log, writer, _ = self.create_structured_log()
         notutf8 = '\x86'
-        slog.log('blobmsg', notutf8=notutf8)
-        slog.close()
+        log.log('blobmsg', notutf8=notutf8)
+        log.close()
 
         objs = self.read_log_entries(writer)
         self.assertEqual(len(objs), 1)
         self.assertEqual(objs[0]['notutf8'], notutf8)
 
     def test_logs_list(self):
-        slog, writer, _ = self.create_structured_log()
-        slog.log('testmsg', items=[1, 2, 3])
-        slog.close()
+        log, writer, _ = self.create_structured_log()
+        log.log('testmsg', items=[1, 2, 3])
+        log.close()
 
         objs = self.read_log_entries(writer)
         self.assertEqual(len(objs), 1)
         self.assertEqual(objs[0]['items'], [1, 2, 3])
 
     def test_logs_tuple(self):
-        slog, writer, _ = self.create_structured_log()
-        slog.log('testmsg', t=(1, 2, 3))
-        slog.close()
+        log, writer, _ = self.create_structured_log()
+        log.log('testmsg', t=(1, 2, 3))
+        log.close()
 
         objs = self.read_log_entries(writer)
         self.assertEqual(len(objs), 1)
@@ -174,13 +174,13 @@ class StructuredLogTests(unittest.TestCase):
         self.assertEqual(objs[0]['t'], [1, 2, 3])
 
     def test_logs_dict(self):
-        slog, writer, _ = self.create_structured_log()
+        log, writer, _ = self.create_structured_log()
         dikt = {
             'foo': 'bar',
             'yo': [1, 2, 3],
         }
-        slog.log('testmsg', dikt=dikt)
-        slog.close()
+        log.log('testmsg', dikt=dikt)
+        log.close()
 
         objs = self.read_log_entries(writer)
         self.assertEqual(len(objs), 1)

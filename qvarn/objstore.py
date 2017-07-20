@@ -77,7 +77,7 @@ class MemoryObjectStore(ObjectStoreInterface):
         self._known_keys = keys
 
     def create_object(self, obj, **keys):
-        for key in keys.keys():
+        for key in keys:
             if key not in self._known_keys:
                 raise UnknownKey(key=key)
             if type(keys[key]) is not self._known_keys[key]:

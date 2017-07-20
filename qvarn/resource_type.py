@@ -20,6 +20,7 @@ class ResourceType:
         self._type = None
         self._path = None
         self._version = None
+        self._prototype = None
 
     def from_spec(self, spec):
         self.set_type(spec['type'])

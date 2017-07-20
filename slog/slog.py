@@ -20,9 +20,9 @@ import datetime
 import json
 import logging
 import os
-import _thread
 import time
 import traceback
+import _thread
 import syslog
 
 import slog
@@ -239,25 +239,25 @@ class SlogHandler(logging.Handler):  # pragma: no cover
 
     '''
 
-    def __init__(self, slog):
+    def __init__(self, log):
         super(SlogHandler, self).__init__()
-        self.slog = slog
+        self.log = log
 
     def emit(self, record):
         log_args = dict()
         for attr in dir(record):
             if not attr.startswith('_'):
                 value = getattr(record, attr)
-                if not isinstance(value, (str, unicode, int, bool, float)):
+                if not isinstance(value, (str, int, bool, float)):
                     value = repr(value)
                 log_args[attr] = value
-        self.slog.log('logging', **log_args)
+        self.log.log('logging', **log_args)
 
 
-def hijack_logging(slog):  # pragma: no cover
+def hijack_logging(log):  # pragma: no cover
     '''Hijack log messages that come via logging.* into a slog.'''
 
-    handler = SlogHandler(slog)
+    handler = SlogHandler(log)
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
