@@ -20,5 +20,6 @@ set -eu
 python3 -m CoverageTestRunner --ignore-missing-from=without-tests
 
 pep8 apifw slog qvarn
+pylint --rcfile pylint.conf apifw slog qvarn
 
 yarn apifw.yarn "$@"
