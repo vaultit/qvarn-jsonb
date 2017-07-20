@@ -18,7 +18,7 @@ import qvarn
 
 
 class CollectionAPI:
-    
+
     def __init__(self):
         self._store = None
         self._type = None
@@ -50,7 +50,7 @@ class CollectionAPI:
 
     def _invent_id(self, resource_type):
         return self._idgen.new_id(resource_type)
-        
+
     def get(self, obj_id):
         objs = self._store.get_objects(obj_id=obj_id)
         assert len(objs) <= 1

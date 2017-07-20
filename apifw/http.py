@@ -65,7 +65,6 @@ class HttpTransaction:
         }
         self._logger(self._combine_dicts(log, self.construct_response_log()))
 
-
     def _log_error(self, exc):
         log = {
             'msg_type': 'error',

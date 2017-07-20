@@ -102,7 +102,7 @@ class BottleAuthorizationPlugin:
         if not value:
             self.raise_unauthorized('No Authorization header')
         return value
-        
+
     def parse_authorization_header(self, value):
         words = value.split()
         if len(words) != 2 or words[0].lower() != 'bearer':

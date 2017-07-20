@@ -20,7 +20,7 @@ import qvarn
 
 
 class ResourceTypeTests(unittest.TestCase):
-    
+
     def test_initially_has_no_type(self):
         rt = qvarn.ResourceType()
         self.assertEqual(rt.get_type(), None)
@@ -29,7 +29,7 @@ class ResourceTypeTests(unittest.TestCase):
         rt = qvarn.ResourceType()
         rt.set_type('subject')
         self.assertEqual(rt.get_type(), 'subject')
-    
+
     def test_initially_has_no_path(self):
         rt = qvarn.ResourceType()
         self.assertEqual(rt.get_path(), None)

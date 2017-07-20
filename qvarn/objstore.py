@@ -65,7 +65,6 @@ class ObjectStoreInterface:  # pragma: no cover
 
     def find_object_ids(self, cond):
         raise NotImplementedError()
-    
 
 
 class MemoryObjectStore(ObjectStoreInterface):
@@ -91,7 +90,7 @@ class MemoryObjectStore(ObjectStoreInterface):
 
     def remove_objects(self, **keys):
         self._objs = [
-            (o,k) for o, k in self._objs if not self._keys_match(k, keys)]
+            (o, k) for o, k in self._objs if not self._keys_match(k, keys)]
 
     def get_objects(self, **keys):
         return [o for o, k in self._objs if self._keys_match(k, keys)]

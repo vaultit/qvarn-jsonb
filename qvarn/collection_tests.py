@@ -20,7 +20,7 @@ import qvarn
 
 
 class CollectionAPITests(unittest.TestCase):
-    
+
     def setUp(self):
         self.store = qvarn.MemoryObjectStore()
 

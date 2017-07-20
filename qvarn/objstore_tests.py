@@ -39,7 +39,7 @@ class ObjectStoreTests(unittest.TestCase):
 
     def sorted_dicts(self, dicts):
         return sorted(dicts, key=lambda d: sorted(d.items()))
-    
+
     def test_is_initially_empty(self):
         store = self.create_store(key=str)
         self.assertEqual(self.get_all_objects(store), [])
@@ -86,14 +86,14 @@ class ObjectStoreTests(unittest.TestCase):
     def test_gets_objects(self):
         store = self.create_store(key=str)
         store.create_object(self.obj1, key='1st')
-        store.create_object(self.obj2, key='2nd') 
+        store.create_object(self.obj2, key='2nd')
         self.assertEqual(store.get_objects(key='1st'), [self.obj1])
         self.assertEqual(store.get_objects(key='2nd'), [self.obj2])
 
     def test_gets_objects_using_only_one_key(self):
         store = self.create_store(key1=str, key2=str)
         store.create_object(self.obj1, key1='1st', key2='foo')
-        store.create_object(self.obj2, key1='2nd', key2='foo') 
+        store.create_object(self.obj2, key1='2nd', key2='foo')
         self.assertEqual(store.get_objects(key1='1st'), [self.obj1])
         self.assertEqual(store.get_objects(key1='2nd'), [self.obj2])
         self.assertEqual(

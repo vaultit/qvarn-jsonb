@@ -19,4 +19,6 @@ set -eu
 
 python3 -m CoverageTestRunner --ignore-missing-from=without-tests
 
+pep8 apifw slog qvarn
+
 yarn apifw.yarn "$@"

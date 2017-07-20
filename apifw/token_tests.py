@@ -28,6 +28,7 @@ import apifw
 token_signing_key = Crypto.PublicKey.RSA.generate(1024)
 wrong_signing_key = Crypto.PublicKey.RSA.generate(1024)
 
+
 class TokenTests(unittest.TestCase):
 
     def make_claimes(self, now):
