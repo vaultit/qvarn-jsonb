@@ -45,11 +45,6 @@ class CollectionAPITests(unittest.TestCase):
         self.coll.set_object_store(self.store)
         self.coll.set_resource_type(self.rt)
 
-    def test_raises_error_if_getting_routes_without_setup(self):
-        coll = qvarn.CollectionAPI()
-        with self.assertRaises(qvarn.NotSetUp):
-            coll.get_routes()
-
     def test_post_raises_error_if_type_not_given(self):
         obj = {
             'full_name': 'James Bond',

@@ -29,7 +29,6 @@ from .resource_type import ResourceType
 
 from .collection import (
     CollectionAPI,
-    NotSetUp,
     HasId,
     HasRevision,
     NoId,

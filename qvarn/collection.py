@@ -31,9 +31,6 @@ class CollectionAPI:
     def set_resource_type(self, rt):
         self._type = rt
 
-    def get_routes(self):
-        raise NotSetUp()
-
     def post(self, obj):
         if not obj.get('type'):
             raise NoType()
@@ -88,12 +85,6 @@ class CollectionAPI:
         self._store.create_object(new_obj, obj_id=new_obj['id'])
 
         return new_obj
-
-
-class NotSetUp(Exception):
-
-    def __init__(self):
-        super().__init__('CollectionAPI object is not set up')
 
 
 class NoType(Exception):
