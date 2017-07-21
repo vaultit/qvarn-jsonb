@@ -39,7 +39,14 @@ class BottleLoggingPlugin(apifw.HttpTransaction):
     def apply(self, callback, route):
 
         def wrapper(*args, **kwargs):
-            return self.perform_transaction(callback, *args, **kwargs)
+            try:
+                return self.perform_transaction(callback, *args, **kwargs)
+            except bottle.HTTPError as e:
+                self._log_error(e)
+                raise e
+            except BaseException as e:
+                self._log_error(e)
+                raise bottle.HTTPError(500, body=str(e))
 
         return wrapper
 
