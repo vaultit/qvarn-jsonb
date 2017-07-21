@@ -26,33 +26,10 @@ import sys
 import yaml
 
 import apifw
+import qvarn
 
 
 DEFAULT_CONFIG_FILE = '/dev/null'
-
-
-class QvarnApi(apifw.Api):
-
-    def find_missing_route(self, path):
-        logging.info('find_missing_route called!\n')
-        return [
-            {
-                'path': '/version',
-                'callback': self.version,
-            },
-        ]
-
-    def version(self):
-        return {
-            'api': {
-                'version': '0.0',
-            },
-            'implementation': {
-                'name': 'Qvarn',
-                'version': 'git',
-            }
-        }
-
 
 
 def dict_logger(log, stack_info=None):
@@ -96,7 +73,28 @@ config = dict(default_config)
 config.update(actual_config)
 check_config(config)
 
-api = QvarnApi()
+subject = qvarn.ResourceType()
+subject.from_spec({
+    'type': 'subject',
+    'path': '/subjects',
+    'versions': [
+        {
+            'version': 'v0',
+            'prototype': {
+                'id': '',
+                'type': '',
+                'revision': '',
+                'full_name': '',
+            }
+        }
+    ],
+})
+
+store = qvarn.MemoryObjectStore()
+
+api = qvarn.QvarnAPI()
+api.set_object_store(store)
+api.add_resource_type(subject)
 app = apifw.create_bottle_application(api, dict_logger, config)
 
 # If we are running this program directly with Python, and not via

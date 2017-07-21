@@ -14,6 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from .version import __version__, __version_info__
+
 from .objstore import (
     ObjectStoreInterface,
     MemoryObjectStore,
@@ -37,3 +39,5 @@ from .collection import (
     NoSuchResource,
     WrongRevision,
 )
+
+from .api import QvarnAPI, NoSuchResourceType, ResourceTypeAlreadyExists
