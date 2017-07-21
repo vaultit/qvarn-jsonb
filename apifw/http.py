@@ -68,7 +68,8 @@ class HttpTransaction:
     def _log_error(self, exc):
         log = {
             'msg_type': 'error',
-            'msg_text': str(exc),
+            'msg_text': 'caught exception at runtime',
+            'exception': str(exc),
         }
         self._logger(self._combine_dicts(log), stack_info=True)
 
