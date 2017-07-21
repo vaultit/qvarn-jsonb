@@ -39,11 +39,18 @@ class Api(apifw.Api):
                 'path': '/version',
                 'callback': self.version,
             },
+            {
+                'method': 'PUT',
+                'path': '/upload',
+                'callback': self.upload,
+            },
         ]
 
-    def version(self):
-        logging.info('/version called!\n')
+    def version(self, content_type, body):
         return 'version: 4.2'
+
+    def upload(self, content_type, body):
+        return 'thank you for %s\n' % body.decode('ascii')
 
 
 # We want logging. gunicorn provides logging, but only of its own

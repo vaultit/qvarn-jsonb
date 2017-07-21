@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import logging
 import re
 import time
 
@@ -100,17 +101,22 @@ class BottleAuthorizationPlugin:
         value = request.get_header('Authorization', '')
         if not value:
             self.raise_unauthorized('No Authorization header')
+        logging.debug('Request has Authorization header: good')
         return value
 
     def parse_authorization_header(self, value):
         words = value.split()
         if len(words) != 2 or words[0].lower() != 'bearer':
             self.raise_unauthorized('Authorization should be "Bearer TOKEN"')
+        logging.debug(
+            'Request Authorization header looks like a bearer token: good')
         return words[1]
 
     def parse_token(self, token):
         try:
-            return apifw.decode_token(token, self.pubkey, audience=self.aud)
+            token = apifw.decode_token(token, self.pubkey, audience=self.aud)
+            logging.debug('Request Authorization token can be decoded: good')
+            return token
         except jwt.InvalidTokenError as e:
             self.raise_unauthorized(str(e))
 
@@ -118,11 +124,18 @@ class BottleAuthorizationPlugin:
         if claims['iss'] != self.iss:
             self.raise_unauthorized(
                 'Expected issuer %s, got %s' % (self.iss, claims['iss']))
+        logging.debug('Token issuer is correct: good')
 
     def scope_allows_route(self, claim_scopes, route):
         scopes = claim_scopes.split(' ')
         route_scope = self.get_scope_for_route(route['method'], route['rule'])
-        return route_scope in scopes
+        if route_scope in scopes:
+            logging.debug(
+                'Route scope %s is in scopes %r', route_scope, scopes)
+            return True
+        logging.error(
+            'Route scope %s is NOT in scopes %r', route_scope, scopes)
+        return False
 
     def get_scope_for_route(self, method, rule):
         scope = re.sub(self.route_pat, 'id', rule)
@@ -160,14 +173,29 @@ class BottleApplication:
             routes = self._api.find_missing_route(bottle.request.path)
             if routes:
                 for route in routes:
+                    callback = self._callback_with_body(route['callback'])
                     route_dict = {
                         'method': route.get('method', 'GET'),
                         'path': route['path'],
-                        'callback': route['callback'],
+                        'callback': callback,
                     }
                     self._bottleapp.route(**route_dict)
             else:
                 raise
+
+    def _callback_with_body(self, callback):
+        def wrapper(*args, **kwargs):
+            content_type, body = self._get_request_body()
+            return callback(content_type, body, *args, **kwargs)
+        return wrapper
+
+    def _get_request_body(self):
+        content_type = bottle.request.get_header('Content-Type')
+        if content_type == 'application/json':
+            body = bottle.request.json
+        else:
+            body = bottle.request.body.read()
+        return content_type, body
 
 
 def create_bottle_application(api, logger, config):

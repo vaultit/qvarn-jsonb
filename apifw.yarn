@@ -37,6 +37,11 @@ It's a silly name. Please suggest something better.
     THEN HTTP status code is 200 OK
     AND HTTP body is "version: 4.2"
 
+    WHEN client gets an authorization token with scope "uapi_upload_put"
+    AND client uploads a fake jpg
+    THEN HTTP status code is 200 OK
+    AND HTTP body is "thank you for fake jpg"
+
     FINALLY stop apitest
 
 
@@ -79,6 +84,14 @@ It's a silly name. Please suggest something better.
     token="$(cat "$DATADIR/token")"
     curl -sv -H "Authorization: Bearer $token" \
         "http://127.0.0.1:12765/version" > "$DATADIR/out" 2> "$DATADIR/err"
+
+    IMPLEMENTS WHEN client uploads a fake jpg
+    token="$(cat "$DATADIR/token")"
+    curl -sv -H "Authorization: Bearer $token" \
+        -H "Content-type: application/jpeg" \
+        -d "fake jpg" \
+        -X PUT \
+        "http://127.0.0.1:12765/upload" > "$DATADIR/out" 2> "$DATADIR/err"
 
     IMPLEMENTS WHEN client gets an authorization token with scope "(.+)"
     iss="$(cat "$DATADIR/iss")"

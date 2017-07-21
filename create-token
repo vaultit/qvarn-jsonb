@@ -26,7 +26,7 @@ import apifw
 filename = sys.argv[1]
 iss = sys.argv[2]
 aud = sys.argv[3]
-scopes = sys.argv[4]
+scopes = ' '.join(sys.argv[4].split())
 
 key_text = open(filename, 'r').read()
 key = Crypto.PublicKey.RSA.importKey(key_text)

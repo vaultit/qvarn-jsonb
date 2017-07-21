@@ -34,9 +34,14 @@ export APITEST_ISS=testissuer
 export APITEST_AUD=aud
 export APITEST_LOG="$log"
 
+scopes="
+uapi_version_get
+uapi_upload_put
+"
+
 ./generate-rsa-key "$tmp/key"
-./create-token "$tmp/key" "$APITEST_ISS" "$APITEST_AUD" uapi_version_get > "$token"
+./create-token "$tmp/key" "$APITEST_ISS" "$APITEST_AUD" "$scopes" > "$token"
 export APITEST_PUBKEY="$(cat "$tmp/key.pub")"
 
-gunicorn --bind 127.0.0.1:12765 -p "$tmp/pid" -w16 \
+gunicorn --bind 127.0.0.1:12765 -p "$tmp/pid" -w1 \
          --log-file "$log" --log-level=debug apitest:app
