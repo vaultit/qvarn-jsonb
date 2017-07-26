@@ -72,6 +72,7 @@ actual_config = read_config(os.environ.get('QVARN_CONFIG', DEFAULT_CONFIG_FILE))
 config = dict(default_config)
 config.update(actual_config)
 check_config(config)
+setup_logging(config)
 
 subject = qvarn.ResourceType()
 subject.from_spec({
