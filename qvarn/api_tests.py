@@ -28,7 +28,8 @@ class QvarnAPITests(unittest.TestCase):
 
     def test_version_returns_sensible_data(self):
         api = qvarn.QvarnAPI()
-        v = api.version(None, None)
+        r = api.version(None, None)
+        v = r['body']
         self.assertTrue(isinstance(v, dict))
         self.assertTrue('api' in v)
         self.assertTrue('version' in v['api'])

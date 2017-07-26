@@ -47,10 +47,22 @@ class Api(apifw.Api):
         ]
 
     def version(self, content_type, body):
-        return 'version: 4.2'
+        return apifw.Response({
+            'status': apifw.HTTP_OK,
+            'body': 'version: 4.2',
+            'headers': {
+                'Content-Type': 'text/plain',
+            },
+        })
 
     def upload(self, content_type, body):
-        return 'thank you for %s\n' % body.decode('ascii')
+        return apifw.Response({
+            'status': apifw.HTTP_OK,
+            'body': 'thank you for %s\n' % body.decode('ascii'),
+            'headers': {
+                'Content-Type': 'text/plain',
+            },
+        })
 
 
 # We want logging. gunicorn provides logging, but only of its own

@@ -23,3 +23,5 @@ pep8 apifw slog qvarn
 pylint3 -j0 --rcfile pylint.conf apifw slog qvarn
 
 yarn apifw.yarn "$@"
+yarn yarns/*.yarn \
+     -s yarns/lib.py --shell python2 --shell-arg '' --cd-datadir "$@"

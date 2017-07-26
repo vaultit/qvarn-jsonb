@@ -15,6 +15,12 @@
 
 
 from .apixface import Api
-from .http import HttpTransaction
+from .http import (
+    HttpTransaction,
+    Response,
+    HTTP_OK,
+    HTTP_CREATED,
+    HTTP_NOT_FOUND,
+)
 from .token import create_token, decode_token
 from .bottleapp import BottleApplication, create_bottle_application

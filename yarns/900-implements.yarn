@@ -1,0 +1,135 @@
+# Step implementations
+
+This chapter shows the scenario step implementations.
+
+## Start and stop Qvarn
+
+Start a Qvarn running in the background.
+
+    IMPLEMENTS GIVEN a running qvarn instance
+    import os, time, cliapp, yaml, yarnutils
+    privkey, pubkey = create_token_signing_key_pair()
+    open('key', 'w').write(privkey)
+    vars['aud'] = 'http://api.test.example.com'
+    vars['iss'] = 'qvarn.yarn'
+    vars['privkey'] = privkey
+    vars['pubkey'] = pubkey
+    vars['api.log'] = 'qvarn.log'
+    vars['gunicorn3.log'] = 'gunicorn3.log'
+    vars['pid-file'] = 'pid'
+    # FIXME: It would be good for the test suite to pick a random free
+    # port. But that's not simple.
+    vars['port'] = 12765
+    vars['url'] = 'http://127.0.0.1:{}'.format(vars['port'])
+    config = {
+        'log': vars['api.log'],
+        'token-issuer': vars['iss'],
+        'token-audience': vars['aud'],
+        'token-public-key': vars['pubkey'],
+    }
+    yaml.safe_dump(config, open('qvarn.yaml', 'w'))
+    argv = [
+        'gunicorn3',
+        '--daemon',
+        '--bind', '127.0.0.1:{}'.format(vars['port']),
+        '-p', vars['pid-file'],
+        '--log-file', vars['gunicorn3.log'],
+        '--log-level', 'debug',
+        'qvarnbackend:app',
+    ]
+    env = dict(os.environ)
+    env['QVARN_CONFIG'] = 'qvarn.yaml'
+    cliapp.runcmd(argv, env=env)
+    time.sleep(2)
+
+## Stop a Qvarn we started
+
+    IMPLEMENTS FINALLY qvarn is stopped
+    import os, signal, yarnutils
+    pid = int(cat(vars['pid-file']))
+    os.kill(pid, signal.SIGTERM)
+
+## API requests of various kinds
+
+    IMPLEMENTS WHEN client requests GET (/.+) without token
+    path = get_next_match()
+    path = expand_vars(path, vars)
+    vars['status_code'], vars['body'] = get(vars['url'] + path)
+
+    IMPLEMENTS WHEN client requests GET (/.+) using token
+    path = get_next_match()
+    path = expand_vars(path, vars)
+    headers = {
+        'Authorization': 'Bearer {}'.format(vars['token']),
+    }
+    vars['status_code'], vars['body'] = get(vars['url'] + path, headers)
+
+    IMPLEMENTS WHEN client requests POST (/.+) with token and body (.+)
+    path = get_next_match()
+    body = get_next_match()
+    headers = {
+        'Authorization': 'Bearer {}'.format(vars['token']),
+        'Content-Type': 'application/json',
+    }
+    vars['status_code'], vars['body'] = post(
+        vars['url'] + path, headers=headers, body=body)
+
+    IMPLEMENTS WHEN client requests PUT (/.+) with token and body (.+)
+    path = get_next_match()
+    path = expand_vars(path, vars)
+    body = get_next_match()
+    body = expand_vars(body, vars)
+    headers = {
+        'Authorization': 'Bearer {}'.format(vars['token']),
+        'Content-Type': 'application/json',
+    }
+    vars['status_code'], vars['body'] = put(
+        vars['url'] + path, headers=headers, body=body)
+
+    IMPLEMENTS WHEN client requests DELETE (/.+) with token
+    path = get_next_match()
+    path = expand_vars(path, vars)
+    headers = {
+        'Authorization': 'Bearer {}'.format(vars['token']),
+    }
+    vars['status_code'], vars['body'] = delete(
+        vars['url'] + path, headers=headers)
+
+    IMPLEMENTS WHEN client uploads a fake jpg
+    assert 0
+
+## API access token creation
+
+    IMPLEMENTS WHEN client gets an authorization token with scope "(.+)"
+    scopes = get_next_match()
+    vars['token'] = create_token(vars['privkey'], vars['iss'], vars['aud'], scopes)
+
+## API request result checking
+
+    IMPLEMENTS THEN HTTP status code is (\d+) (.*)
+    expected = int(get_next_match())
+    assertEqual(vars['status_code'], expected)
+
+    IMPLEMENTS THEN resource id is (\S+)
+    import json
+    name = get_next_match()
+    body = json.loads(vars['body'])
+    vars[name] = body['id']
+
+    IMPLEMENTS THEN revision is (\S+)
+    import json
+    name = get_next_match()
+    body = json.loads(vars['body'])
+    vars[name] = body['revision']
+
+    IMPLEMENTS THEN JSON body matches (.+)
+    import json
+    wanted = get_next_match()
+    wanted = json.loads(expand_vars(wanted, vars))
+    actual = json.loads(vars['body'])
+    print 'actual', repr(actual)
+    print 'wanted', repr(wanted)
+    assertTrue(dict_matches(wanted, actual))
+
+    IMPLEMENTS THEN response has header WWW-Authenticate containing "(.+)"
+    assert 0

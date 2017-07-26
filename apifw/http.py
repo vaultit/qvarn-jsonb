@@ -14,6 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+HTTP_OK = 200
+HTTP_CREATED = 201
+HTTP_NOT_FOUND = 404
+
+
 class HttpTransaction:
 
     # This class executes HTTP transactions. It is called by the web
@@ -93,3 +98,19 @@ class HttpTransaction:
             # Everything else results in an error logged.
             self._log_error(e)
             raise
+
+
+class Response:
+
+    def __init__(self, values):
+        self._keys = ['status', 'headers', 'body']
+        self._dict = {}
+        for key, value in values.items():
+            self[key] = value
+
+    def __setitem__(self, key, value):
+        assert key in self._keys
+        self._dict[key] = value
+
+    def __getitem__(self, key):
+        return self._dict[key]

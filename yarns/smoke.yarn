@@ -1,0 +1,77 @@
+---
+title: qvarn2 integration tests
+...
+
+
+# Introduction
+
+This is an integration test suite for the Qvarn HTTP API.
+
+# Version checking
+
+    SCENARIO Qvarn reports its version
+
+    GIVEN a running qvarn instance
+
+    WHEN client requests GET /version without token
+    THEN HTTP status code is 401 Unauthorized
+
+    WHEN client gets an authorization token with scope "uapi_version_get"
+    AND client requests GET /version using token
+    THEN HTTP status code is 200 OK
+
+    FINALLY qvarn is stopped
+
+
+# Manage a subject
+
+    SCENARIO user manages a subject resource
+
+    GIVEN a running Qvarn instance
+
+    WHEN client requests GET /subjects without token
+    THEN HTTP status code is 401 Unauthorized
+
+    WHEN client requests GET /subjects/notexist without token
+    THEN HTTP status code is 401 Unauthorized
+
+    WHEN client gets an authorization token with scope 
+    ... "uapi_subjects_get uapi_subjects_post uapi_subjects_id_get 
+    ...  uapi_subjects_id_put uapi_subjects_id_delete"
+    AND client requests GET /subjects using token
+    THEN HTTP status code is 200 OK
+
+    WHEN client requests POST /subjects with token and body
+    ... { "type": "subject", "full_name": "Jason Bourne" }
+    THEN HTTP status code is 201 Created
+    AND resource id is ID1
+    AND revision is REV1
+
+    WHEN client requests GET /subjects/${ID1} without token
+    THEN HTTP status code is 401 Unauthorized
+
+    WHEN client requests GET /subjects/${ID1} using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... { "revision": "${REV1}", "id": "${ID1}", "type": "subject",
+    ...   "full_name": "Jason Bourne" }
+
+    WHEN client requests PUT /subjects/${ID1} with token and body
+    ... { "type": "subject", "id": "${ID1}", "revision": "${REV1}",
+    ...   "full_name": "David Webb" }
+    THEN HTTP status code is 200 OK
+    AND revision is REV2
+
+    WHEN client requests GET /subjects/${ID1} using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... { "revision": "${REV2}", "id": "${ID1}", "type": "subject",
+    ...   "full_name": "David Webb" }
+
+    WHEN client requests DELETE /subjects/${ID1} with token
+    THEN HTTP status code is 200 OK
+
+    WHEN client requests GET /subjects/${ID1} using token
+    THEN HTTP status code is 404 Not Found
+
+    FINALLY qvarn is stopped

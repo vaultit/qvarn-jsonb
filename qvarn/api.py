@@ -17,6 +17,7 @@
 import os
 
 
+import apifw
 import qvarn
 
 
@@ -62,21 +63,37 @@ class QvarnAPI:
             },
             {
                 'method': 'GET',
+                'path': path,
+                'callback': self.get_resource_list_callback(coll),
+            },
+            {
+                'method': 'GET',
                 'path': id_path,
                 'callback': self.get_resource_callback(coll),
+            },
+            {
+                'method': 'DELETE',
+                'path': id_path,
+                'callback': self.delete_resource_callback(coll),
             },
         ]
 
     def version(self, content_type, body):
-        return {
-            'api': {
-                'version': qvarn.__version__,
+        return apifw.Response({
+            'status': apifw.HTTP_OK,
+            'body': {
+                'api': {
+                    'version': qvarn.__version__,
+                },
+                'implementation': {
+                    'name': 'Qvarn',
+                    'version': qvarn.__version__,
+                },
             },
-            'implementation': {
-                'name': 'Qvarn',
-                'version': qvarn.__version__,
+            'headers': {
+                'Content-Type': 'application/json',
             },
-        }
+        })
 
     def add_resource_type(self, rt):
         path = rt.get_path()
@@ -97,22 +114,60 @@ class QvarnAPI:
             if content_type != 'application/json':
                 raise NotJson(content_type)
             self.validate_json(body)
-            return coll.post(body)
+            return apifw.Response({
+                'status': apifw.HTTP_CREATED,
+                'body': coll.post(body),
+                'headers': {
+                    'Content-Type': 'application/json',
+                },
+            })
         return wrapper
 
     def get_put_callback(self, coll):  # pragma: no cover
-        def wrapper(content_type, body, obj_id):
+        def wrapper(content_type, body, **kwargs):
             if content_type != 'application/json':
                 raise NotJson(content_type)
             self.validate_json(body)
+            obj_id = kwargs['id']
             if body['id'] != obj_id:
                 raise IdMismatch(body['id'], obj_id)
-            return coll.put(body)
+            return apifw.Response({
+                'status': apifw.HTTP_OK,
+                'body': coll.put(body),
+                'headers': {
+                    'Content-Type': 'application/json',
+                },
+            })
         return wrapper
 
     def get_resource_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
-            return coll.get(kwargs['id'])
+            try:
+                obj = coll.get(kwargs['id'])
+            except qvarn.NoSuchResource:
+                return {
+                    'status': apifw.HTTP_NOT_FOUND,
+                    'body': '',
+                    'headers': {},
+                }
+            return apifw.Response({
+                'status': apifw.HTTP_OK,
+                'body': obj,
+                'headers': {
+                    'Content-Type': 'application/json',
+                },
+            })
+        return wrapper
+
+    def get_resource_list_callback(self, coll):  # pragma: no cover
+        def wrapper(content_type, body, **kwargs):
+            return apifw.Response({
+                'status': apifw.HTTP_OK,
+                'body': coll.list(),
+                'headers': {
+                    'Content-Type': 'application/json',
+                },
+            })
         return wrapper
 
     def validate_json(self, obj):  # pragma: no cover
@@ -120,6 +175,17 @@ class QvarnAPI:
             raise NotDict()
         if 'type' not in obj:
             raise NoType()
+
+    def delete_resource_callback(self, coll):  # pragma: no cover
+        def wrapper(content_type, body, **kwargs):
+            return apifw.Response({
+                'status': apifw.HTTP_OK,
+                'body': coll.delete(kwargs['id']),
+                'headers': {
+                    'Content-Type': 'application/json',
+                },
+            })
+        return wrapper
 
 
 class NoSuchResourceType(Exception):

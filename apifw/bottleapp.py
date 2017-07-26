@@ -193,7 +193,10 @@ class BottleApplication:
     def _callback_with_body(self, callback):
         def wrapper(*args, **kwargs):
             content_type, body = self._get_request_body()
-            return callback(content_type, body, *args, **kwargs)
+            response = callback(content_type, body, *args, **kwargs)
+            return bottle.HTTPResponse(
+                status=response['status'], body=response['body'],
+                headers=response['headers'])
         return wrapper
 
     def _get_request_body(self):
