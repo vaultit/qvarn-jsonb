@@ -15,6 +15,9 @@
 
 
 from .version import __version__, __version_info__
+from .logging import log, setup_logging
+from .idgen import ResourceIdGenerator
+from .resource_type import ResourceType
 
 from .objstore import (
     ObjectStoreInterface,
@@ -25,9 +28,6 @@ from .objstore import (
     Equal,
     All,
 )
-
-from .idgen import ResourceIdGenerator
-from .resource_type import ResourceType
 
 from .collection import (
     CollectionAPI,

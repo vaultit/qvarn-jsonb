@@ -244,20 +244,35 @@ class SlogHandler(logging.Handler):  # pragma: no cover
         self.log = log
 
     def emit(self, record):
+        attr_names = {
+            'msg': 'msg_text',
+        }
+
         log_args = dict()
         for attr in dir(record):
             if not attr.startswith('_'):
                 value = getattr(record, attr)
                 if not isinstance(value, (str, int, bool, float)):
                     value = repr(value)
-                log_args[attr] = value
-        self.log.log('logging', **log_args)
+                log_args[attr_names.get(attr, attr)] = value
+        self.log.log('logging.' + record.levelname, **log_args)
 
 
-def hijack_logging(log):  # pragma: no cover
+def hijack_logging(log, logger_names=None):  # pragma: no cover
     '''Hijack log messages that come via logging.* into a slog.'''
 
     handler = SlogHandler(log)
+
+    for name in logger_names or []:
+        logger = logging.getLogger(name)
+        hijack_logger_handlers(logger, handler)
+
     logger = logging.getLogger()
+    hijack_logger_handlers(logger, handler)
+
+
+def hijack_logger_handlers(logger, handler):  # pragma: no cover
     logger.setLevel(logging.DEBUG)
+    for h in logger.handlers:
+        logger.removeHandler(h)
     logger.addHandler(handler)

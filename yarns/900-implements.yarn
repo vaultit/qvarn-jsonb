@@ -22,7 +22,11 @@ Start a Qvarn running in the background.
     vars['port'] = 12765
     vars['url'] = 'http://127.0.0.1:{}'.format(vars['port'])
     config = {
-        'log': vars['api.log'],
+        'log': [
+            {
+                'filename': vars['api.log'],
+            },
+        ],
         'token-issuer': vars['iss'],
         'token-audience': vars['aud'],
         'token-public-key': vars['pubkey'],
@@ -33,14 +37,13 @@ Start a Qvarn running in the background.
         '--daemon',
         '--bind', '127.0.0.1:{}'.format(vars['port']),
         '-p', vars['pid-file'],
-        '--log-file', vars['gunicorn3.log'],
-        '--log-level', 'debug',
         'qvarnbackend:app',
     ]
     env = dict(os.environ)
     env['QVARN_CONFIG'] = 'qvarn.yaml'
-    cliapp.runcmd(argv, env=env)
+    cliapp.runcmd(argv, env=env, stdout=None, stderr=None)
     time.sleep(2)
+    assert os.path.exists(vars['pid-file'])
 
 ## Stop a Qvarn we started
 

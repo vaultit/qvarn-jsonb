@@ -21,6 +21,7 @@ from .slog import (
     NullSlogWriter,
     FileSlogWriter,
     SyslogSlogWriter,
+    SlogHandler,
     hijack_logging,
 )
 

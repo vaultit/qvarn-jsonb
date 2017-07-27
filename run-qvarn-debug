@@ -42,12 +42,12 @@ AUD=aud
 ./create-token "$tmp/key" "$ISS" "$AUD" "$scopes" > "$token"
 
 cat <<EOF > "$tmp/qvarn.yaml"
-log: qvarn.log
+log: 
+  - filename: qvarn.log
 token-issuer: $ISS
 token-audience: $AUD
 token-public-key: $(cat "$tmp/key.pub")
 EOF
 export QVARN_CONFIG="$tmp/qvarn.yaml"
 
-gunicorn3 --bind 127.0.0.1:12765 -p "$tmp/pid" -w1 \
-          --log-file "qvarn.gunicorn.log" --log-level=debug qvarnbackend:app
+gunicorn3 --bind 127.0.0.1:12765 -p "$tmp/pid" -w1 qvarnbackend:app

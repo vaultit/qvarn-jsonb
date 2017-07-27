@@ -27,25 +27,14 @@ import yaml
 
 import apifw
 import qvarn
+import slog
 
 
 DEFAULT_CONFIG_FILE = '/dev/null'
 
 
 def dict_logger(log, stack_info=None):
-    logging.info('Start log entry')
-    for key in sorted(log.keys()):
-        logging.info('  %r=%r', key, log[key])
-    logging.info('Endlog entry')
-    if stack_info:
-        logging.info('Traceback', exc_info=True)
-
-
-
-def setup_logging(config):
-    filename = config.get('log')
-    if filename:
-        logging.basicConfig(filename=filename, level=logging.DEBUG)
+    qvarn.log.log(exc_info=stack_info, **log)
 
 
 def read_config(config_filename):
@@ -65,14 +54,16 @@ default_config = {
     'token-public-key': None,
     'token-audience': None,
     'token-issuer': None,
+    'log': [],
 }
 
 
 actual_config = read_config(os.environ.get('QVARN_CONFIG', DEFAULT_CONFIG_FILE))
 config = dict(default_config)
-config.update(actual_config)
+config.update(actual_config or {})
 check_config(config)
-setup_logging(config)
+qvarn.setup_logging(config)
+qvarn.log.log('info', msg_text='Qvarn backend starting')
 
 subject = qvarn.ResourceType()
 subject.from_spec({

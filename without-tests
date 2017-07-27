@@ -6,5 +6,6 @@ apifw/apixface.py
 slog/__init__.py
 qvarnbackend.py
 qvarn/__init__.py
+qvarn/logging.py
 qvarn/version.py
 yarns/lib.py
