@@ -30,6 +30,7 @@ Start a Qvarn running in the background.
         'token-issuer': vars['iss'],
         'token-audience': vars['aud'],
         'token-public-key': vars['pubkey'],
+        'resource-type-dir': os.path.join(srcdir, 'resource_type'),
     }
     yaml.safe_dump(config, open('qvarn.yaml', 'w'))
     argv = [

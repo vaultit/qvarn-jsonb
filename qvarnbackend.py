@@ -55,6 +55,7 @@ default_config = {
     'token-audience': None,
     'token-issuer': None,
     'log': [],
+    'resource-type-dir': None,
 }
 
 
@@ -82,11 +83,17 @@ subject.from_spec({
     ],
 })
 
+resource_types = qvarn.load_resource_types(config['resource-type-dir'])
+
 store = qvarn.MemoryObjectStore()
 
 api = qvarn.QvarnAPI()
 api.set_object_store(store)
 api.add_resource_type(subject)
+for rt in resource_types:
+    api.add_resource_type(rt)
+
+
 app = apifw.create_bottle_application(api, dict_logger, config)
 
 # If we are running this program directly with Python, and not via

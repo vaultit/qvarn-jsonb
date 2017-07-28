@@ -17,7 +17,7 @@
 from .version import __version__, __version_info__
 from .logging import log, setup_logging
 from .idgen import ResourceIdGenerator
-from .resource_type import ResourceType
+from .resource_type import ResourceType, load_resource_types
 
 from .objstore import (
     ObjectStoreInterface,

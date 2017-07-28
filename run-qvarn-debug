@@ -30,6 +30,9 @@ cleanup()
 trap cleanup EXIT
 
 scopes="
+uapi_persons_get
+uapi_persons_id_get
+uapi_persons_post
 uapi_subjects_get
 uapi_subjects_id_get
 uapi_subjects_post
@@ -47,6 +50,7 @@ log:
 token-issuer: $ISS
 token-audience: $AUD
 token-public-key: $(cat "$tmp/key.pub")
+resource-type-dir: resource_type
 EOF
 export QVARN_CONFIG="$tmp/qvarn.yaml"
 

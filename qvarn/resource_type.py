@@ -14,6 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import os
+
+import yaml
+
+
 class ResourceType:
 
     def __init__(self):
@@ -49,3 +54,17 @@ class ResourceType:
 
     def get_latest_prototype(self):
         return self._prototype
+
+
+def load_resource_types(dirname):  # pragma: no cover
+    assert dirname is not None
+    resource_types = []
+    basenames = [x for x in os.listdir(dirname) if x.endswith('.yaml')]
+    for basename in basenames:
+        pathname = os.path.join(dirname, basename)
+        with open(pathname) as f:
+            spec = yaml.safe_load(f)
+        rt = ResourceType()
+        rt.from_spec(spec)
+        resource_types.append(rt)
+    return resource_types
