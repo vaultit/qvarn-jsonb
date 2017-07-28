@@ -80,17 +80,18 @@ class QvarnAPI:
         ]
 
     def version(self, content_type, body):
+        version = {
+            'api': {
+                'version': qvarn.__version__,
+            },
+            'implementation': {
+                'name': 'Qvarn',
+                'version': qvarn.__version__,
+            },
+        }
         return apifw.Response({
             'status': apifw.HTTP_OK,
-            'body': {
-                'api': {
-                    'version': qvarn.__version__,
-                },
-                'implementation': {
-                    'name': 'Qvarn',
-                    'version': qvarn.__version__,
-                },
-            },
+            'body': version,
             'headers': {
                 'Content-Type': 'application/json',
             },
