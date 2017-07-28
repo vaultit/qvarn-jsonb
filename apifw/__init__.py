@@ -21,6 +21,7 @@ from .http import (
     HTTP_OK,
     HTTP_CREATED,
     HTTP_NOT_FOUND,
+    HTTP_BAD_REQUEST,
 )
 from .token import create_token, decode_token
 from .bottleapp import BottleApplication, create_bottle_application
