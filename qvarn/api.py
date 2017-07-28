@@ -25,6 +25,7 @@ class QvarnAPI:
 
     def __init__(self):
         self._store = None
+        self._validator = qvarn.Validator()
 
     def set_object_store(self, store):
         self._store = store
@@ -121,10 +122,10 @@ class QvarnAPI:
             if content_type != 'application/json':
                 raise NotJson(content_type)
             if 'type' not in body:
-                body['type'] = coll.get_type()
+                body['type'] = coll.get_type_name()
             try:
-                self.validate_json(body)
-            except ValidationError as e:
+                self._validator.validate_lacks_id(body, coll.get_type_name())
+            except qvarn.ValidationError as e:
                 qvarn.log.log('error', msg_text=str(e), body=body)
                 return apifw.Response({
                     'status': apifw.HTTP_BAD_REQUEST,
@@ -143,7 +144,16 @@ class QvarnAPI:
         def wrapper(content_type, body, **kwargs):
             if content_type != 'application/json':
                 raise NotJson(content_type)
-            self.validate_json(body)
+
+            try:
+                self._validator.validate_has_id(body, coll.get_type_name())
+            except qvarn.ValidationError as e:
+                qvarn.log.log('error', msg_text=str(e), body=body)
+                return apifw.Response({
+                    'status': apifw.HTTP_BAD_REQUEST,
+                    'body': str(e),
+                })
+
             obj_id = kwargs['id']
             if body['id'] != obj_id:
                 raise IdMismatch(body['id'], obj_id)
@@ -186,12 +196,6 @@ class QvarnAPI:
             })
         return wrapper
 
-    def validate_json(self, obj):  # pragma: no cover
-        if not isinstance(obj, dict):
-            raise NotDict()
-        if 'type' not in obj:
-            raise NoType()
-
     def delete_resource_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
             return apifw.Response({
@@ -220,23 +224,6 @@ class NotJson(Exception):  # pragma: no cover
 
     def __init__(self, ct):
         super().__init__('Was expecting application/json, not {}'.format(ct))
-
-
-class ValidationError(Exception):
-
-    pass
-
-
-class NotDict(ValidationError):  # pragma: no cover
-
-    def __init__(self):
-        super().__init__('Was expecting a JSON object (dict)')
-
-
-class NoType(ValidationError):  # pragma: no cover
-
-    def __init__(self):
-        super().__init__('Was expecting a "type" field in resource')
 
 
 class IdMismatch(Exception):  # pragma: no cover
