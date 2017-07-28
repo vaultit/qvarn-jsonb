@@ -29,6 +29,8 @@ from .objstore import (
     All,
 )
 
+from .validator import Validator, ValidationError
+
 from .collection import (
     CollectionAPI,
     HasId,
