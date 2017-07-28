@@ -32,6 +32,9 @@ class CollectionAPI:
         assert isinstance(rt, qvarn.ResourceType)
         self._type = rt
 
+    def get_type(self):
+        return self._type
+
     def get_type_name(self):
         return self._type.get_type()
 

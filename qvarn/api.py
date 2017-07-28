@@ -125,7 +125,7 @@ class QvarnAPI:
             if 'type' not in body:
                 body['type'] = coll.get_type_name()
             try:
-                self._validator.validate_lacks_id(body, coll.get_type_name())
+                self._validator.validate_lacks_id(body, coll.get_type())
             except qvarn.ValidationError as e:
                 qvarn.log.log('error', msg_text=str(e), body=body)
                 return apifw.Response({
@@ -147,7 +147,7 @@ class QvarnAPI:
                 raise NotJson(content_type)
 
             try:
-                self._validator.validate_has_id(body, coll.get_type_name())
+                self._validator.validate_has_id(body, coll.get_type())
             except qvarn.ValidationError as e:
                 qvarn.log.log('error', msg_text=str(e), body=body)
                 return apifw.Response({

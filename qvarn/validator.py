@@ -21,6 +21,8 @@ class Validator:
             raise NotADict(resource)
         if 'type' not in resource:
             raise NoType()
+        if resource['type'] != resource_type.get_type():
+            raise WrongType(resource['type'], resource_type.get_type())
 
     def validate_has_id(self, resource, resource_type):
         self.validate(resource, resource_type)
@@ -62,3 +64,10 @@ class HasId(ValidationError):  # pragma: no cover
     def __init__(self, resource):
         super().__init__(
             'Resource has id %s, but it must not have one' % resource['id'])
+
+
+class WrongType(ValidationError):  # pragma: no cover
+
+    def __init__(self, actual, wanted):
+        super().__init__(
+            'Resource has type %s, but %s was expected' % (actual, wanted))

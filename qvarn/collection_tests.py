@@ -47,6 +47,9 @@ class CollectionAPITests(unittest.TestCase):
         self.coll.set_resource_type(self.rt)
 
     def test_returns_specified_type(self):
+        self.assertEqual(self.coll.get_type(), self.rt)
+
+    def test_returns_specified_type_name(self):
         self.assertEqual(self.coll.get_type_name(), self.rt.get_type())
 
     def test_post_raises_error_if_type_not_given(self):
