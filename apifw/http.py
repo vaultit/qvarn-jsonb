@@ -104,8 +104,10 @@ class HttpTransaction:
 class Response:
 
     def __init__(self, values):
-        self._keys = ['status', 'headers', 'body']
         self._dict = {}
+        self._keys = ['status', 'headers', 'body']
+        for key in self._keys:
+            self[key] = ''
         for key, value in values.items():
             self[key] = value
 
