@@ -38,6 +38,7 @@ from .collection import (
     NoType,
     NoSuchResource,
     WrongRevision,
+    WrongType,
 )
 
 from .api import QvarnAPI, NoSuchResourceType, ResourceTypeAlreadyExists

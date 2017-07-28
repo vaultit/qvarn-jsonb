@@ -53,10 +53,18 @@ class CollectionAPITests(unittest.TestCase):
         with self.assertRaises(qvarn.NoType):
             self.coll.post(obj)
 
+    def test_post_raises_error_if_type_is_not_expected_one(self):
+        obj = {
+            'type': 'unperson',
+            'full_name': 'James Bond',
+        }
+        with self.assertRaises(qvarn.WrongType):
+            self.coll.post(obj)
+
     def test_post_raises_error_if_id_given(self):
         obj = {
             'id': 'object-1',
-            'type': 'person',
+            'type': 'subject',
             'full_name': 'James Bond',
         }
         with self.assertRaises(qvarn.HasId):
@@ -65,7 +73,7 @@ class CollectionAPITests(unittest.TestCase):
     def test_post_raises_error_if_revision_given(self):
         obj = {
             'revision': 'rev-1',
-            'type': 'person',
+            'type': 'subject',
             'full_name': 'James Bond',
         }
         with self.assertRaises(qvarn.HasRevision):
@@ -73,7 +81,7 @@ class CollectionAPITests(unittest.TestCase):
 
     def test_post_creates_a_new_resource(self):
         obj = {
-            'type': 'person',
+            'type': 'subject',
             'full_name': 'James Bond',
         }
         new_obj = self.coll.post(obj)
@@ -83,7 +91,7 @@ class CollectionAPITests(unittest.TestCase):
 
     def test_post_creates_a_new_id_revision_every_time(self):
         obj = {
-            'type': 'person',
+            'type': 'subject',
             'full_name': 'James Bond',
         }
         new_obj1 = self.coll.post(obj)
@@ -100,7 +108,7 @@ class CollectionAPITests(unittest.TestCase):
 
     def test_deleting_resource_makes_it_go_away(self):
         obj = {
-            'type': 'person',
+            'type': 'subject',
             'full_name': 'James Bond',
         }
         new_obj = self.coll.post(obj)
@@ -124,7 +132,7 @@ class CollectionAPITests(unittest.TestCase):
             'type': 'unperson',
             'full_name': 'James Bond',
         }
-        self.coll.post(wrong_type)
+        self.store.create_object(wrong_type, obj_id='007')
 
         self.assertEqual(
             self.coll.list(),
@@ -140,7 +148,7 @@ class CollectionAPITests(unittest.TestCase):
     def test_putting_resource_without_id_raises_error(self):
         obj = {
             'revision': 'revision-1',
-            'type': 'person',
+            'type': 'subject',
             'full_name': 'James Bond',
         }
         with self.assertRaises(qvarn.NoId):
@@ -155,9 +163,19 @@ class CollectionAPITests(unittest.TestCase):
         with self.assertRaises(qvarn.NoType):
             self.coll.put(obj)
 
+    def test_putting_resource_with_wrong_type_raises_error(self):
+        obj = {
+            'id': 'object-id-1',
+            'type': 'notasubject',
+            'revision': 'revision-1',
+            'full_name': 'James Bond',
+        }
+        with self.assertRaises(qvarn.WrongType):
+            self.coll.put(obj)
+
     def test_putting_resource_without_revision_raises_error(self):
         obj = {
-            'type': 'person',
+            'type': 'subject',
             'full_name': 'James Bond',
         }
         new_obj = self.coll.post(obj)
@@ -167,7 +185,7 @@ class CollectionAPITests(unittest.TestCase):
 
     def test_putting_resource_with_wrong_revision_raises_error(self):
         obj = {
-            'type': 'person',
+            'type': 'subject',
             'full_name': 'James Bond',
         }
         new_obj = self.coll.post(obj)
@@ -180,7 +198,7 @@ class CollectionAPITests(unittest.TestCase):
         obj = {
             'id': 'object-id-1',
             'revision': 'revision-1',
-            'type': 'person',
+            'type': 'subject',
             'full_name': 'James Bond',
         }
         with self.assertRaises(qvarn.NoSuchResource):
@@ -188,7 +206,7 @@ class CollectionAPITests(unittest.TestCase):
 
     def test_putting_resource_updates_resource(self):
         obj = {
-            'type': 'person',
+            'type': 'subject',
             'full_name': 'James Bond',
         }
         new_obj = self.coll.post(obj)
