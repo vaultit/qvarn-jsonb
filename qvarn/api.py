@@ -120,7 +120,16 @@ class QvarnAPI:
         def wrapper(content_type, body):
             if content_type != 'application/json':
                 raise NotJson(content_type)
-            self.validate_json(body)
+            if 'type' not in body:
+                body['type'] = coll.get_type()
+            try:
+                self.validate_json(body)
+            except ValidationError as e:
+                qvarn.log.log('error', msg_text=str(e), body=body)
+                return apifw.Response({
+                    'status': apifw.HTTP_BAD_REQUEST,
+                    'body': str(e),
+                })
             return apifw.Response({
                 'status': apifw.HTTP_CREATED,
                 'body': coll.post(body),
@@ -213,13 +222,18 @@ class NotJson(Exception):  # pragma: no cover
         super().__init__('Was expecting application/json, not {}'.format(ct))
 
 
-class NotDict(Exception):  # pragma: no cover
+class ValidationError(Exception):
+
+    pass
+
+
+class NotDict(ValidationError):  # pragma: no cover
 
     def __init__(self):
         super().__init__('Was expecting a JSON object (dict)')
 
 
-class NoType(Exception):  # pragma: no cover
+class NoType(ValidationError):  # pragma: no cover
 
     def __init__(self):
         super().__init__('Was expecting a "type" field in resource')
