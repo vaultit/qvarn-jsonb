@@ -71,3 +71,4 @@ class ResourceTypeTests(unittest.TestCase):
             rt.get_latest_version(), spec['versions'][-1]['version'])
         self.assertEqual(
             rt.get_latest_prototype(), spec['versions'][-1]['prototype'])
+        self.assertEqual(rt.as_dict(), spec)

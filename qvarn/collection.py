@@ -29,6 +29,7 @@ class CollectionAPI:
         store.create_store(obj_id=str)
 
     def set_resource_type(self, rt):
+        assert isinstance(rt, qvarn.ResourceType)
         self._type = rt
 
     def post(self, obj):
@@ -60,7 +61,8 @@ class CollectionAPI:
         self._store.remove_objects(obj_id=obj_id)
 
     def list(self):
-        obj_ids = self._store.find_object_ids(qvarn.All())
+        oftype = qvarn.Equal('type', self._type.get_type())
+        obj_ids = self._store.find_object_ids(oftype)
         return {
             'resources': [
                 {'id': x['obj_id']} for x in obj_ids

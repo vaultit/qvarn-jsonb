@@ -100,14 +100,16 @@ class QvarnAPI:
         objs = self._store.get_objects(obj_id=path)
         if objs:
             raise ResourceTypeAlreadyExists(path)
-        self._store.create_object(rt, obj_id=path)
+        self._store.create_object(rt.as_dict(), obj_id=path)
 
     def get_resource_type(self, path):
         objs = self._store.get_objects(obj_id=path)
         assert 0 <= len(objs) <= 1
         if len(objs) == 0:
             raise NoSuchResourceType(path)
-        return objs[0]
+        rt = qvarn.ResourceType()
+        rt.from_spec(objs[0])
+        return rt
 
     def get_post_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body):

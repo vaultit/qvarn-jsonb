@@ -31,6 +31,7 @@ class CollectionAPITests(unittest.TestCase):
                 {
                     'version': 'v0',
                     'prototype': {
+                        'type': '',
                         'id': '',
                         'revision': '',
                         'full_name': '',
@@ -112,10 +113,19 @@ class CollectionAPITests(unittest.TestCase):
 
     def test_listing_objects_returns_list_of_existing_object(self):
         obj = {
-            'type': 'person',
+            'type': 'subject',
             'full_name': 'James Bond',
         }
         new_obj = self.coll.post(obj)
+
+        # Add an object of a different type so that we can make sure
+        # only objects of the right type are returned.
+        wrong_type = {
+            'type': 'unperson',
+            'full_name': 'James Bond',
+        }
+        self.coll.post(wrong_type)
+
         self.assertEqual(
             self.coll.list(),
             {

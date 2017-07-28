@@ -24,14 +24,25 @@ class ResourceType:
     def __init__(self):
         self._type = None
         self._path = None
+        self._versions = []
         self._version = None
         self._prototype = None
 
     def from_spec(self, spec):
         self.set_type(spec['type'])
         self.set_path(spec['path'])
-        versions = spec['versions']
-        self.set_version_spec(versions[-1])
+        self._versions = spec['versions']
+        self.set_version_spec(self._versions[-1])
+
+    def as_dict(self):
+        return {
+            'type': self.get_type(),
+            'path': self.get_path(),
+            'versions': [
+                version_spec
+                for version_spec in self._versions
+            ]
+        }
 
     def set_type(self, type_name):
         self._type = type_name
