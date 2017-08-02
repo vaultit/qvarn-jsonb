@@ -71,3 +71,10 @@ class WrongType(ValidationError):  # pragma: no cover
     def __init__(self, actual, wanted):
         super().__init__(
             'Resource has type %s, but %s was expected' % (actual, wanted))
+
+
+class UnknownField(ValidationError):  # pragma: no cover
+
+    def __init__(self, actual, wanted):
+        super().__init__(
+            'Resource has unknown field %s' % (actual, wanted))

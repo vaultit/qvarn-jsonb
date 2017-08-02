@@ -76,3 +76,8 @@ class ValidatorTests(unittest.TestCase):
         self.resource['type'] = 'wrong-type'
         with self.assertRaises(qvarn.ValidationError):
             self.validator.validate_lacks_id(self.resource, self.resource_type)
+
+    def test_rejects_resource_with_unknown_field(self):
+        self.resource['unkown'] = ''
+        with self.assertRaises(qvarn.ValidationError):
+            self.validator.validate_has_id(self.resource, self.resource_type)
