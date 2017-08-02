@@ -14,34 +14,29 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from .version import __version__, __version_info__
-from .logging import log, setup_logging
-from .idgen import ResourceIdGenerator
-from .resource_type import ResourceType, load_resource_types
-from .schema import schema
+def schema(r):
+    return list(generate([], r))
 
-from .objstore import (
-    ObjectStoreInterface,
-    MemoryObjectStore,
-    KeyCollision,
-    UnknownKey,
-    KeyValueError,
-    Equal,
-    All,
-)
 
-from .validator import Validator, ValidationError
+def generate(name, r):
+    funcs = {
+        dict: dict_schema,
+        list: list_schema,
+        str: simple_schema,
+    }
+    for x in funcs[type(r)](name, r):
+        yield x
 
-from .collection import (
-    CollectionAPI,
-    HasId,
-    HasRevision,
-    NoId,
-    NoRevision,
-    NoType,
-    NoSuchResource,
-    WrongRevision,
-    WrongType,
-)
 
-from .api import QvarnAPI, NoSuchResourceType, ResourceTypeAlreadyExists
+def dict_schema(name, r):
+    for key in sorted(r.keys()):
+        for x in generate(name + [key], r[key]):
+            yield x
+
+
+def list_schema(name, r):
+    yield name, list, type(r[0])
+
+
+def simple_schema(name, r):
+    yield name, type(r)

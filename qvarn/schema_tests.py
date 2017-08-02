@@ -14,34 +14,34 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from .version import __version__, __version_info__
-from .logging import log, setup_logging
-from .idgen import ResourceIdGenerator
-from .resource_type import ResourceType, load_resource_types
-from .schema import schema
+import unittest
 
-from .objstore import (
-    ObjectStoreInterface,
-    MemoryObjectStore,
-    KeyCollision,
-    UnknownKey,
-    KeyValueError,
-    Equal,
-    All,
-)
 
-from .validator import Validator, ValidationError
+import qvarn
 
-from .collection import (
-    CollectionAPI,
-    HasId,
-    HasRevision,
-    NoId,
-    NoRevision,
-    NoType,
-    NoSuchResource,
-    WrongRevision,
-    WrongType,
-)
 
-from .api import QvarnAPI, NoSuchResourceType, ResourceTypeAlreadyExists
+class SchemaTests(unittest.TestCase):
+
+    def test_generates_schema_for_simple_resource_type(self):
+        resource_type = {
+            'type': '',
+        }
+        self.assertEqual(
+            qvarn.schema(resource_type),
+            [
+                (['type'], str),
+            ]
+        )
+
+    def test_generates_schema_with_simple_list(self):
+        resource_type = {
+            'type': '',
+            'foos': [''],
+        }
+        self.assertEqual(
+            qvarn.schema(resource_type),
+            [
+                (['foos'], list, str),
+                (['type'], str),
+            ]
+        )
