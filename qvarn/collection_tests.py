@@ -66,6 +66,9 @@ class CollectionAPITests(unittest.TestCase):
         }
         with self.assertRaises(qvarn.WrongType):
             self.coll.post(obj)
+        print()
+        print('obj', obj)
+        print('rt', self.rt.get_type())
 
     def test_post_raises_error_if_id_given(self):
         obj = {
@@ -217,7 +220,7 @@ class CollectionAPITests(unittest.TestCase):
         }
         new_obj = self.coll.post(obj)
         obj2 = dict(new_obj)
-        obj2['name'] = 'Alfred Newman'
+        obj2['full_name'] = 'Alfred Newman'
         newer_obj = self.coll.put(obj2)
         self.assertNotEqual(new_obj['revision'], newer_obj['revision'])
         self.assertEqual(self.revisionless(obj2), self.revisionless(newer_obj))

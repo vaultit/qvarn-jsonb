@@ -39,14 +39,10 @@ class CollectionAPI:
         return self._type.get_type()
 
     def post(self, obj):
-        if not obj.get('type'):
-            raise NoType()
+        v = qvarn.Validator()
+        v.validate_new_resource(obj, self.get_type())
         if obj['type'] != self._type.get_type():
             raise WrongType(obj['type'], self._type.get_type())
-        if obj.get('id'):
-            raise HasId()
-        if obj.get('revision'):
-            raise HasRevision()
 
         new_obj = dict(obj)
         new_obj['id'] = self._invent_id(obj['type'])
@@ -78,14 +74,10 @@ class CollectionAPI:
         }
 
     def put(self, obj):
-        if not obj.get('type'):
-            raise NoType()
+        v = qvarn.Validator()
+        v.validate_resource_update(obj, self.get_type())
         if obj['type'] != self._type.get_type():
             raise WrongType(obj['type'], self._type.get_type())
-        if not obj.get('id'):
-            raise NoId()
-        if not obj.get('revision'):
-            raise NoRevision()
 
         old = self.get(obj['id'])
         if old['revision'] != obj['revision']:
@@ -99,43 +91,6 @@ class CollectionAPI:
         return new_obj
 
 
-class NoType(Exception):
-
-    def __init__(self):
-        super().__init__("Objects must have a type set")
-
-
-class WrongType(Exception):
-
-    def __init__(self, actual, expected):
-        super().__init__(
-            "Objects must have type %r, got %r" % (expected, actual))
-
-
-class HasId(Exception):
-
-    def __init__(self):
-        super().__init__("POSTed objects mustn't have an id set")
-
-
-class HasRevision(Exception):
-
-    def __init__(self):
-        super().__init__("POSTed objects mustn't have a revision set")
-
-
-class NoId(Exception):
-
-    def __init__(self):
-        super().__init__("PUTted objects must have an id set")
-
-
-class NoRevision(Exception):
-
-    def __init__(self):
-        super().__init__("PUTted objects must have a revision set")
-
-
 class WrongRevision(Exception):
 
     def __init__(self):
@@ -146,3 +101,10 @@ class NoSuchResource(Exception):
 
     def __init__(self, obj_id):
         super().__init__("There is no resource with id {}".format(obj_id))
+
+
+class WrongType(Exception):
+
+    def __init__(self, actual, wanted):
+        super().__init__("Resource MUST have type {}, but has {}".format(
+            wanted, actual))

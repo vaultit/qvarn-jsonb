@@ -52,32 +52,44 @@ class ValidatorTests(unittest.TestCase):
         }
 
     def test_accepts_valid_resource(self):
-        self.validator.validate(self.resource, self.resource_type)
+        self.validator.validate_resource_update(
+            self.resource, self.resource_type)
 
     def test_rejects_resource_that_is_not_a_dict(self):
-        with self.assertRaises(qvarn.ValidationError):
-            self.validator.validate(None, self.resource_type)
+        with self.assertRaises(qvarn.NotADict):
+            self.validator.validate_new_resource(None, self.resource_type)
 
     def test_rejects_resource_without_type(self):
         del self.resource['type']
-        with self.assertRaises(qvarn.ValidationError):
-            self.validator.validate(self.resource, self.resource_type)
+        with self.assertRaises(qvarn.NoType):
+            self.validator.validate_new_resource(
+                self.resource, self.resource_type)
 
     def test_rejects_resource_without_id(self):
         del self.resource['id']
-        with self.assertRaises(qvarn.ValidationError):
-            self.validator.validate_has_id(self.resource, self.resource_type)
+        with self.assertRaises(qvarn.NoId):
+            self.validator.validate_resource_update(
+                self.resource, self.resource_type)
 
     def test_rejects_resource_with_id(self):
-        with self.assertRaises(qvarn.ValidationError):
-            self.validator.validate_lacks_id(self.resource, self.resource_type)
+        with self.assertRaises(qvarn.HasId):
+            self.validator.validate_new_resource(
+                self.resource, self.resource_type)
 
-    def test_rejects_resource_with_wrong_type(self):
-        self.resource['type'] = 'wrong-type'
-        with self.assertRaises(qvarn.ValidationError):
-            self.validator.validate_lacks_id(self.resource, self.resource_type)
+    def test_rejects_resource_with_revision(self):
+        del self.resource['id']
+        with self.assertRaises(qvarn.HasRevision):
+            self.validator.validate_new_resource(
+                self.resource, self.resource_type)
+
+    def test_rejects_resource_without_revision(self):
+        del self.resource['revision']
+        with self.assertRaises(qvarn.NoRevision):
+            self.validator.validate_resource_update(
+                self.resource, self.resource_type)
 
     def test_rejects_resource_with_unknown_field(self):
         self.resource['unkown'] = ''
-        with self.assertRaises(qvarn.ValidationError):
-            self.validator.validate_has_id(self.resource, self.resource_type)
+        with self.assertRaises(qvarn.UnknownField):
+            self.validator.validate_resource_update(
+                self.resource, self.resource_type)

@@ -30,15 +30,20 @@ from .objstore import (
     All,
 )
 
-from .validator import Validator, ValidationError
-
-from .collection import (
-    CollectionAPI,
+from .validator import (
+    Validator,
+    ValidationError,
+    NotADict,
+    NoType,
     HasId,
     HasRevision,
     NoId,
     NoRevision,
-    NoType,
+    UnknownField,
+)
+
+from .collection import (
+    CollectionAPI,
     NoSuchResource,
     WrongRevision,
     WrongType,

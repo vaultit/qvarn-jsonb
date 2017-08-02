@@ -14,25 +14,39 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import qvarn
+
+
 class Validator:
 
-    def validate(self, resource, resource_type):
+    def _validate(self, resource, resource_type):
         if not isinstance(resource, dict):
             raise NotADict(resource)
         if 'type' not in resource:
             raise NoType()
-        if resource['type'] != resource_type.get_type():
-            raise WrongType(resource['type'], resource_type.get_type())
 
-    def validate_has_id(self, resource, resource_type):
-        self.validate(resource, resource_type)
+        actual_schema = qvarn.schema(resource)
+        wanted_schema = qvarn.schema(resource_type.get_latest_prototype())
+
+        allowed_names = [x[0] for x in wanted_schema]
+        for actual in actual_schema:
+            if actual[0] not in allowed_names:
+                dotted = '.'.join(actual[0])
+                raise UnknownField(resource['type'], dotted)
+
+    def validate_new_resource(self, resource, resource_type):
+        self._validate(resource, resource_type)
+        if 'id' in resource:
+            raise HasId()
+        if 'revision' in resource:
+            raise HasRevision()
+
+    def validate_resource_update(self, resource, resource_type):
+        self._validate(resource, resource_type)
         if 'id' not in resource:
             raise NoId()
-
-    def validate_lacks_id(self, resource, resource_type):
-        self.validate(resource, resource_type)
-        if 'id' in resource:
-            raise HasId(resource)
+        if 'revision' not in resource:
+            raise NoRevision()
 
 
 class ValidationError(Exception):
@@ -46,35 +60,39 @@ class NotADict(ValidationError):  # pragma: no cover
         super().__init__('Was expecting a dict, got %r' % type(resource))
 
 
-class NoType(ValidationError):  # pragma: no cover
+class NoType(ValidationError):
 
     def __init__(self):
-        super().__init__('Was expecting a "type" field in resource')
+        super().__init__("Resources MUST have a type field")
 
 
-class NoId(ValidationError):  # pragma: no cover
+class NoId(ValidationError):
 
     def __init__(self):
-        super().__init__(
-            'Resource does not have and "id" field, but one expected')
+        super().__init__("PUTted resources MUST have an id set")
 
 
-class HasId(ValidationError):  # pragma: no cover
+class HasId(ValidationError):
 
-    def __init__(self, resource):
-        super().__init__(
-            'Resource has id %s, but it must not have one' % resource['id'])
+    def __init__(self):
+        super().__init__("POSTed resources MUST NOT have an id set")
 
 
-class WrongType(ValidationError):  # pragma: no cover
+class NoRevision(ValidationError):
 
-    def __init__(self, actual, wanted):
-        super().__init__(
-            'Resource has type %s, but %s was expected' % (actual, wanted))
+    def __init__(self):
+        super().__init__("PUTted resources MUST have a revision set")
+
+
+class HasRevision(ValidationError):
+
+    def __init__(self):
+        super().__init__("POSTed resources MUST NOT have a revision set")
 
 
 class UnknownField(ValidationError):  # pragma: no cover
 
-    def __init__(self, actual, wanted):
+    def __init__(self, type_name, name):
         super().__init__(
-            'Resource has unknown field %s' % (actual, wanted))
+            'Resource type {} has unknown field {}'.format(
+                type_name, name))

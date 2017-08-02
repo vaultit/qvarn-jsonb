@@ -68,11 +68,11 @@ class SchemaTests(unittest.TestCase):
         )
 
     def test_generates_schema_from_deep_resource_type(self):
-        N = sys.getrecursionlimit() * 10
+        N = sys.getrecursionlimit() + 1
         resource_type = {
             'foos': '',
         }
-        for i in range(N):
+        for _ in range(N):
             resource_type = {
                 'foos': [resource_type],
             }
