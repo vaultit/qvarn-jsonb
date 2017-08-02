@@ -36,6 +36,8 @@ def generate(stack):
         dict: dict_schema,
         list: list_schema,
         str: simple_schema,
+        int: simple_schema,
+        bool: simple_schema,
     }
 
     while stack:
