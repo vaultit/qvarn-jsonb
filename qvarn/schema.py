@@ -15,28 +15,46 @@
 
 
 def schema(r):
-    return list(generate([], r))
+    stack = []
+    push(stack, [], r)
+    result = []
+    for x in generate(stack):
+        result.append(x)
+    return result
 
 
-def generate(name, r):
+def push(stack, name, r):
+    stack.append((name, r))
+
+
+def pop(stack):
+    return stack.pop()
+
+
+def generate(stack):
     funcs = {
         dict: dict_schema,
         list: list_schema,
         str: simple_schema,
     }
-    for x in funcs[type(r)](name, r):
-        yield x
 
-
-def dict_schema(name, r):
-    for key in sorted(r.keys()):
-        for x in generate(name + [key], r[key]):
+    while stack:
+        name, r = pop(stack)
+        for x in funcs[type(r)](stack, name, r):
             yield x
 
 
-def list_schema(name, r):
+def dict_schema(stack, name, r):
+    for key in reversed(sorted(r.keys())):
+        push(stack, name + [key], r[key])
+    return []  # must return an iterable
+
+
+def list_schema(stack, name, r):
     yield name, list, type(r[0])
+    if isinstance(r[0], dict):
+        push(stack, name, r[0])
 
 
-def simple_schema(name, r):
+def simple_schema(stack, name, r):
     yield name, type(r)

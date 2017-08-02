@@ -15,6 +15,7 @@
 
 
 import unittest
+import sys
 
 
 import qvarn
@@ -45,3 +46,34 @@ class SchemaTests(unittest.TestCase):
                 (['type'], str),
             ]
         )
+
+    def test_generates_schema_with_dict_list(self):
+        resource_type = {
+            'type': '',
+            'foos': [
+                {
+                    'yos': '',
+                    'bars': [''],
+                },
+            ],
+        }
+        self.assertEqual(
+            qvarn.schema(resource_type),
+            [
+                (['foos'], list, dict),
+                (['foos', 'bars'], list, str),
+                (['foos', 'yos'], str),
+                (['type'], str),
+            ]
+        )
+
+    def test_generates_schema_from_deep_resource_type(self):
+        N = sys.getrecursionlimit() * 10
+        resource_type = {
+            'foos': '',
+        }
+        for i in range(N):
+            resource_type = {
+                'foos': [resource_type],
+            }
+        self.assertTrue(isinstance(qvarn.schema(resource_type), list))
