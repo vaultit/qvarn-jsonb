@@ -74,8 +74,6 @@ class CollectionAPI:
         }
 
     def put(self, obj):
-        if 'type' not in obj:
-            obj['type'] = self._type.get_type()
         v = qvarn.Validator()
         v.validate_resource_update(obj, self.get_type())
         if obj['type'] != self._type.get_type():
