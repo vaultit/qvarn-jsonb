@@ -160,6 +160,9 @@ class QvarnAPI:
             if 'type' not in body:
                 body['type'] = coll.get_type_name()
 
+            if 'id' not in body:
+                body['id'] = kwargs['id']
+
             try:
                 self._validator.validate_resource_update(
                     body, coll.get_type())
