@@ -163,14 +163,14 @@ class CollectionAPITests(unittest.TestCase):
         with self.assertRaises(qvarn.NoId):
             self.coll.put(obj)
 
-    def test_putting_resource_without_type_raises_error(self):
+    def test_putting_resource_without_type_works(self):
         obj = {
-            'id': 'object-id-1',
-            'revision': 'revision-1',
+            'type': 'subject',
             'full_name': 'James Bond',
         }
-        with self.assertRaises(qvarn.NoType):
-            self.coll.put(obj)
+        new_obj = self.coll.post(obj)
+        del new_obj['type']
+        self.assertTrue(isinstance(self.coll.put(new_obj), dict))
 
     def test_putting_resource_with_wrong_type_raises_error(self):
         obj = {
