@@ -15,7 +15,6 @@
 
 
 import os
-import urllib
 
 
 import apifw
@@ -29,7 +28,7 @@ class QvarnAPI:
         self._validator = qvarn.Validator()
         self._baseurl = None
 
-    def set_base_url(self, baseurl):
+    def set_base_url(self, baseurl):  # pragma: no cover
         self._baseurl = baseurl
 
     def set_object_store(self, store):
@@ -138,7 +137,9 @@ class QvarnAPI:
                     'body': str(e),
                 })
             result_body = coll.post(body)
-            qvarn.log.log('debug', msg_text='POST a new resource, result', body=result_body)
+            qvarn.log.log(
+                'debug', msg_text='POST a new resource, result',
+                body=result_body)
             location = '{}{}/{}'.format(
                 self._baseurl, coll.get_type().get_path(), result_body['id'])
             return apifw.Response({
