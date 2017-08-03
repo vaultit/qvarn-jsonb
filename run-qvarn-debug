@@ -153,6 +153,7 @@ AUD=aud
 ./create-token "$tmp/key" "$ISS" "$AUD" "$scopes" > "$token"
 
 cat <<EOF > "$tmp/qvarn.yaml"
+baseurl: http://localhost:12765
 log: 
   - filename: qvarn.log
 token-issuer: $ISS

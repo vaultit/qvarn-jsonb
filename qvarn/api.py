@@ -15,6 +15,7 @@
 
 
 import os
+import urllib
 
 
 import apifw
@@ -26,6 +27,10 @@ class QvarnAPI:
     def __init__(self):
         self._store = None
         self._validator = qvarn.Validator()
+        self._baseurl = None
+
+    def set_base_url(self, baseurl):
+        self._baseurl = baseurl
 
     def set_object_store(self, store):
         self._store = store
@@ -132,11 +137,16 @@ class QvarnAPI:
                     'status': apifw.HTTP_BAD_REQUEST,
                     'body': str(e),
                 })
+            result_body = coll.post(body)
+            qvarn.log.log('debug', msg_text='POST a new resource, result', body=result_body)
+            location = '{}{}/{}'.format(
+                self._baseurl, coll.get_type().get_path(), result_body['id'])
             return apifw.Response({
                 'status': apifw.HTTP_CREATED,
-                'body': coll.post(body),
+                'body': result_body,
                 'headers': {
                     'Content-Type': 'application/json',
+                    'Location': location,
                 },
             })
         return wrapper

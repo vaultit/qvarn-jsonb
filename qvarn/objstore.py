@@ -14,6 +14,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import qvarn
+
+
 class ObjectStoreInterface:  # pragma: no cover
 
     '''Store and retrieve JSON-like objects.
@@ -74,9 +77,12 @@ class MemoryObjectStore(ObjectStoreInterface):
         self._known_keys = {}
 
     def create_store(self, **keys):
+        qvarn.log.log('trace', msg_text='Creating store', keys=repr(keys), exc_info=True)
         self._known_keys = keys
 
     def create_object(self, obj, **keys):
+        qvarn.log.log(
+            'trace', msg_text='Creating object', object=obj, keys=keys)
         for key in keys:
             if key not in self._known_keys:
                 raise UnknownKey(key=key)

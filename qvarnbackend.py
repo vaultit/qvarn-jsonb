@@ -50,6 +50,7 @@ def check_config(config):
 
 
 default_config = {
+    'baseurl': 'https://unconfigured-base-url/',
     'log': None,
     'token-public-key': None,
     'token-audience': None,
@@ -88,6 +89,7 @@ resource_types = qvarn.load_resource_types(config['resource-type-dir'])
 store = qvarn.MemoryObjectStore()
 
 api = qvarn.QvarnAPI()
+api.set_base_url(config['baseurl'])
 api.set_object_store(store)
 api.add_resource_type(subject)
 for rt in resource_types:
