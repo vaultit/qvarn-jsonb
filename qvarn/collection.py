@@ -81,7 +81,7 @@ class CollectionAPI:
 
         old = self.get(obj['id'])
         if old['revision'] != obj['revision']:
-            raise WrongRevision()
+            raise WrongRevision(obj['revision'], old['revision'])
 
         new_obj = dict(obj)
         new_obj['revision'] = self._invent_id('revision')
@@ -93,8 +93,10 @@ class CollectionAPI:
 
 class WrongRevision(Exception):
 
-    def __init__(self):
-        super().__init__("PUTted objects must have correct revision set")
+    def __init__(self, actual, expected):
+        super().__init__(
+            'PUTted objects must have correct revision set: '
+            'got {}, expected {}'.format(actual, expected))
 
 
 class NoSuchResource(Exception):
