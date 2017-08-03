@@ -176,9 +176,18 @@ class QvarnAPI:
             obj_id = kwargs['id']
             if body['id'] != obj_id:
                 raise IdMismatch(body['id'], obj_id)
+
+            try:
+                result_body = coll.put(body)
+            except qvarn.WrongRevision as e:
+                return apifw.Response({
+                    'status': apifw.HTTP_CONFLICT,
+                    'body': str(e),
+                    'headers': [],
+                })
             return apifw.Response({
                 'status': apifw.HTTP_OK,
-                'body': coll.put(body),
+                'body': result_body,
                 'headers': {
                     'Content-Type': 'application/json',
                 },
