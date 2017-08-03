@@ -57,15 +57,20 @@ This is an integration test suite for the Qvarn HTTP API.
     ...   "full_name": "Jason Bourne" }
 
     WHEN client requests PUT /subjects/${ID1} with token and body
-    ... { "type": "subject", "id": "${ID1}", "revision": "${REV1}",
-    ...   "full_name": "David Webb" }
+    ... { "id": "${ID1}", "revision": "${REV1}", "full_name": "Dave Webb" }
     THEN HTTP status code is 200 OK
     AND revision is REV2
+
+    WHEN client requests PUT /subjects/${ID1} with token and body
+    ... { "type": "subject", "id": "${ID1}", "revision": "${REV2}",
+    ...   "full_name": "David Webb" }
+    THEN HTTP status code is 200 OK
+    AND revision is REV3
 
     WHEN client requests GET /subjects/${ID1} using token
     THEN HTTP status code is 200 OK
     AND JSON body matches
-    ... { "revision": "${REV2}", "id": "${ID1}", "type": "subject",
+    ... { "revision": "${REV3}", "id": "${ID1}", "type": "subject",
     ...   "full_name": "David Webb" }
 
     WHEN client requests DELETE /subjects/${ID1} with token

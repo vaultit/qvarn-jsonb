@@ -157,6 +157,9 @@ class QvarnAPI:
             if content_type != 'application/json':
                 raise NotJson(content_type)
 
+            if 'type' not in body:
+                body['type'] = coll.get_type_name()
+
             try:
                 self._validator.validate_resource_update(
                     body, coll.get_type())
