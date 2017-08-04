@@ -17,6 +17,13 @@
 import slog
 
 
+def drop_get_message(log_obj):
+    # These are useless and annoying in gunicorn log messages.
+    if 'getMessage' in log_obj:
+        del log_obj['getMessage']
+    return log_obj
+
+
 # We are probably run under gunicorn, which sets up logging via the
 # logging library. Hijack that so actual logging happens via the slog
 # library. For this, we need to know the logger names gunicorn uses.
@@ -30,6 +37,7 @@ gunicorn_loggers = ['gunicorn.access', 'gunicorn.error']
 
 log = slog.StructuredLog()
 log.add_log_writer(slog.NullSlogWriter(), slog.FilterAllow())
+log.add_log_massager(drop_get_message)
 slog.hijack_logging(log, logger_names=gunicorn_loggers)
 
 
