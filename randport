@@ -1,0 +1,28 @@
+#!/usr/bin/python3
+#
+# Copyright (C) 2017  Lars Wirzenius
+#
+# Pick a random port that is free to be listened on. For testing.
+
+
+import errno
+import random
+import socket
+import sys
+
+
+MAX = 1000
+for i in range(MAX):
+    port = random.randint(1025, 2**15-1)
+    s = socket.socket()
+    try:
+        s.bind(('0.0.0.0', port))
+    except OSError as e:
+        if e.errno == errno.EADDRINUSE:
+            continue
+        raise
+    break
+else:
+    sys.stderr.write("Can't find a free port\n")
+    sys.exit(1)
+sys.stdout.write('{}\n'.format(port))

@@ -35,6 +35,7 @@ vars = Variables(datadir)
 
 
 def get(url, headers=None):
+    print('get: url={} headers={}'.format(url, headers))
     r = requests.get(url, headers=headers)
     return r.status_code, r.text
 

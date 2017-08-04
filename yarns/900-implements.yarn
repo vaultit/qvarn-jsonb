@@ -17,9 +17,7 @@ Start a Qvarn running in the background.
     vars['api.log'] = 'qvarn.log'
     vars['gunicorn3.log'] = 'gunicorn3.log'
     vars['pid-file'] = 'pid'
-    # FIXME: It would be good for the test suite to pick a random free
-    # port. But that's not simple.
-    vars['port'] = 12765
+    vars['port'] = cliapp.runcmd([os.path.join(srcdir, 'randport' )]).strip()
     vars['url'] = 'http://127.0.0.1:{}'.format(vars['port'])
     config = {
         'log': [
