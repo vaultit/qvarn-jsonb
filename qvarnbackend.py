@@ -48,6 +48,11 @@ def check_config(config):
             raise Exception('Configration %s should not be None' % key)
 
 
+_counter = slog.Counter()
+def counter():
+    new_context = 'HTTP transaction {}'.format(_counter.increment())
+    qvarn.log.set_context(new_context)
+
 
 default_config = {
     'baseurl': 'https://unconfigured-base-url/',
@@ -96,7 +101,7 @@ for rt in resource_types:
     api.add_resource_type(rt)
 
 
-app = apifw.create_bottle_application(api, dict_logger, config)
+app = apifw.create_bottle_application(api, counter, dict_logger, config)
 
 # If we are running this program directly with Python, and not via
 # gunicorn, we can use the Bottle built-in debug server, which can
