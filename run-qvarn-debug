@@ -160,6 +160,15 @@ token-issuer: $ISS
 token-audience: $AUD
 token-public-key: $(cat "$tmp/key.pub")
 resource-type-dir: resource_type
+memory-database: no
+database:
+  host: localhost
+  port: 5432
+  database: qvarn
+  user: qvarn
+  password: pass
+  min_conn: 1
+  max_conn: 1
 EOF
 export QVARN_CONFIG="$tmp/qvarn.yaml"
 

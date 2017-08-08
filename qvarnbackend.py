@@ -62,6 +62,16 @@ default_config = {
     'token-issuer': None,
     'log': [],
     'resource-type-dir': None,
+    'memory-database': True,
+    'database': {
+        'host': None,
+        'port': 5432,
+        'database': None,
+        'user': None,
+        'min_conn': 1,
+        'max_conn': 1,
+        'password': None,
+    },
 }
 
 
@@ -91,7 +101,12 @@ subject.from_spec({
 
 resource_types = qvarn.load_resource_types(config['resource-type-dir'])
 
-store = qvarn.MemoryObjectStore()
+if config['memory-database']:
+    store = qvarn.MemoryObjectStore()
+else:
+    sql = qvarn.PostgresAdapter()
+    sql.connect(**config['database'])
+    store = qvarn.PostgresObjectStore(sql)
 
 api = qvarn.QvarnAPI()
 api.set_base_url(config['baseurl'])
