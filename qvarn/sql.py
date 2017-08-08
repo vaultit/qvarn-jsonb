@@ -63,7 +63,8 @@ class Transaction:
 
     def execute(self, query, values):
         c = self._conn.cursor()
-        return c.execute(query, values)
+        c.execute(query, values)
+        return c
 
     def create_jsonb_table(self, table_name, **keys):
         columns = ', '.join(
