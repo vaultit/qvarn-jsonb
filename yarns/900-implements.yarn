@@ -30,7 +30,10 @@ Start a Qvarn running in the background.
         'token-public-key': vars['pubkey'],
         'resource-type-dir': os.path.join(srcdir, 'resource_type'),
     }
-    yaml.safe_dump(config, open('qvarn.yaml', 'w'))
+    config = add_postgres_config(config)
+    env = dict(os.environ)
+    env['QVARN_CONFIG'] = os.path.join(datadir, 'qvarn.yaml')
+    yaml.safe_dump(config, open(env['QVARN_CONFIG'], 'w'))
     argv = [
         'gunicorn3',
         '--daemon',
@@ -38,8 +41,6 @@ Start a Qvarn running in the background.
         '-p', vars['pid-file'],
         'qvarnbackend:app',
     ]
-    env = dict(os.environ)
-    env['QVARN_CONFIG'] = 'qvarn.yaml'
     cliapp.runcmd(argv, env=env, stdout=None, stderr=None)
     time.sleep(2)
     assert os.path.exists(vars['pid-file'])

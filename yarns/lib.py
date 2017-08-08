@@ -22,6 +22,7 @@ import tempfile
 import cliapp
 import Crypto.PublicKey.RSA
 import requests
+import yaml
 
 
 from yarnutils import *
@@ -32,6 +33,15 @@ datadir = os.environ['DATADIR']
 
 
 vars = Variables(datadir)
+
+
+def add_postgres_config(config):
+    pg = os.environ.get('QVARN_POSTGRES')
+    if pg:
+        with open(pg) as f:
+            config['database'] = yaml.safe_load(f)
+            config['memory-database'] = False
+    return config
 
 
 def get(url, headers=None):
