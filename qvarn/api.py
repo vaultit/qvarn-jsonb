@@ -104,14 +104,13 @@ class QvarnAPI:
     def add_resource_type(self, rt):
         path = rt.get_path()
         objs = self._store.get_objects(obj_id=path)
-        if objs:
-            raise ResourceTypeAlreadyExists(path)
-        obj = {
-            'type': 'resource_type',
-            'id': path,
-            'spec': rt.as_dict(),
-        }
-        self._store.create_object(obj, obj_id=path)
+        if not objs:
+            obj = {
+                'type': 'resource_type',
+                'id': path,
+                'spec': rt.as_dict(),
+            }
+            self._store.create_object(obj, obj_id=path)
 
     def get_resource_type(self, path):
         objs = self._store.get_objects(obj_id=path)
