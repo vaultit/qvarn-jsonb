@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-set -eu
+set -eux
 
 run_yarns()
 {
@@ -34,5 +34,5 @@ QVARN_POSTGRES= run_yarns "$@"
 if [ "${QVARN_POSTGRES:-no}" != no ]
 then
     scripts/pgempty
-    run_yarns "$@"
+    run_yarns --env "QVARN_POSTGRES=$QVARN_POSTGRES" "$@"
 fi
