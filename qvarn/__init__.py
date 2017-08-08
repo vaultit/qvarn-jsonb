@@ -51,4 +51,4 @@ from .collection import (
     WrongType,
 )
 
-from .api import QvarnAPI, NoSuchResourceType, ResourceTypeAlreadyExists
+from .api import QvarnAPI, NoSuchResourceType

@@ -241,12 +241,6 @@ class NoSuchResourceType(Exception):
         super().__init__('No resource type for path {}'.format(path))
 
 
-class ResourceTypeAlreadyExists(Exception):
-
-    def __init__(self, type_name):
-        super().__init__('Resource type {} already exits'.format(type_name))
-
-
 class NotJson(Exception):  # pragma: no cover
 
     def __init__(self, ct):
