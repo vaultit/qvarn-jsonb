@@ -1,0 +1,6 @@
+#!/bin/sh
+
+set -eu
+
+sudo -u postgres dropdb qvarn || true
+sudo -u postgres createdb -O qvarn -E UTF8 -T template0 qvarn
