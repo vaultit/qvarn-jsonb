@@ -46,31 +46,24 @@ class Transaction:
 
     def __enter__(self):
         self._conn = self._sql.get_conn()
-        print('start transaction')
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         try:
             if exc_type is None:
                 self._conn.commit()
-                print('committed transaction')
             else:  # pragma: no cover
                 self._conn.rollback()
-                print('rollback transaction')
         except BaseException:  # pragma: no cover
             self._sql.put_conn(self._conn)
             self._conn = None
-            print('something wrong during transaction')
             raise
         self._sql.put_conn(self._conn)
         self._conn = None
-        print('transaction ok')
 
     def execute(self, query, values):
-        print('executing: {} with {!r}'.format(query, values))
         c = self._conn.cursor()
-        c.execute(query, values)
-        return c
+        return c.execute(query, values)
 
     def create_jsonb_table(self, table_name, **keys):
         columns = ', '.join(
