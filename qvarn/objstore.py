@@ -14,6 +14,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import json
+
+
 import qvarn
 
 
@@ -58,9 +61,6 @@ class ObjectStoreInterface:  # pragma: no cover
         raise NotImplementedError()
 
     def get_objects(self, **keys):
-        raise NotImplementedError()
-
-    def _keys_match(self, got_keys, wanted_keys):
         raise NotImplementedError()
 
     def find_objects(self, cond):
@@ -113,6 +113,54 @@ class MemoryObjectStore(ObjectStoreInterface):
 
     def find_object_ids(self, cond):
         return [keys for obj, keys in self._objs if cond.matches(obj)]
+
+
+class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
+
+    _table = '_objects'
+
+    def __init__(self, sql):
+        self._sql = sql
+        self._keys = None
+
+    def create_store(self, **keys):
+        keys = dict(keys)
+        keys['_obj'] = dict
+        self._keys = keys
+        with self._sql.transaction() as t:
+            query = t.create_jsonb_table(self._table, **keys)
+            t.execute(query, {})
+
+    def create_object(self, obj, **keys):
+        keys = dict(keys)
+        keys['_obj'] = json.dumps(obj)
+        with self._sql.transaction() as t:
+            query = t.insert_object(self._table, *list(keys.keys()))
+            t.execute(query, keys)
+
+    def remove_objects(self, **keys):
+        with self._sql.transaction() as t:
+            query = t.remove_objects(self._table, *keys.keys())
+            t.execute(query, keys)
+
+    def get_objects(self, **keys):
+        with self._sql.transaction() as t:
+            query = t.select_objects(self._table, '_obj', *keys.keys())
+            return [obj[0] for obj in t.execute(query, keys)]
+
+    def find_objects(self, cond):
+        return [
+            obj
+            for obj in self.get_objects()
+            if cond.matches(obj)
+        ]
+
+    def find_object_ids(self, cond):
+        return [
+            obj['id']
+            for obj in self.get_objects()
+            if cond.matches(obj)
+        ]
 
 
 class KeyCollision(Exception):
