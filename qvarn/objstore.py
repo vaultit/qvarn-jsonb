@@ -153,14 +153,16 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
 
     def find_objects(self, cond):
         with self._sql.transaction() as t:
-            query, values = t.select_objects_on_cond(self._table, '_obj', cond)
-            return [obj[0] for obj in t.execute(query, values)]
+            query, values = t.select_objects_on_cond(
+                self._table, cond, '_obj')
+            return t.execute(query, values)
 
     def find_object_ids(self, cond):
-        return [
-            obj['id']
-            for obj in self.find_objects(cond)
-        ]
+        keys_columns = [key for key in self._keys if key != '_obj']
+        with self._sql.transaction() as t:
+            query, values = t.select_objects_on_cond(
+                self._table, cond, *keys_columns)
+            return t.execute(query, values)
 
 
 class KeyCollision(Exception):

@@ -123,10 +123,11 @@ class Transaction:
             query += ' WHERE {}'.format(' AND '.join(conditions))
         return query
 
-    def select_objects_on_cond(self, table_name, col_name, cond):
+    def select_objects_on_cond(self, table_name, cond, *keys):
         sql_cond, values = cond.as_sql()
+        col_names = [self._q(key) for key in keys]
         query = 'SELECT {} FROM {} WHERE {}'.format(
-            self._q(col_name),
+            ', '.join(col_names),
             self._q(table_name),
             sql_cond,
         )
