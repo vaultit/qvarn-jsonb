@@ -135,10 +135,6 @@ class Transaction:
     def _condition(self, cond):
         return cond.as_sql()
 
-    def get_objects(self, table_name):
-        # fixme
-        return 'SELECT * FROM {}'.format(self._q(table_name))
-
     def _q(self, name):
         return quote(name)
 
