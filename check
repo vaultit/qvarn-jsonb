@@ -29,7 +29,7 @@ pep8 qvarn
 pylint3 -j0 --rcfile pylint.conf qvarn
 
 # Run yarns without Postgres. For speed.
-QVARN_POSTGRES= run_yarns "$@"
+#QVARN_POSTGRES= run_yarns "$@"
 
 if [ "${QVARN_POSTGRES:-no}" != no ]
 then
