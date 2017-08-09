@@ -1,0 +1,54 @@
+#!/usr/bin/python3
+
+
+import qvarn
+
+
+args = {
+    'host': 'localhost',
+    'port': 5432,
+    'database': 'qvarn',
+    'user': 'qvarn',
+    'password': 'pass',
+    'min_conn': 1,
+    'max_conn': 1,
+}
+
+
+sql = qvarn.PostgresAdapter()
+sql.connect(**args)
+
+pos = qvarn.PostgresObjectStore(sql)
+pos.create_store(obj_id=str, revision=str)
+
+
+objs = [
+    {
+        'foo': 'bar',
+        'id': '1',
+        'revision': '1.1',
+    },
+    {
+        'foo': 'yo',
+        'id': '2',
+        'revision': '2.1',        
+    },
+]
+for obj in objs:
+    pos.create_object(obj, obj_id=obj['id'], revision=obj['revision'])
+
+print('finding')
+# cond = qvarn.Equal('foo', 'bar')
+cond = qvarn.All()
+objs = pos.get_objects(obj_id=obj['id'])
+print(repr(objs))
+for obj in objs:
+    print('obj: ', repr(obj))
+print('done finding')
+
+print('finding keys')
+cond = qvarn.Equal('foo', 'bar')
+objs = pos.find_object_ids(cond)
+for obj in objs:
+    print('keys: ', repr(obj))
+print('done finding keys')
