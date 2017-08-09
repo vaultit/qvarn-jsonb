@@ -146,20 +146,20 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
     def get_objects(self, **keys):
         with self._sql.transaction() as t:
             query = t.select_objects(self._table, '_obj', *keys.keys())
+            qvarn.log.log(
+                'debug', msg_text='PostgresObjectStore.get_objects',
+                query=query, keys=keys)
             return [obj[0] for obj in t.execute(query, keys)]
 
     def find_objects(self, cond):
-        return [
-            obj
-            for obj in self.get_objects()
-            if cond.matches(obj)
-        ]
+        with self._sql.transaction() as t:
+            query, values = t.select_objects_on_cond(self._table, '_obj', cond)
+            return [obj[0] for obj in t.execute(query, values)]
 
     def find_object_ids(self, cond):
         return [
             obj['id']
-            for obj in self.get_objects()
-            if cond.matches(obj)
+            for obj in self.find_objects(cond)
         ]
 
 
@@ -186,18 +186,33 @@ class Condition:
     def matches(self, obj):  # pragma: no cover
         raise NotImplementedError()
 
+    def as_sql(self):  # pragma: no cover
+        raise NotImplementedError()
+
 
 class Equal(Condition):
 
     def __init__(self, name, value):
-        self._name = name
-        self._value = value
+        self.name = name
+        self.value = value
 
     def matches(self, obj):
-        return obj.get(self._name) == self._value
+        return obj.get(self.name) == self.value
+
+    def as_sql(self):  # pragma: no cover
+        values = {
+            self.name: self.value,
+        }
+        template = "( _obj ->> '{}' = {} )"
+        query = template.format(
+            qvarn.quote(self.name), qvarn.placeholder(self.name))
+        return query, values
 
 
 class All(Condition):
 
     def matches(self, obj):
         return True
+
+    def as_sql(self):  # pragma: no cover
+        return 'TRUE', {}

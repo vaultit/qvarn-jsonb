@@ -12,6 +12,9 @@ import psycopg2.extras
 import psycopg2.extensions
 
 
+import qvarn
+
+
 class PostgresAdapter:
 
     def __init__(self):
@@ -113,21 +116,44 @@ class Transaction:
             self._q(col_name),
             self._q(table_name),
         )
-        if keys:
+        qvarn.log.log(
+            'debug', msg_text='PostgresAdapater.select_objects',
+            query=query, keys=keys, conditions=conditions)
+        if conditions:
             query += ' WHERE {}'.format(' AND '.join(conditions))
         return query
+
+    def select_objects_on_cond(self, table_name, col_name, cond):
+        sql_cond, values = cond.as_sql()
+        query = 'SELECT {} FROM {} WHERE {}'.format(
+            self._q(col_name),
+            self._q(table_name),
+            sql_cond,
+        )
+        return query, values
+
+    def _condition(self, cond):
+        return cond.as_sql()
 
     def get_objects(self, table_name):
         # fixme
         return 'SELECT * FROM {}'.format(self._q(table_name))
 
     def _q(self, name):
-        ascii_lower = 'abcdefghijklmnopqrstuvwxyz'
-        ascii_digits = '0123456789'
-        ascii_chars = ascii_lower + ascii_lower.upper() + ascii_digits
-        ok = ascii_chars + '_'
-        assert name.strip(ok) == '', 'must have only allowed chars: %r' % name
-        return '_'.join(name.split('-'))
+        return quote(name)
 
     def _placeholder(self, name):
-        return '%({})s'.format(self._q(name))
+        return placeholder(name)
+
+
+def quote(name):
+    ascii_lower = 'abcdefghijklmnopqrstuvwxyz'
+    ascii_digits = '0123456789'
+    ascii_chars = ascii_lower + ascii_lower.upper() + ascii_digits
+    ok = ascii_chars + '_'
+    assert name.strip(ok) == '', 'must have only allowed chars: %r' % name
+    return '_'.join(name.split('-'))
+
+
+def placeholder(name):
+    return '%({})s'.format(quote(name))

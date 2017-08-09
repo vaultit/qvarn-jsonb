@@ -54,7 +54,9 @@ class CollectionAPI:
         return self._idgen.new_id(resource_type)
 
     def get(self, obj_id):
+        qvarn.log.log('debug', msg_text='CollectionAPI.get', obj_id=obj_id)
         objs = self._store.get_objects(obj_id=obj_id)
+        qvarn.log.log('debug', msg_text='CollectionAPI.get', objs=objs)
         assert len(objs) <= 1
         if objs:
             return objs[0]
