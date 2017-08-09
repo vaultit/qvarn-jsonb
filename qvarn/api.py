@@ -36,6 +36,8 @@ class QvarnAPI:
         self._store.create_store(obj_id=str)
 
     def find_missing_route(self, path):
+        qvarn.log.log('info', msg_text='find_missing_route', path=path)
+
         if path == '/version':
             return [
                 {
@@ -214,9 +216,10 @@ class QvarnAPI:
 
     def get_resource_list_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
+            body = coll.list()
             return apifw.Response({
                 'status': apifw.HTTP_OK,
-                'body': coll.list(),
+                'body': body,
                 'headers': {
                     'Content-Type': 'application/json',
                 },
