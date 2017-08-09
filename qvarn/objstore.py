@@ -124,6 +124,9 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         self._keys = None
 
     def create_store(self, **keys):
+        qvarn.log.log(
+            'info', msg_text='PostgresObjectStore.create_store',
+            keys=repr(keys))
         keys = dict(keys)
         keys['_obj'] = dict
         self._keys = keys
@@ -132,6 +135,9 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             t.execute(query, {})
 
     def create_object(self, obj, **keys):
+        qvarn.log.log(
+            'info', msg_text='PostgresObjectStore.create_object',
+            obj=obj, keys=keys)
         keys = dict(keys)
         keys['_obj'] = json.dumps(obj)
         with self._sql.transaction() as t:
@@ -139,30 +145,45 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             t.execute(query, keys)
 
     def remove_objects(self, **keys):
+        qvarn.log.log(
+            'info', msg_text='PostgresObjectStore.remove_objects',
+            keys=keys)
         with self._sql.transaction() as t:
             query = t.remove_objects(self._table, *keys.keys())
             t.execute(query, keys)
 
     def get_objects(self, **keys):
+        qvarn.log.log(
+            'info', msg_text='PostgresObjectStore.get_objects',
+            keys=keys)
         with self._sql.transaction() as t:
             query = t.select_objects(self._table, '_obj', *keys.keys())
             qvarn.log.log(
                 'debug', msg_text='PostgresObjectStore.get_objects',
                 query=query, keys=keys)
-            return [obj[0] for obj in t.execute(query, keys)]
+            cursor = t.execute(query, keys)
+            return [row['_obj'] for row in t.get_rows(cursor)]
 
     def find_objects(self, cond):
+        qvarn.log.log(
+            'info', msg_text='PostgresObjectStore.find_objects',
+            cond=repr(cond))
         with self._sql.transaction() as t:
             query, values = t.select_objects_on_cond(
                 self._table, cond, '_obj')
-            return t.execute(query, values)
+            cursor = t.execute(query, values)
+            return t.get_rows(cursor)
 
     def find_object_ids(self, cond):
+        qvarn.log.log(
+            'info', msg_text='PostgresObjectStore.find_object_ids',
+            cond=repr(cond))
         keys_columns = [key for key in self._keys if key != '_obj']
         with self._sql.transaction() as t:
             query, values = t.select_objects_on_cond(
                 self._table, cond, *keys_columns)
-            return t.execute(query, values)
+            cursor = t.execute(query, values)
+            return t.get_rows(cursor)
 
 
 class KeyCollision(Exception):
