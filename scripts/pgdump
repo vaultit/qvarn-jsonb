@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -eu
+
+sudo -u postgres pg_dump qvarn
