@@ -65,9 +65,13 @@ class Transaction:
         self._conn = None
 
     def execute(self, query, values):
-        c = self._conn.cursor()
+        c = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         c.execute(query, values)
         return c
+
+    def get_rows(self, cursor):
+        for row in cursor:
+            yield dict(row)
 
     def create_jsonb_table(self, table_name, **keys):
         columns = ', '.join(
@@ -116,11 +120,11 @@ class Transaction:
             self._q(col_name),
             self._q(table_name),
         )
+        if conditions:
+            query += ' WHERE {}'.format(' AND '.join(conditions))
         qvarn.log.log(
             'debug', msg_text='PostgresAdapater.select_objects',
             query=query, keys=keys, conditions=conditions)
-        if conditions:
-            query += ' WHERE {}'.format(' AND '.join(conditions))
         return query
 
     def select_objects_on_cond(self, table_name, cond, *keys):
