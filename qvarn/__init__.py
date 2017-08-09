@@ -19,7 +19,13 @@ from .logging import log, setup_logging
 from .idgen import ResourceIdGenerator
 from .resource_type import ResourceType, load_resource_types
 from .schema import schema
-from .sql import PostgresAdapter, quote, placeholder
+from .sql import (
+    PostgresAdapter,
+    quote,
+    placeholder,
+    All,
+    Equal,
+)
 
 from .objstore import (
     ObjectStoreInterface,
@@ -28,8 +34,6 @@ from .objstore import (
     KeyCollision,
     UnknownKey,
     KeyValueError,
-    Equal,
-    All,
 )
 
 from .validator import (

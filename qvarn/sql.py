@@ -157,3 +157,40 @@ def quote(name):
 
 def placeholder(name):
     return '%({})s'.format(quote(name))
+
+
+class Condition:
+
+    def matches(self, obj):  # pragma: no cover
+        raise NotImplementedError()
+
+    def as_sql(self):  # pragma: no cover
+        raise NotImplementedError()
+
+
+class Equal(Condition):
+
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    def matches(self, obj):
+        return obj.get(self.name) == self.value
+
+    def as_sql(self):  # pragma: no cover
+        values = {
+            self.name: self.value,
+        }
+        template = "( _obj ->> '{}' = {} )"
+        query = template.format(
+            qvarn.quote(self.name), qvarn.placeholder(self.name))
+        return query, values
+
+
+class All(Condition):
+
+    def matches(self, obj):
+        return True
+
+    def as_sql(self):  # pragma: no cover
+        return 'TRUE', {}

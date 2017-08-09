@@ -135,8 +135,3 @@ class ObjectStoreTests(unittest.TestCase):
             self.sorted_dicts(ids),
             self.sorted_dicts([{'key': '1st'}, {'key': '2nd'}])
         )
-
-
-class ConditionTests(unittest.TestCase):
-
-    pass
