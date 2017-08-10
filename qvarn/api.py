@@ -175,7 +175,9 @@ class QvarnAPI:
                 })
 
             obj_id = kwargs['id']
-            if body['id'] != obj_id:
+            # FIXME: the following test should be enabled once we
+            # no longer need test-api.
+            if False and body['id'] != obj_id:
                 raise IdMismatch(body['id'], obj_id)
 
             try:
