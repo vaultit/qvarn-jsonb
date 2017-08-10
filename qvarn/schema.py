@@ -38,6 +38,7 @@ def generate(stack):
         str: simple_schema,
         int: simple_schema,
         bool: simple_schema,
+        type(None): simple_schema,
     }
 
     while stack:
