@@ -188,6 +188,13 @@ class QvarnAPI:
                     'body': str(e),
                     'headers': [],
                 })
+            except qvarn.NoSuchResource as e:
+                return apifw.Response({
+                    'status': apifw.HTTP_BAD_REQUEST,
+                    'body': str(e),
+                    'headers': [],
+                })
+
             return apifw.Response({
                 'status': apifw.HTTP_OK,
                 'body': result_body,
