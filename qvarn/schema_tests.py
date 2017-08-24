@@ -77,3 +77,14 @@ class SchemaTests(unittest.TestCase):
                 'foos': [resource_type],
             }
         self.assertTrue(isinstance(qvarn.schema(resource_type), list))
+
+    def test_generates_schema_from_dict_with_empty_list(self):
+        resource_type = {
+            'foos': [],
+        }
+        self.assertEqual(
+            qvarn.schema(resource_type),
+            [
+                (['foos'], list, None),
+            ]
+        )
