@@ -44,6 +44,7 @@ class QvarnAPI:
                     'method': 'GET',
                     'path': '/version',
                     'callback': self.version,
+                    'needs-authorization': False,
                 },
             ]
 
