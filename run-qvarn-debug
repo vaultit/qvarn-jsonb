@@ -38,6 +38,11 @@ uapi_subjects_id_get
 uapi_subjects_post
 uapi_version_get
 
+uapi_events_post
+uapi_events_get
+uapi_events_id_get
+uapi_events_id_put
+uapi_events_id_delete
 uapi_files_post
 uapi_files_get
 uapi_files_id_get
