@@ -103,16 +103,22 @@ def _fill_in_dict(proto, obj):
         elif isinstance(proto[field], list):
             if field not in obj:
                 new[field] = []
-            else:
+            elif isinstance(proto[field][0], dict):
                 new[field] = [
                     _fill_in_dict(proto[field][0], x)
                     for x in obj[field]
                 ]
+            elif type(proto[field][0]) in defaults:
+                new[field] = list(obj[field])
         else:  # pragma: no cover
             assert 0
 
-    for field in obj:  # pragma: no cover
-        if field not in new:
-            new[field] = obj[field]
+    if isinstance(obj, dict):  # pragma: no cover
+        for field in obj:
+            if field not in new:
+                if isinstance(obj[field], list):
+                    new[field] = list(obj[field])
+                else:
+                    new[field] = obj[field]
 
     return new

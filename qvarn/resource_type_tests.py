@@ -89,6 +89,7 @@ class AddMissingFieldsTests(unittest.TestCase):
                             {
                                 'foobar': '',
                                 'yo': '',
+                                'names': [''],
                             },
                         ],
                     },
@@ -122,6 +123,29 @@ class AddMissingFieldsTests(unittest.TestCase):
                     {
                         'foobar': '',
                         'yo': '',
+                        'names': [],
+                    },
+                ],
+            }
+        )
+
+    def test_fills_in_list_of_strings(self):
+        obj = {
+            'bars': [
+                {
+                    'names': ['James Bond'],
+                },
+            ],
+        }
+        self.assertEqual(
+            qvarn.add_missing_fields(self.rt, obj),
+            {
+                'foo': '',
+                'bars': [
+                    {
+                        'foobar': '',
+                        'yo': '',
+                        'names': ['James Bond'],
                     },
                 ],
             }
