@@ -17,8 +17,12 @@
 from .version import __version__, __version_info__
 from .logging import log, setup_logging
 from .idgen import ResourceIdGenerator
-from .resource_type import ResourceType, load_resource_types
 from .schema import schema
+from .resource_type import (
+    ResourceType,
+    load_resource_types,
+    add_missing_fields,
+)
 from .sql import (
     PostgresAdapter,
     quote,

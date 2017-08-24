@@ -44,11 +44,14 @@ class CollectionAPI:
         if obj['type'] != self._type.get_type():
             raise WrongType(obj['type'], self._type.get_type())
 
-        new_obj = dict(obj)
+        new_obj = self._new_object(obj)
         new_obj['id'] = self._invent_id(obj['type'])
         new_obj['revision'] = self._invent_id('revision')
         self._store.create_object(new_obj, obj_id=new_obj['id'])
         return new_obj
+
+    def _new_object(self, obj):
+        return qvarn.add_missing_fields(self.get_type(), obj)
 
     def _invent_id(self, resource_type):
         return self._idgen.new_id(resource_type)

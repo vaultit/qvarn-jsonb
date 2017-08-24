@@ -79,3 +79,40 @@ def load_resource_types(dirname):  # pragma: no cover
         rt.from_spec(spec)
         resource_types.append(rt)
     return resource_types
+
+
+def add_missing_fields(rt, obj):
+    # Assume obj is validated.
+
+    proto = rt.get_latest_prototype()
+    return _fill_in_dict(proto, obj)
+
+
+def _fill_in_dict(proto, obj):
+    new = {}
+    defaults = {
+        str: '',
+        int: 0,
+        bool: False,
+    }
+
+    for field in proto:
+        if type(proto[field]) in defaults:
+            if field not in obj:
+                new[field] = defaults[type(proto[field])]
+        elif isinstance(proto[field], list):
+            if field not in obj:
+                new[field] = []
+            else:
+                new[field] = [
+                    _fill_in_dict(proto[field][0], x)
+                    for x in obj[field]
+                ]
+        else:  # pragma: no cover
+            assert 0
+
+    for field in obj:  # pragma: no cover
+        if field not in new:
+            new[field] = obj[field]
+
+    return new

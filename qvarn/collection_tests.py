@@ -35,6 +35,12 @@ class CollectionAPITests(unittest.TestCase):
                         'id': '',
                         'revision': '',
                         'full_name': '',
+                        'things': [
+                            {
+                                'things': '',
+                                'other': '',
+                            },
+                        ],
                     },
                 },
             ],
@@ -93,6 +99,31 @@ class CollectionAPITests(unittest.TestCase):
         new_obj = self.coll.post(obj)
         self.assertTrue(new_obj['id'])
         self.assertTrue(new_obj['revision'])
+        self.assertEqual(new_obj['things'], [])
+        self.assertEqual(new_obj, self.coll.get(new_obj['id']))
+
+    def test_post_creates_a_new_resource_with_dict_list(self):
+        obj = {
+            'type': 'subject',
+            'full_name': 'James Bond',
+            'things': [
+                {
+                    'other': 'foo',
+                },
+            ],
+        }
+        new_obj = self.coll.post(obj)
+        self.assertTrue(new_obj['id'])
+        self.assertTrue(new_obj['revision'])
+        self.assertEqual(
+            new_obj['things'],
+            [
+                {
+                    'things': '',
+                    'other': 'foo',
+                },
+            ]
+        )
         self.assertEqual(new_obj, self.coll.get(new_obj['id']))
 
     def test_post_creates_a_new_id_revision_every_time(self):

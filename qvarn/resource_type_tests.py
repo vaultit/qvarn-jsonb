@@ -72,3 +72,57 @@ class ResourceTypeTests(unittest.TestCase):
         self.assertEqual(
             rt.get_latest_prototype(), spec['versions'][-1]['prototype'])
         self.assertEqual(rt.as_dict(), spec)
+
+
+class AddMissingFieldsTests(unittest.TestCase):
+
+    def setUp(self):
+        spec = {
+            'type': 'subject',
+            'path': '/subjects',
+            'versions': [
+                {
+                    'version': 'v1',
+                    'prototype': {
+                        'foo': '',
+                        'bars': [
+                            {
+                                'foobar': '',
+                                'yo': '',
+                            },
+                        ],
+                    },
+                },
+            ],
+        }
+        self.rt = qvarn.ResourceType()
+        self.rt.from_spec(spec)
+
+    def test_fills_in_toplevel_fields(self):
+        self.assertEqual(
+            qvarn.add_missing_fields(self.rt, {}),
+            {
+                'foo': '',
+                'bars': [],
+            }
+        )
+
+    def test_fills_in_list_dict_fields(self):
+        obj = {
+            'bars': [
+                {
+                },
+            ],
+        }
+        self.assertEqual(
+            qvarn.add_missing_fields(self.rt, obj),
+            {
+                'foo': '',
+                'bars': [
+                    {
+                        'foobar': '',
+                        'yo': '',
+                    },
+                ],
+            }
+        )
