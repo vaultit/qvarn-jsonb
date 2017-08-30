@@ -117,9 +117,10 @@ class QvarnAPI:
 
     def get_resource_type(self, path):
         objs = self._store.get_objects(obj_id=path)
-        assert 0 <= len(objs) <= 1
         if len(objs) == 0:
             raise NoSuchResourceType(path)
+        elif len(objs) > 1:  # pragma: no cover
+            raise TooManyResourceTypes(path)
         rt = qvarn.ResourceType()
         rt.from_spec(objs[0]['spec'])
         return rt
@@ -252,6 +253,12 @@ class NoSuchResourceType(Exception):
 
     def __init__(self, path):
         super().__init__('No resource type for path {}'.format(path))
+
+
+class TooManyResourceTypes(Exception):  # pragma: no cover
+
+    def __init__(self, path):
+        super().__init__('Too many resource types for path {}'.format(path))
 
 
 class NotJson(Exception):  # pragma: no cover
