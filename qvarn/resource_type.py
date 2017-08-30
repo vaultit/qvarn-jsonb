@@ -60,6 +60,15 @@ class ResourceType:
         self._version = version_spec['version']
         self._prototype = version_spec['prototype']
 
+    def get_all_versions(self):
+        return [v['version'] for v in self._versions]
+
+    def get_version(self, version):
+        for v in self._versions:
+            if v['version'] == version:
+                return v
+        raise KeyError('Version %r not found' % version)
+
     def get_latest_version(self):
         return self._version
 

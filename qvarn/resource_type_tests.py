@@ -67,6 +67,11 @@ class ResourceTypeTests(unittest.TestCase):
         rt.from_spec(spec)
         self.assertEqual(rt.get_type(), spec['type'])
         self.assertEqual(rt.get_path(), spec['path'])
+        self.assertEqual(rt.get_all_versions(), ['v0', 'v1'])
+        self.assertEqual(rt.get_version('v0'), spec['versions'][0])
+        self.assertEqual(rt.get_version('v1'), spec['versions'][1])
+        with self.assertRaises(KeyError):
+            rt.get_version('v999')
         self.assertEqual(
             rt.get_latest_version(), spec['versions'][-1]['version'])
         self.assertEqual(
