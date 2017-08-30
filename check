@@ -28,11 +28,11 @@ python3 -m CoverageTestRunner --ignore-missing-from=without-tests
 pep8 qvarn
 pylint3 -j0 --rcfile pylint.conf qvarn
 
-# Run yarns without Postgres. For speed.
-#QVARN_POSTGRES= run_yarns "$@"
-
-if [ "${QVARN_POSTGRES:-no}" != no ]
+if [ "${QVARN_POSTGRES:-no}" = no ]
 then
+    # Run yarns without Postgres. For speed.
+   run_yarns "$@"
+else
     scripts/pgempty
     run_yarns --env "QVARN_POSTGRES=$QVARN_POSTGRES" "$@"
 fi
