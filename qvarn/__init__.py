@@ -51,13 +51,13 @@ from .validator import (
     NoId,
     NoRevision,
     UnknownField,
+    WrongType,
 )
 
 from .collection import (
     CollectionAPI,
     NoSuchResource,
     WrongRevision,
-    WrongType,
 )
 
 from .api import QvarnAPI, NoSuchResourceType

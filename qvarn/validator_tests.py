@@ -65,6 +65,20 @@ class ValidatorTests(unittest.TestCase):
             self.validator.validate_new_resource(
                 self.resource, self.resource_type)
 
+    def test_rejects_new_resource_with_different_type(self):
+        self.resource['type'] = 'wrong'
+        del self.resource['id']
+        del self.resource['revision']
+        with self.assertRaises(qvarn.WrongType):
+            self.validator.validate_new_resource(
+                self.resource, self.resource_type)
+
+    def test_rejects_resource_update_with_different_type(self):
+        self.resource['type'] = 'wrong'
+        with self.assertRaises(qvarn.WrongType):
+            self.validator.validate_resource_update(
+                self.resource, self.resource_type)
+
     def test_rejects_resource_without_id(self):
         del self.resource['id']
         with self.assertRaises(qvarn.NoId):

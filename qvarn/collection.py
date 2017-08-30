@@ -41,8 +41,6 @@ class CollectionAPI:
     def post(self, obj):
         v = qvarn.Validator()
         v.validate_new_resource(obj, self.get_type())
-        if obj['type'] != self._type.get_type():
-            raise WrongType(obj['type'], self._type.get_type())
 
         new_obj = self._new_object(obj)
         new_obj['id'] = self._invent_id(obj['type'])
@@ -81,8 +79,6 @@ class CollectionAPI:
     def put(self, obj):
         v = qvarn.Validator()
         v.validate_resource_update(obj, self.get_type())
-        if obj['type'] != self._type.get_type():
-            raise WrongType(obj['type'], self._type.get_type())
 
         old = self.get(obj['id'])
         if old['revision'] != obj['revision']:
@@ -108,10 +104,3 @@ class NoSuchResource(Exception):
 
     def __init__(self, obj_id):
         super().__init__("There is no resource with id {}".format(obj_id))
-
-
-class WrongType(Exception):
-
-    def __init__(self, actual, wanted):
-        super().__init__("Resource MUST have type {}, but has {}".format(
-            wanted, actual))
