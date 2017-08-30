@@ -27,8 +27,8 @@ from .sql import (
     PostgresAdapter,
     quote,
     placeholder,
-    All,
     Equal,
+    Yes,
 )
 
 from .objstore import (

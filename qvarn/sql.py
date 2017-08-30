@@ -188,7 +188,7 @@ class Equal(Condition):
         return query, values
 
 
-class All(Condition):
+class Yes(Condition):
 
     def matches(self, obj):
         return True

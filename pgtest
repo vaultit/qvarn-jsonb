@@ -39,7 +39,7 @@ for obj in objs:
 
 print('finding')
 # cond = qvarn.Equal('foo', 'bar')
-cond = qvarn.All()
+cond = qvarn.Yes()
 objs = pos.get_objects(obj_id=obj['id'])
 print(repr(objs))
 for obj in objs:

@@ -35,7 +35,7 @@ class ObjectStoreTests(unittest.TestCase):
         return store
 
     def get_all_objects(self, store):
-        return store.find_objects(qvarn.All())
+        return store.find_objects(qvarn.Yes())
 
     def sorted_dicts(self, dicts):
         return sorted(dicts, key=lambda d: sorted(d.items()))
@@ -134,7 +134,7 @@ class ObjectStoreTests(unittest.TestCase):
         store.create_object(self.obj1, key='1st')
         store.create_object(self.obj2, key='2nd')
 
-        ids = store.find_object_ids(qvarn.All())
+        ids = store.find_object_ids(qvarn.Yes())
         self.assertEqual(
             self.sorted_dicts(ids),
             self.sorted_dicts([{'key': '1st'}, {'key': '2nd'}])
