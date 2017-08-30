@@ -42,7 +42,9 @@ Start a Qvarn running in the background.
         'qvarnbackend:app',
     ]
     cliapp.runcmd(argv, env=env, stdout=None, stderr=None)
-    time.sleep(2)
+    until = time.time() + 2.0
+    while time.time() < until and not os.path.exists(vars['pid-file']):
+        time.sleep(0.01)
     assert os.path.exists(vars['pid-file'])
 
 ## Stop a Qvarn we started
