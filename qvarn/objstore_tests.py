@@ -129,7 +129,7 @@ class ObjectStoreTests(unittest.TestCase):
         ids = store.find_object_ids(cond)
         self.assertEqual(ids, [{'key': '1st'}])
 
-    def test_finds_ids_of_multipl_objects(self):
+    def test_finds_ids_of_multiple_objects(self):
         store = self.create_store(key=str)
         store.create_object(self.obj1, key='1st')
         store.create_object(self.obj2, key='2nd')
