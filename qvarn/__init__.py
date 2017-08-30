@@ -37,6 +37,7 @@ from .objstore import (
     PostgresObjectStore,
     KeyCollision,
     UnknownKey,
+    WrongKeyType,
     KeyValueError,
 )
 

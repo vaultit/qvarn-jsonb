@@ -44,6 +44,10 @@ class ObjectStoreTests(unittest.TestCase):
         store = self.create_store(key=str)
         self.assertEqual(self.get_all_objects(store), [])
 
+    def test_refurses_nonstr_keys(self):
+        with self.assertRaises(qvarn.WrongKeyType):
+            self.create_store(key=int)
+
     def test_adds_object(self):
         store = self.create_store(key=str)
         store.create_object(self.obj1, key='1st')

@@ -54,6 +54,11 @@ class ObjectStoreInterface:  # pragma: no cover
     def create_store(self, **keys):
         raise NotImplementedError()
 
+    def check_keys_have_str_type(self, **keys):
+        for key in keys:
+            if keys[key] != str:
+                raise WrongKeyType(key, keys[key])
+
     def create_object(self, obj, **keys):
         raise NotImplementedError()
 
@@ -77,6 +82,7 @@ class MemoryObjectStore(ObjectStoreInterface):
         self._known_keys = {}
 
     def create_store(self, **keys):
+        self.check_keys_have_str_type(**keys)
         qvarn.log.log(
             'trace', msg_text='Creating store', keys=repr(keys), exc_info=True)
         self._known_keys = keys
@@ -124,6 +130,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         self._keys = None
 
     def create_store(self, **keys):
+        self.check_keys_have_str_type(**keys)
         qvarn.log.log(
             'info', msg_text='PostgresObjectStore.create_store',
             keys=repr(keys))
@@ -196,6 +203,14 @@ class UnknownKey(Exception):
 
     def __init__(self, key):
         super().__init__('ObjectStore is not prepared for key %r' % key)
+
+
+class WrongKeyType(Exception):
+
+    def __init__(self, key, key_type):
+        super().__init__(
+            'ObjectStore is not prepared for key %r of type %r, must be str' %
+            (key, key_type))
 
 
 class KeyValueError(Exception):
