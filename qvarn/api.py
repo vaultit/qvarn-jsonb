@@ -96,13 +96,7 @@ class QvarnAPI:
                 'version': qvarn.__version__,
             },
         }
-        return apifw.Response({
-            'status': apifw.HTTP_OK,
-            'body': version,
-            'headers': {
-                'Content-Type': 'application/json',
-            },
-        })
+        return ok_response(version)
 
     def add_resource_type(self, rt):
         path = rt.get_path()
@@ -135,24 +129,14 @@ class QvarnAPI:
                 self._validator.validate_new_resource(body, coll.get_type())
             except qvarn.ValidationError as e:
                 qvarn.log.log('error', msg_text=str(e), body=body)
-                return apifw.Response({
-                    'status': apifw.HTTP_BAD_REQUEST,
-                    'body': str(e),
-                })
+                return bad_request_response(str(e))
             result_body = coll.post(body)
             qvarn.log.log(
                 'debug', msg_text='POST a new resource, result',
                 body=result_body)
             location = '{}{}/{}'.format(
                 self._baseurl, coll.get_type().get_path(), result_body['id'])
-            return apifw.Response({
-                'status': apifw.HTTP_CREATED,
-                'body': result_body,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Location': location,
-                },
-            })
+            return created_response(result_body, location)
         return wrapper
 
     def get_put_callback(self, coll):  # pragma: no cover
@@ -171,10 +155,7 @@ class QvarnAPI:
                     body, coll.get_type())
             except qvarn.ValidationError as e:
                 qvarn.log.log('error', msg_text=str(e), body=body)
-                return apifw.Response({
-                    'status': apifw.HTTP_BAD_REQUEST,
-                    'body': str(e),
-                })
+                return bad_request_response(str(e))
 
             obj_id = kwargs['id']
             # FIXME: the following test should be enabled once we
@@ -185,25 +166,11 @@ class QvarnAPI:
             try:
                 result_body = coll.put(body)
             except qvarn.WrongRevision as e:
-                return apifw.Response({
-                    'status': apifw.HTTP_CONFLICT,
-                    'body': str(e),
-                    'headers': [],
-                })
+                return conflict_response(str(e))
             except qvarn.NoSuchResource as e:
-                return apifw.Response({
-                    'status': apifw.HTTP_BAD_REQUEST,
-                    'body': str(e),
-                    'headers': [],
-                })
+                return bad_request_response(str(e))
 
-            return apifw.Response({
-                'status': apifw.HTTP_OK,
-                'body': result_body,
-                'headers': {
-                    'Content-Type': 'application/json',
-                },
-            })
+            return ok_response(result_body)
         return wrapper
 
     def get_resource_callback(self, coll):  # pragma: no cover
@@ -216,37 +183,59 @@ class QvarnAPI:
                     'body': '',
                     'headers': {},
                 }
-            return apifw.Response({
-                'status': apifw.HTTP_OK,
-                'body': obj,
-                'headers': {
-                    'Content-Type': 'application/json',
-                },
-            })
+            return ok_response(obj)
         return wrapper
 
     def get_resource_list_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
             body = coll.list()
-            return apifw.Response({
-                'status': apifw.HTTP_OK,
-                'body': body,
-                'headers': {
-                    'Content-Type': 'application/json',
-                },
-            })
+            return ok_response(body)
         return wrapper
 
     def delete_resource_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
-            return apifw.Response({
-                'status': apifw.HTTP_OK,
-                'body': coll.delete(kwargs['id']),
-                'headers': {
-                    'Content-Type': 'application/json',
-                },
-            })
+            body = coll.delete(kwargs['id'])
+            return ok_response(body)
         return wrapper
+
+
+def response(status, body, headers):  # pragma: no cover
+    return apifw.Response(
+        {
+            'status': status,
+            'body': body,
+            'headers': headers,
+        }
+    )
+
+
+def ok_response(body):  # pragma: no cover
+    headers = {
+        'Content-Type': 'application/json',
+    }
+    return response(apifw.HTTP_OK, body, headers)
+
+
+def created_response(body, location):  # pragma: no cover
+    headers = {
+        'Content-Type': 'application/json',
+        'Location': location,
+    }
+    return response(apifw.HTTP_CREATED, body, headers)
+
+
+def bad_request_response(body):  # pragma: no cover
+    headers = {
+        'Content-Type': 'text/plain',
+    }
+    return response(apifw.HTTP_BAD_REQUEST, body, headers)
+
+
+def conflict_response(body):  # pragma: no cover
+    headers = {
+        'Content-Type': 'text/plain',
+    }
+    return response(apifw.HTTP_CONFLICT, body, headers)
 
 
 class NoSuchResourceType(Exception):
