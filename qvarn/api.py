@@ -80,6 +80,11 @@ class QvarnAPI:
                 'callback': self.get_resource_callback(coll),
             },
             {
+                'method': 'GET',
+                'path': path + '/search/<search_criteria:path>',
+                'callback': self.get_search_callback(coll),
+            },
+            {
                 'method': 'DELETE',
                 'path': id_path,
                 'callback': self.delete_resource_callback(coll),
@@ -189,6 +194,15 @@ class QvarnAPI:
     def get_resource_list_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
             body = coll.list()
+            return ok_response(body)
+        return wrapper
+
+    def get_search_callback(self, coll):  # pragma: no cover
+        def wrapper(content_type, body, search_criteria='', **kwargs):
+            result = coll.search(search_criteria)
+            body = {
+                'resources': result,
+            }
             return ok_response(body)
         return wrapper
 

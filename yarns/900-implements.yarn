@@ -130,7 +130,10 @@ Start a Qvarn running in the background.
     IMPLEMENTS THEN JSON body matches (.+)
     import json
     wanted = get_next_match()
-    wanted = json.loads(expand_vars(wanted, vars))
+    print 'ownted', repr(wanted)
+    wanted = expand_vars(wanted, vars)
+    print 'ewnted', repr(wanted)
+    wanted = json.loads(wanted)
     actual = json.loads(vars['body'])
     print 'actual', repr(actual)
     print 'wanted', repr(wanted)

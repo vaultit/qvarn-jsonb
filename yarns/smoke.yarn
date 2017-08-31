@@ -80,3 +80,47 @@ This is an integration test suite for the Qvarn HTTP API.
     THEN HTTP status code is 404 Not Found
 
     FINALLY qvarn is stopped
+
+# Search subjects
+
+    SCENARIO search subjects
+
+    GIVEN a running Qvarn instance
+
+    WHEN client gets an authorization token with scope 
+    ... "uapi_subjects_post uapi_subjects_search_id_get"
+
+    WHEN client requests POST /subjects with token and body
+    ... { "type": "subject", "full_name": "James" }
+    THEN resource id is ID1
+
+    WHEN client requests POST /subjects with token and body
+    ... { "type": "subject", "full_name": "James" }
+    THEN resource id is ID2
+
+    WHEN client requests POST /subjects with token and body
+    ... { "type": "subject", "full_name": "Jason" }
+    THEN resource id is ID3
+
+    WHEN client requests GET /subjects/search/exact/full_name/007
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches { "resources": []}
+
+    WHEN client requests GET /subjects/search/exact/full_name/James
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches { "resources": [ "${ID1}", "${ID2}" ]}
+
+    WHEN client requests 
+    ... GET /subjects/search/exact/full_name/James/exact/full_name/James
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches { "resources": [ "${ID1}", "${ID2}" ]}
+
+    WHEN client requests GET /subjects/search/exact/full_name/Jason
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches { "resources": [ "${ID3}" ]}
+
+    FINALLY qvarn is stopped
