@@ -181,7 +181,12 @@ class All(Condition):
         return True
 
     def as_sql(self):  # pragma: no cover
-        return 'NOTIMPLEMENTED'
+        pairs = [cond.as_sql() for cond in self.conds]
+        conds = ' AND '.join(query for query, _ in pairs)
+        values = {}
+        for _, value in pairs:
+            values.update(value)
+        return '( {} )'.format(conds), values
 
 
 class Equal(Condition):
