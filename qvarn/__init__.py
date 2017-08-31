@@ -27,6 +27,7 @@ from .sql import (
     PostgresAdapter,
     quote,
     placeholder,
+    All,
     Equal,
     Yes,
 )
@@ -53,6 +54,11 @@ from .validator import (
     NoRevision,
     UnknownField,
     WrongType,
+)
+
+from .search_parser import (
+    SearchParser,
+    SearchParserError,
 )
 
 from .collection import (

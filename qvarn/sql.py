@@ -169,6 +169,21 @@ class Condition:
         raise NotImplementedError()
 
 
+class All(Condition):
+
+    def __init__(self, *conds):
+        self.conds = conds
+
+    def matches(self, obj):
+        for cond in self.conds:
+            if not cond.matches(obj):
+                return False
+        return True
+
+    def as_sql(self):  # pragma: no cover
+        return 'NOTIMPLEMENTED'
+
+
 class Equal(Condition):
 
     def __init__(self, name, value):
