@@ -259,3 +259,19 @@ class CollectionAPITests(unittest.TestCase):
             for key, value in obj.items()
             if key != 'revision'
         }
+
+    def test_search_with_empty_criteria_raises_error(self):
+        with self.assertRaises(qvarn.NoSearchCriteria):
+            self.coll.search('')
+
+    def test_search_without_matches_returns_empty_list(self):
+        self.assertEqual(self.coll.search('exact/foo/nomatch'), [])
+
+    def test_search_return_matching_resources(self):
+        obj = {
+            'type': 'subject',
+            'full_name': 'James Bond',
+        }
+        new_obj = self.coll.post(obj)
+        matches = self.coll.search('exact/full_name/James Bond')
+        self.assertEqual(matches, [new_obj['id']])

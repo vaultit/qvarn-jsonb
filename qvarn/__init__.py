@@ -63,6 +63,7 @@ from .search_parser import (
 
 from .collection import (
     CollectionAPI,
+    NoSearchCriteria,
     NoSuchResource,
     WrongRevision,
 )

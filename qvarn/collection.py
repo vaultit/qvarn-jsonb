@@ -91,6 +91,13 @@ class CollectionAPI:
 
         return new_obj
 
+    def search(self, search_criteria):
+        if not search_criteria:
+            raise NoSearchCriteria()
+        p = qvarn.SearchParser()
+        cond = p.parse(search_criteria)
+        return [keys['obj_id'] for keys in self._store.find_object_ids(cond)]
+
 
 class WrongRevision(Exception):
 
@@ -104,3 +111,9 @@ class NoSuchResource(Exception):
 
     def __init__(self, obj_id):
         super().__init__("There is no resource with id {}".format(obj_id))
+
+
+class NoSearchCriteria(Exception):
+
+    def __init__(self):
+        super().__init__('No search criteria was given')
