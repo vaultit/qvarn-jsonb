@@ -39,6 +39,7 @@ from .objstore import (
     UnknownKey,
     WrongKeyType,
     KeyValueError,
+    flatten_object,
 )
 
 from .validator import (

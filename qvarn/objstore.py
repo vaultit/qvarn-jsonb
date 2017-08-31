@@ -217,3 +217,20 @@ class KeyValueError(Exception):
 
     def __init__(self, key, value):
         super().__init__('Key %r value %r has the wrong type' % (key, value))
+
+
+def flatten_object(obj):
+    return list(sorted(_flatten(obj)))
+
+
+def _flatten(obj, obj_key=None):
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            for x in _flatten(value, obj_key=key):
+                yield x
+    elif isinstance(obj, list):
+        for item in obj:
+            for x in _flatten(item, obj_key=obj_key):
+                yield x
+    else:
+        yield obj_key, obj

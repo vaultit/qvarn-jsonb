@@ -176,7 +176,10 @@ class Equal(Condition):
         self.value = value
 
     def matches(self, obj):
-        return obj.get(self.name) == self.value
+        for key, value in qvarn.flatten_object(obj):
+            if key == self.name and value == self.value:
+                return True
+        return False
 
     def as_sql(self):  # pragma: no cover
         values = {

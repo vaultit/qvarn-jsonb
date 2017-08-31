@@ -139,3 +139,79 @@ class ObjectStoreTests(unittest.TestCase):
             self.sorted_dicts(ids),
             self.sorted_dicts([{'key': '1st'}, {'key': '2nd'}])
         )
+
+
+class FlattenObjectsTests(unittest.TestCase):
+
+    def test_flattens_simple_dict(self):
+        obj = {
+            'foo': 'bar',
+            'foobar': 42,
+            'yo': True,
+        }
+        self.assertEqual(
+            qvarn.flatten_object(obj),
+            sorted([('foo', 'bar'), ('foobar', 42), ('yo', True)]))
+
+    def test_flattens_deep_dict(self):
+        obj = {
+            'foo': 'bar',
+            'foos': [
+                {
+                    'foo': 'bar2',
+                    'foos': [
+                        {
+                            'foo': 'bar3',
+                        },
+                    ],
+                },
+            ],
+        }
+        self.assertEqual(
+            qvarn.flatten_object(obj),
+            sorted([
+                ('foo', 'bar'),
+                ('foo', 'bar2'),
+                ('foo', 'bar3'),
+            ]))
+
+
+class FindObjectsTests(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def create_store(self, **keys):
+        store = qvarn.MemoryObjectStore()
+        store.create_store(**keys)
+        return store
+
+    def test_finds_objects_matching_deeply_in_object(self):
+        obj1 = {
+            'foo': 'foo-1',
+            'bar': 'blah',
+            'bars': [
+                {
+                    'foo': 'bars.0',
+                    'bar': 'yo',
+                },
+                {
+                    'foo': 'bars.1',
+                    'bar': 'bleurgh',
+                },
+            ],
+        }
+
+        obj2 = {
+            'foo': 'foo-2',
+            'bar': 'bother',
+            'bars': [],
+        }
+
+        store = self.create_store(key=str)
+        store.create_object(obj1, key='1st')
+        store.create_object(obj2, key='2nd')
+
+        cond = qvarn.Equal('bar', 'yo')
+        objs = store.find_objects(cond)
+        self.assertEqual(objs, [obj1])
