@@ -59,7 +59,7 @@ class ObjectStoreInterface:  # pragma: no cover
             if keys[key] != str:
                 raise WrongKeyType(key, keys[key])
 
-    def create_object(self, obj, **keys):
+    def create_object(self, obj, auxtable=True, **keys):
         raise NotImplementedError()
 
     def remove_objects(self, **keys):
@@ -87,7 +87,7 @@ class MemoryObjectStore(ObjectStoreInterface):
             'trace', msg_text='Creating store', keys=repr(keys), exc_info=True)
         self._known_keys = keys
 
-    def create_object(self, obj, **keys):
+    def create_object(self, obj, auxtable=True, **keys):
         qvarn.log.log(
             'trace', msg_text='Creating object', object=repr(obj), keys=keys)
         for key in keys:
@@ -153,13 +153,14 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             query = t.create_jsonb_table(name, **columns)
             t.execute(query, {})
 
-    def create_object(self, obj, **keys):
+    def create_object(self, obj, auxtable=True, **keys):
         qvarn.log.log(
             'info', msg_text='PostgresObjectStore.create_object',
             obj=obj, keys=keys)
         with self._sql.transaction() as t:
             self._insert_into_object_table(t, self._table, obj, **keys)
-            self._insert_into_helper(t, self._auxtable, obj, **keys)
+            if auxtable:
+                self._insert_into_helper(t, self._auxtable, obj, **keys)
 
     def _insert_into_object_table(self, t, table_name, obj, **keys):
         keys['_obj'] = json.dumps(obj)
