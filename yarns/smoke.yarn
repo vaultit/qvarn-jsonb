@@ -123,4 +123,10 @@ This is an integration test suite for the Qvarn HTTP API.
     THEN HTTP status code is 200 OK
     AND JSON body matches { "resources": [ "${ID3}" ]}
 
+    WHEN client requests
+    ... GET /subjects/search/contains/full_name/J
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches { "resources": [ "${ID1}", "${ID2}", "${ID3}" ]}
+
     FINALLY qvarn is stopped

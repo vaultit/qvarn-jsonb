@@ -28,6 +28,7 @@ from .sql import (
     quote,
     placeholder,
     All,
+    Contains,
     Equal,
     Yes,
 )

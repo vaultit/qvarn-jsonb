@@ -20,6 +20,7 @@ import qvarn
 class SearchParser:
 
     conditions = {
+        'contains': (2, qvarn.Contains),
         'exact': (2, qvarn.Equal),
     }
 
