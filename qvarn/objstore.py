@@ -187,6 +187,9 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             query = t.remove_objects(self._table, *keys.keys())
             t.execute(query, keys)
 
+            query = t.remove_objects(self._auxtable, *keys.keys())
+            t.execute(query, keys)
+
     def get_objects(self, **keys):
         qvarn.log.log(
             'info', msg_text='PostgresObjectStore.get_objects',
