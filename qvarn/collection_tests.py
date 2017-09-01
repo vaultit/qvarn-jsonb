@@ -282,5 +282,9 @@ class CollectionAPITests(unittest.TestCase):
             'full_name': 'James Bond',
         }
         new_obj = self.coll.post(obj)
+        wanted = {
+            'id': new_obj['id'],
+            'full_name': new_obj['full_name'],
+        }
         matches = self.coll.search('exact/full_name/James Bond/show/full_name')
-        self.assertEqual(matches, [new_obj])
+        self.assertEqual(matches, [wanted])

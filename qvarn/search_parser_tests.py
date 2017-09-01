@@ -54,14 +54,14 @@ class SearchParserTests(unittest.TestCase):
         p = qvarn.SearchParser()
         cond, show = p.parse('exact/foo/bar/show/foo')
         self.assertTrue(isinstance(cond, qvarn.Equal))
-        self.assertTrue(show)
+        self.assertEqual(show, ['foo'])
         self.assertEqual(cond.name, 'foo')
         self.assertEqual(cond.value, 'bar')
 
     def test_returns_all_condition(self):
         p = qvarn.SearchParser()
         cond, show = p.parse('exact/foo/bar/exact/foobar/yo')
-        self.assertFalse(show)
+        self.assertEqual(show, None)
         self.assertTrue(isinstance(cond, qvarn.All))
         self.assertEqual(len(cond.conds), 2)
         first, second = cond.conds

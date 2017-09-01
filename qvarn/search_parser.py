@@ -30,10 +30,14 @@ class SearchParser:
             raise SearchParserError('No condition given')
         pairs = list(self._parse_simple(path))
         conds = [cond for cond, _ in pairs if cond is not None]
-        show = any(show for _, show in pairs)
+
+        show_fields = []
+        for _, fields in pairs:
+            if fields:
+                show_fields += fields
         if len(conds) == 1:
-            return conds[0], show
-        return qvarn.All(*conds), show
+            return conds[0], show_fields
+        return qvarn.All(*conds), show_fields or None
 
     def _parse_simple(self, path):
         words = path.split('/')
@@ -47,10 +51,11 @@ class SearchParser:
             if num > len(words) - 1:
                 raise SearchParserError(
                     'Not enough args for {}'.format(words[0]))
+            args = words[1:1+num]
             if isinstance(klass, str):
-                yield None, klass
+                yield None, args
             else:
-                yield klass(*words[1:1+num]), None
+                yield klass(*args), None
             del words[:1+num]
             assert len_before == len(words) + num + 1
             assert len(words) < len_before

@@ -88,7 +88,8 @@ This is an integration test suite for the Qvarn HTTP API.
     GIVEN a running Qvarn instance
 
     WHEN client gets an authorization token with scope 
-    ... "uapi_subjects_post uapi_subjects_search_id_get"
+    ... "uapi_subjects_post uapi_subjects_search_id_get
+    ...  uapi_subjects_id_delete"
 
     WHEN client requests POST /subjects with token and body
     ... { "type": "subject", "full_name": "Alfred" }
@@ -139,14 +140,11 @@ This is an integration test suite for the Qvarn HTTP API.
     ... {
     ...     "resources": [
     ...         {
+    ...             "id": "${ID1}",
     ...             "full_name": "Alfred"
     ...         },
     ...         {
-    ...             "names": [
-    ...                 {
-    ...                     "full_name": "Alfred"
-    ...                 }
-    ...             ]
+    ...             "id": "${ID2}"
     ...         }
     ...     ]
     ... }

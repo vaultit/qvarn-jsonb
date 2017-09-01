@@ -99,7 +99,10 @@ class CollectionAPI:
         qvarn.log.log(
             'trace', msg_text='Collection.search', show_fields=show_fields)
         if show_fields:
-            result = list(self._store.find_objects(cond))
+            result = [
+                self._strip_obj(obj, show_fields + ['id'])
+                for obj in self._store.find_objects(cond)
+            ]
         else:
             result = [
                 keys['obj_id']
@@ -109,6 +112,13 @@ class CollectionAPI:
             'trace', msg_text='Collection.search', show_fields=show_fields,
             result=result)
         return result
+
+    def _strip_obj(self, obj, fields):
+        return {
+            key: obj[key]
+            for key in obj
+            if key in fields
+        }
 
 
 class WrongRevision(Exception):
