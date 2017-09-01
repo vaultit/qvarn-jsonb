@@ -267,7 +267,7 @@ class CollectionAPITests(unittest.TestCase):
     def test_search_without_matches_returns_empty_list(self):
         self.assertEqual(self.coll.search('exact/foo/nomatch'), [])
 
-    def test_search_return_matching_resources(self):
+    def test_search_return_matching_resource_ids(self):
         obj = {
             'type': 'subject',
             'full_name': 'James Bond',
@@ -275,3 +275,12 @@ class CollectionAPITests(unittest.TestCase):
         new_obj = self.coll.post(obj)
         matches = self.coll.search('exact/full_name/James Bond')
         self.assertEqual(matches, [new_obj['id']])
+
+    def test_search_return_matching_resources_themselves(self):
+        obj = {
+            'type': 'subject',
+            'full_name': 'James Bond',
+        }
+        new_obj = self.coll.post(obj)
+        matches = self.coll.search('exact/full_name/James Bond/show/full_name')
+        self.assertEqual(matches, [new_obj])

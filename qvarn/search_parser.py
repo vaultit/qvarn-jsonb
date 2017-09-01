@@ -22,15 +22,18 @@ class SearchParser:
     conditions = {
         'contains': (2, qvarn.Contains),
         'exact': (2, qvarn.Equal),
+        'show': (1, 'show'),
     }
 
     def parse(self, path):
         if not path:
             raise SearchParserError('No condition given')
-        conds = list(self._parse_simple(path))
+        pairs = list(self._parse_simple(path))
+        conds = [cond for cond, _ in pairs if cond is not None]
+        show = any(show for _, show in pairs)
         if len(conds) == 1:
-            return conds[0]
-        return qvarn.All(*conds)
+            return conds[0], show
+        return qvarn.All(*conds), show
 
     def _parse_simple(self, path):
         words = path.split('/')
@@ -41,7 +44,13 @@ class SearchParser:
                 raise SearchParserError(
                     'Unknown condition {}'.format(words[0]))
             num, klass = self.conditions[words[0]]
-            yield klass(*words[1:1+num])
+            if num > len(words) - 1:
+                raise SearchParserError(
+                    'Not enough args for {}'.format(words[0]))
+            if isinstance(klass, str):
+                yield None, klass
+            else:
+                yield klass(*words[1:1+num]), None
             del words[:1+num]
             assert len_before == len(words) + num + 1
             assert len(words) < len_before

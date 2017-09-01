@@ -107,10 +107,30 @@ def expand_vars(text, vars):
     return result
 
 
-def dict_matches(wanted, actual):
-    assert isinstance(wanted, dict)
-    assert isinstance(actual, dict)
-    for key in wanted:
-        assert key in actual
-        assert wanted[key] == actual[key]
+def values_match(wanted, actual):
+    print 'wanted:', repr(wanted)
+    print 'actual:', repr(actual)
+
+    if type(wanted) != type(actual):
+        print 'wanted and actual types differ'
+        return False
+
+    if isinstance(wanted, dict):
+        for key in wanted:
+            if key not in actual:
+                print 'key {!r} not in actual'.format(key)
+                return False
+            if not values_match(wanted[key], actual[key]):
+                return False
+    elif isinstance(wanted, list):
+        if len(wanted) != len(actual):
+            print 'wanted and actual are of different lengths'
+        for witem, aitem in zip(wanted, actual):
+            if not values_match(witem, aitem):
+                return False
+    else:
+        if wanted != actual:
+            print 'wanted and actual differ'
+            return False
+
     return True

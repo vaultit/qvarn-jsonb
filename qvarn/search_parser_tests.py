@@ -34,14 +34,34 @@ class SearchParserTests(unittest.TestCase):
 
     def test_returns_exact_condition(self):
         p = qvarn.SearchParser()
-        cond = p.parse('exact/foo/bar')
+        cond, show = p.parse('exact/foo/bar')
         self.assertTrue(isinstance(cond, qvarn.Equal))
+        self.assertFalse(show)
+        self.assertEqual(cond.name, 'foo')
+        self.assertEqual(cond.value, 'bar')
+
+    def test_raises_error_if_only_show_specified(self):
+        p = qvarn.SearchParser()
+        with self.assertRaises(qvarn.SearchParserError):
+            p.parse('show')
+
+    def test_raises_error_if_show_specified_but_without_operand(self):
+        p = qvarn.SearchParser()
+        with self.assertRaises(qvarn.SearchParserError):
+            p.parse('exact/foo/bar/show')
+
+    def test_returns_show_if_specified(self):
+        p = qvarn.SearchParser()
+        cond, show = p.parse('exact/foo/bar/show/foo')
+        self.assertTrue(isinstance(cond, qvarn.Equal))
+        self.assertTrue(show)
         self.assertEqual(cond.name, 'foo')
         self.assertEqual(cond.value, 'bar')
 
     def test_returns_all_condition(self):
         p = qvarn.SearchParser()
-        cond = p.parse('exact/foo/bar/exact/foobar/yo')
+        cond, show = p.parse('exact/foo/bar/exact/foobar/yo')
+        self.assertFalse(show)
         self.assertTrue(isinstance(cond, qvarn.All))
         self.assertEqual(len(cond.conds), 2)
         first, second = cond.conds

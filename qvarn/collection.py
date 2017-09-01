@@ -95,8 +95,20 @@ class CollectionAPI:
         if not search_criteria:
             raise NoSearchCriteria()
         p = qvarn.SearchParser()
-        cond = p.parse(search_criteria)
-        return [keys['obj_id'] for keys in self._store.find_object_ids(cond)]
+        cond, show_fields = p.parse(search_criteria)
+        qvarn.log.log(
+            'trace', msg_text='Collection.search', show_fields=show_fields)
+        if show_fields:
+            result = list(self._store.find_objects(cond))
+        else:
+            result = [
+                keys['obj_id']
+                for keys in self._store.find_object_ids(cond)
+            ]
+        qvarn.log.log(
+            'trace', msg_text='Collection.search', show_fields=show_fields,
+            result=result)
+        return result
 
 
 class WrongRevision(Exception):

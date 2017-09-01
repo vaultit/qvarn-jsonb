@@ -93,10 +93,12 @@ This is an integration test suite for the Qvarn HTTP API.
     WHEN client requests POST /subjects with token and body
     ... { "type": "subject", "full_name": "Alfred" }
     THEN resource id is ID1
+    THEN revision is REV1
 
     WHEN client requests POST /subjects with token and body
     ... { "type": "subject", "names": [ { "full_name": "Alfred" } ] }
     THEN resource id is ID2
+    THEN revision is REV2
 
     WHEN client requests POST /subjects with token and body
     ... { "type": "subject", "names": [ { "full_name": "Bruce" } ] }
@@ -128,5 +130,25 @@ This is an integration test suite for the Qvarn HTTP API.
     ... using token
     THEN HTTP status code is 200 OK
     AND JSON body matches { "resources": [ "${ID1}", "${ID2}" ]}
+
+    WHEN client requests
+    ... GET /subjects/search/show/full_name/contains/full_name/fred
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches 
+    ... {
+    ...     "resources": [
+    ...         {
+    ...             "full_name": "Alfred"
+    ...         },
+    ...         {
+    ...             "names": [
+    ...                 {
+    ...                     "full_name": "Alfred"
+    ...                 }
+    ...             ]
+    ...         }
+    ...     ]
+    ... }
 
     FINALLY qvarn is stopped

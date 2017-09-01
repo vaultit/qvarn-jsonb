@@ -203,11 +203,16 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         qvarn.log.log(
             'info', msg_text='PostgresObjectStore.find_objects',
             cond=repr(cond))
+        keys_columns = [key for key in self._keys if key != '_obj']
         with self._sql.transaction() as t:
             query, values = t.select_objects_on_cond(
-                self._auxtable, cond, 'value')
+                self._auxtable, cond, *keys_columns)
             cursor = t.execute(query, values)
-            return t.get_rows(cursor)
+            objs = []
+            for keys_dict in t.get_rows(cursor):
+                obj = self.get_objects(**keys_dict)
+                objs.append(obj)
+            return objs
 
     def find_object_ids(self, cond):
         qvarn.log.log(

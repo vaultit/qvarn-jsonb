@@ -130,14 +130,14 @@ Start a Qvarn running in the background.
     IMPLEMENTS THEN JSON body matches (.+)
     import json
     wanted = get_next_match()
-    print 'ownted', repr(wanted)
+    print 'wanted1', repr(wanted)
     wanted = expand_vars(wanted, vars)
-    print 'ewnted', repr(wanted)
+    print 'wanted2', repr(wanted)
     wanted = json.loads(wanted)
     actual = json.loads(vars['body'])
-    print 'actual', repr(actual)
-    print 'wanted', repr(wanted)
-    assertTrue(dict_matches(wanted, actual))
+    print 'actual ', repr(actual)
+    print 'wanted3', repr(wanted)
+    assertTrue(values_match(wanted, actual))
 
     IMPLEMENTS THEN response has header WWW-Authenticate containing "(.+)"
     assert 0
