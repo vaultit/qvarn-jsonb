@@ -91,42 +91,42 @@ This is an integration test suite for the Qvarn HTTP API.
     ... "uapi_subjects_post uapi_subjects_search_id_get"
 
     WHEN client requests POST /subjects with token and body
-    ... { "type": "subject", "full_name": "James" }
+    ... { "type": "subject", "full_name": "Alfred" }
     THEN resource id is ID1
 
     WHEN client requests POST /subjects with token and body
-    ... { "type": "subject", "names": [ { "full_name": "James" } ] }
+    ... { "type": "subject", "names": [ { "full_name": "Alfred" } ] }
     THEN resource id is ID2
 
     WHEN client requests POST /subjects with token and body
-    ... { "type": "subject", "names": [ { "full_name": "Jason" } ] }
+    ... { "type": "subject", "names": [ { "full_name": "Bruce" } ] }
     THEN resource id is ID3
 
-    WHEN client requests GET /subjects/search/exact/full_name/007
+    WHEN client requests GET /subjects/search/exact/full_name/Batman
     ... using token
     THEN HTTP status code is 200 OK
     AND JSON body matches { "resources": []}
 
-    WHEN client requests GET /subjects/search/exact/full_name/James
+    WHEN client requests GET /subjects/search/exact/full_name/Alfred
     ... using token
     THEN HTTP status code is 200 OK
     AND JSON body matches { "resources": [ "${ID1}", "${ID2}" ]}
 
     WHEN client requests 
-    ... GET /subjects/search/exact/full_name/James/exact/full_name/James
+    ... GET /subjects/search/exact/full_name/Alfred/exact/full_name/Alfred
     ... using token
     THEN HTTP status code is 200 OK
     AND JSON body matches { "resources": [ "${ID1}", "${ID2}" ]}
 
-    WHEN client requests GET /subjects/search/exact/full_name/Jason
+    WHEN client requests GET /subjects/search/exact/full_name/Bruce
     ... using token
     THEN HTTP status code is 200 OK
     AND JSON body matches { "resources": [ "${ID3}" ]}
 
     WHEN client requests
-    ... GET /subjects/search/contains/full_name/J
+    ... GET /subjects/search/contains/full_name/fred
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches { "resources": [ "${ID1}", "${ID2}", "${ID3}" ]}
+    AND JSON body matches { "resources": [ "${ID1}", "${ID2}" ]}
 
     FINALLY qvarn is stopped
