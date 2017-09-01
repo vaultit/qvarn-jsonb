@@ -94,6 +94,15 @@ subject.from_spec({
                 'type': '',
                 'revision': '',
                 'full_name': '',
+                'names': [
+                    {
+                        'full_name': '',
+                        'sort_key': '',
+                        'titles': [''],
+                        'given_names': [''],
+                        'surnames': [''],
+                    },
+                ],
             }
         }
     ],
