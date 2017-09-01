@@ -124,6 +124,10 @@ class MemoryObjectStore(ObjectStoreInterface):
 class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
 
     _table = '_objects'
+    _auxtable = '_aux'
+    _strtable = '_strings'
+    _inttable = '_ints'
+    _booltable = '_bools'
 
     def __init__(self, sql):
         self._sql = sql
@@ -131,24 +135,47 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
 
     def create_store(self, **keys):
         self.check_keys_have_str_type(**keys)
+        self._keys = dict(keys)
         qvarn.log.log(
             'info', msg_text='PostgresObjectStore.create_store',
             keys=repr(keys))
-        keys = dict(keys)
-        keys['_obj'] = dict
-        self._keys = keys
+
+        # Create main table for objects.
+        self._create_table(self._table, self._keys, '_obj', dict)
+
+        # Create helper tables for fields at all depths.
+        self._create_table(self._auxtable, self._keys, '_field', dict)
+
+    def _create_table(self, name, col_dict, col_name, col_type):
+        columns = dict(col_dict)
+        columns[col_name] = col_type
         with self._sql.transaction() as t:
-            query = t.create_jsonb_table(self._table, **keys)
+            query = t.create_jsonb_table(name, **columns)
             t.execute(query, {})
 
     def create_object(self, obj, **keys):
         qvarn.log.log(
             'info', msg_text='PostgresObjectStore.create_object',
             obj=obj, keys=keys)
-        keys = dict(keys)
-        keys['_obj'] = json.dumps(obj)
         with self._sql.transaction() as t:
-            query = t.insert_object(self._table, *list(keys.keys()))
+            self._insert_into_object_table(t, self._table, obj, **keys)
+            self._insert_into_helper(t, self._auxtable, obj, **keys)
+
+    def _insert_into_object_table(self, t, table_name, obj, **keys):
+        keys['_obj'] = json.dumps(obj)
+        column_names = list(keys.keys())
+        query = t.insert_object(table_name, *column_names)
+        t.execute(query, keys)
+
+    def _insert_into_helper(self, t, table_name, obj, **keys):
+        for field, value in flatten_object(obj):
+            x = {
+                'name': field,
+                'value': value,
+            }
+            keys['_field'] = json.dumps(x)
+            column_names = list(keys.keys())
+            query = t.insert_object(table_name, *column_names)
             t.execute(query, keys)
 
     def remove_objects(self, **keys):
@@ -177,7 +204,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             cond=repr(cond))
         with self._sql.transaction() as t:
             query, values = t.select_objects_on_cond(
-                self._table, cond, '_obj')
+                self._auxtable, cond, 'value')
             cursor = t.execute(query, values)
             return t.get_rows(cursor)
 
@@ -188,9 +215,11 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         keys_columns = [key for key in self._keys if key != '_obj']
         with self._sql.transaction() as t:
             query, values = t.select_objects_on_cond(
-                self._table, cond, *keys_columns)
+                self._auxtable, cond, *keys_columns)
             cursor = t.execute(query, values)
-            return t.get_rows(cursor)
+            rows = list(t.get_rows(cursor))
+            qvarn.log.log('trace', msg_text='rows', rows=rows)
+            return rows
 
 
 class KeyCollision(Exception):

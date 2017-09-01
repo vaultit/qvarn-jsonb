@@ -95,11 +95,11 @@ This is an integration test suite for the Qvarn HTTP API.
     THEN resource id is ID1
 
     WHEN client requests POST /subjects with token and body
-    ... { "type": "subject", "full_name": "James" }
+    ... { "type": "subject", "names": [ { "full_name": "James" } ] }
     THEN resource id is ID2
 
     WHEN client requests POST /subjects with token and body
-    ... { "type": "subject", "full_name": "Jason" }
+    ... { "type": "subject", "names": [ { "full_name": "Jason" } ] }
     THEN resource id is ID3
 
     WHEN client requests GET /subjects/search/exact/full_name/007

@@ -65,6 +65,9 @@ class Transaction:
         self._conn = None
 
     def execute(self, query, values):
+        qvarn.log.log(
+            'trace', msg_text='executing SQL query', query=query,
+            values=values)
         c = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         c.execute(query, values)
         return c
@@ -85,6 +88,8 @@ class Transaction:
     def _sqltype(self, col_type):
         types = [
             (str, 'TEXT'),
+            (int, 'BIGINT'),
+            (bool, 'BOOL'),
             (dict, 'JSONB'),
         ]
         for t, n in types:
@@ -203,11 +208,11 @@ class Equal(Condition):
 
     def as_sql(self):  # pragma: no cover
         values = {
-            self.name: self.value,
+            'name': self.name,
+            'value': self.value,
         }
-        template = "( _obj ->> '{}' = {} )"
-        query = template.format(
-            qvarn.quote(self.name), qvarn.placeholder(self.name))
+        query = ("_field ->> 'name' = %(name)s AND "
+                 "_field ->> 'value' = %(value)s")
         return query, values
 
 
