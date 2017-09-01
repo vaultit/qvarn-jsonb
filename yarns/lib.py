@@ -108,11 +108,12 @@ def expand_vars(text, vars):
 
 
 def values_match(wanted, actual):
+    print
     print 'wanted:', repr(wanted)
     print 'actual:', repr(actual)
 
     if type(wanted) != type(actual):
-        print 'wanted and actual types differ'
+        print 'wanted and actual types differ', type(wanted), type(actual)
         return False
 
     if isinstance(wanted, dict):
