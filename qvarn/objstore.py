@@ -192,40 +192,40 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             'info', msg_text='PostgresObjectStore.get_objects',
             keys=keys)
         with self._sql.transaction() as t:
-            query = t.select_objects(self._table, '_obj', *keys.keys())
-            qvarn.log.log(
-                'debug', msg_text='PostgresObjectStore.get_objects',
-                query=query, keys=keys)
-            cursor = t.execute(query, keys)
-            return [row['_obj'] for row in t.get_rows(cursor)]
+            return self._get_objects_in_transaction(t, **keys)
+
+    def _get_objects_in_transaction(self, t, **keys):
+        query = t.select_objects(self._table, '_obj', *keys.keys())
+        qvarn.log.log(
+            'debug', msg_text='PostgresObjectStore.get_objects',
+            query=query, keys=keys)
+        cursor = t.execute(query, keys)
+        return [row['_obj'] for row in t.get_rows(cursor)]
 
     def find_objects(self, cond):
         qvarn.log.log(
             'info', msg_text='PostgresObjectStore.find_objects',
             cond=repr(cond))
-        keys_columns = [key for key in self._keys if key != '_obj']
         with self._sql.transaction() as t:
-            query, values = t.select_objects_on_cond(
-                self._auxtable, cond, *keys_columns)
-            cursor = t.execute(query, values)
-            objs = []
-            for keys_dict in t.get_rows(cursor):
-                obj = self.get_objects(**keys_dict)
-                objs.append(obj)
-            return objs
+            keys_dicts = self._find_helper(t, cond)
+            return [
+                self._get_objects_in_transaction(t, **keys_dict)[0]
+                for keys_dict in keys_dicts
+            ]
 
     def find_object_ids(self, cond):
         qvarn.log.log(
             'info', msg_text='PostgresObjectStore.find_object_ids',
             cond=repr(cond))
-        keys_columns = [key for key in self._keys if key != '_obj']
         with self._sql.transaction() as t:
-            query, values = t.select_objects_on_cond(
-                self._auxtable, cond, *keys_columns)
-            cursor = t.execute(query, values)
-            rows = list(t.get_rows(cursor))
-            qvarn.log.log('trace', msg_text='rows', rows=rows)
-            return rows
+            return self._find_helper(t, cond)
+
+    def _find_helper(self, t, cond):
+        keys_columns = [key for key in self._keys if key != '_obj']
+        query, values = t.select_objects_on_cond(
+            self._auxtable, cond, *keys_columns)
+        cursor = t.execute(query, values)
+        return t.get_rows(cursor)
 
 
 class KeyCollision(Exception):
