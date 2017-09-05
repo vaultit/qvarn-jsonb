@@ -16,20 +16,7 @@
 
 set -eu
 
-
-token="$1"
-
-
-tmp="$(mktemp -d)"
-
-cleanup()
-{
-    rm -rf "$tmp"
-}
-
-trap cleanup EXIT
-
-scopes="
+default_scopes="
 uapi_persons_get
 uapi_persons_id_get
 uapi_persons_post
@@ -149,13 +136,29 @@ uapi_orgs_id_get
 uapi_orgs_search_id_get
 uapi_orgs_id_put
 uapi_orgs_id_delete
-
 "
+
+tmp="$(mktemp -d)"
+
+cleanup()
+{
+    rm -rf "$tmp"
+}
+
+trap cleanup EXIT
+
+token="$1"
+case "$#" in
+    2) key="$2" ;;
+    1) key="$tmp/key" ;;
+esac
+
+
 
 ISS=test
 AUD=aud
-./generate-rsa-key "$tmp/key"
-./create-token "$tmp/key" "$ISS" "$AUD" "$scopes" > "$token"
+./generate-rsa-key "$key"
+./create-token "$key" "$ISS" "$AUD" "$default_scopes" > "$token"
 
 cat <<EOF > "$tmp/qvarn.yaml"
 baseurl: http://localhost:12765
@@ -163,7 +166,7 @@ log:
   - filename: qvarn.log
 token-issuer: $ISS
 token-audience: $AUD
-token-public-key: $(cat "$tmp/key.pub")
+token-public-key: $(cat "$key.pub")
 resource-type-dir: resource_type
 memory-database: no
 database:
