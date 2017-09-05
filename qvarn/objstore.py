@@ -150,7 +150,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         columns = dict(col_dict)
         columns[col_name] = col_type
         with self._sql.transaction() as t:
-            query = t.create_jsonb_table(name, **columns)
+            query = t.create_table(name, **columns)
             t.execute(query, {})
 
     def create_object(self, obj, auxtable=True, **keys):

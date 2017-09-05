@@ -76,7 +76,7 @@ class Transaction:
         for row in cursor:
             yield dict(row)
 
-    def create_jsonb_table(self, table_name, **keys):
+    def create_table(self, table_name, **keys):
         columns = ', '.join(
             '{} {}'.format(self._q(key_name), self._sqltype(col_type))
             for key_name, col_type in keys.items()
