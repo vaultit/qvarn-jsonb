@@ -31,6 +31,7 @@ from .sql import (
     Contains,
     Equal,
     GreaterThan,
+    GreaterOrEqual,
     Startswith,
     Yes,
 )
