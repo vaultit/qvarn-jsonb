@@ -241,6 +241,31 @@ class Contains(Condition):
         return query, values
 
 
+class Startswith(Condition):
+
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    def matches(self, obj):
+        for key, value in qvarn.flatten_object(obj):
+            if key == self.name and value.startswith(self.value):
+                qvarn.log.log(
+                    'trace', msg_text='Startswith matches', key=key,
+                    value=value, name=self.name, selfvalue=self.value)
+                return True
+        return False
+
+    def as_sql(self):  # pragma: no cover
+        values = {
+            'name': self.name,
+            'value': self.value,
+        }
+        query = ("_field ->> 'name' = %(name)s AND "
+                 "_field ->> 'value' LIKE %(value)s || '%%%%'")
+        return query, values
+
+
 class Yes(Condition):
 
     def matches(self, obj):
