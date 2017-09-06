@@ -194,6 +194,23 @@ class All(Condition):
         return '( {} )'.format(conds), values
 
 
+class ResourceTypeIs(Condition):
+
+    def __init__(self, type_name):
+        self.type_name = type_name
+
+    def matches(self, obj):
+        return obj.get('type') == self.type_name
+
+    def as_sql(self):  # pragma: no cover
+        values = {
+            'value': self.type_name,
+        }
+        query = ("_field ->> 'name' = 'type' AND "
+                 "_field ->> 'value' = %(value)s")
+        return query, values
+
+
 class Equal(Condition):
 
     def __init__(self, name, value):
@@ -213,6 +230,26 @@ class Equal(Condition):
         }
         query = ("_field ->> 'name' = %(name)s AND "
                  "_field ->> 'value' = %(value)s")
+        return query, values
+
+
+class NotEqual(Condition):
+
+    def __init__(self, name, value):
+        self.eq = Equal(name, value)
+
+    def matches(self, obj):
+        return not self.eq.matches(obj)
+
+    def as_sql(self):  # pragma: no cover
+        # FIXME: This doesn't actually do what it is supposed to,
+        # which is be the opposite of Equal.
+        values = {
+            'name': self.name,
+            'value': self.value,
+        }
+        query = ("_field ->> 'name' = %(name)s AND "
+                 "_field ->> 'value' != %(value)s")
         return query, values
 
 
@@ -257,6 +294,50 @@ class GreaterOrEqual(Condition):
         }
         query = ("_field ->> 'name' = %(name)s AND "
                  "_field ->> 'value' >= %(value)s")
+        return query, values
+
+
+class LessThan(Condition):
+
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    def matches(self, obj):
+        for key, value in qvarn.flatten_object(obj):
+            if key == self.name and value < self.value:
+                return True
+        return False
+
+    def as_sql(self):  # pragma: no cover
+        values = {
+            'name': self.name,
+            'value': self.value,
+        }
+        query = ("_field ->> 'name' = %(name)s AND "
+                 "_field ->> 'value' < %(value)s")
+        return query, values
+
+
+class LessOrEqual(Condition):
+
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    def matches(self, obj):
+        for key, value in qvarn.flatten_object(obj):
+            if key == self.name and value <= self.value:
+                return True
+        return False
+
+    def as_sql(self):  # pragma: no cover
+        values = {
+            'name': self.name,
+            'value': self.value,
+        }
+        query = ("_field ->> 'name' = %(name)s AND "
+                 "_field ->> 'value' <= %(value)s")
         return query, values
 
 

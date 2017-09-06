@@ -24,6 +24,9 @@ class SearchParser:
         'exact': (2, qvarn.Equal),
         'ge': (2, qvarn.GreaterOrEqual),
         'gt': (2, qvarn.GreaterThan),
+        'le': (2, qvarn.LessOrEqual),
+        'lt': (2, qvarn.LessThan),
+        'ne': (2, qvarn.NotEqual),
         'startswith': (2, qvarn.Startswith),
         'show': (1, 'show'),
     }

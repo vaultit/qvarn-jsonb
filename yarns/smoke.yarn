@@ -94,12 +94,10 @@ This is an integration test suite for the Qvarn HTTP API.
     WHEN client requests POST /subjects with token and body
     ... { "type": "subject", "full_name": "Alfred" }
     THEN resource id is ID1
-    THEN revision is REV1
 
     WHEN client requests POST /subjects with token and body
     ... { "type": "subject", "names": [ { "full_name": "Alfred" } ] }
     THEN resource id is ID2
-    THEN revision is REV2
 
     WHEN client requests POST /subjects with token and body
     ... { "type": "subject", "names": [ { "full_name": "Bruce" } ] }
@@ -152,6 +150,39 @@ This is an integration test suite for the Qvarn HTTP API.
     ... }
 
     WHEN client requests
+    ... GET /subjects/search/lt/full_name/Alfred
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": [
+    ...     ]
+    ... }
+
+    WHEN client requests
+    ... GET /subjects/search/le/full_name/Alfred
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": [
+    ...         {"id": "${ID1}"},
+    ...         {"id": "${ID2}"}
+    ...     ]
+    ... }
+
+    WHEN client requests
+    ... GET /subjects/search/ne/full_name/Alfred
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": [
+    ...         {"id": "${ID3}"}
+    ...     ]
+    ... }
+
+    WHEN client requests
     ... GET /subjects/search/startswith/full_name/Alfred
     ... using token
     THEN HTTP status code is 200 OK
@@ -161,7 +192,7 @@ This is an integration test suite for the Qvarn HTTP API.
     ... GET /subjects/search/show/full_name/contains/full_name/fred
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches 
+    AND JSON body matches
     ... {
     ...     "resources": [
     ...         {
@@ -200,7 +231,6 @@ Thus the result should be an empty set.
     ...     }
     ... }
     THEN resource id is ID1
-    THEN revision is REV1
 
     WHEN client requests POST /subjects with token and body
     ... {
@@ -211,7 +241,6 @@ Thus the result should be an empty set.
     ...     }
     ... }
     THEN resource id is ID2
-    THEN revision is REV2
 
     WHEN client requests
     ... GET /subjects/search/contains/full_name/Kent/contains/sort_key/nobody

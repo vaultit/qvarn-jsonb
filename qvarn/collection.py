@@ -96,24 +96,35 @@ class CollectionAPI:
             raise NoSearchCriteria()
         p = qvarn.SearchParser()
         cond, show_fields = p.parse(search_criteria)
+        cond2 = self._make_cond_type_specific(cond)
         qvarn.log.log(
-            'trace', msg_text='Collection.search', show_fields=show_fields)
+            'trace', msg_text='Collection.search', show_fields=show_fields,
+            type=self.get_type_name())
         if show_fields:
             result = [
                 self._strip_obj(obj, show_fields + ['id'])
-                for obj in self._store.find_objects(cond)
+                for obj in self._store.find_objects(cond2)
             ]
         else:
+            ids = self._store.find_object_ids(cond2)
             result = [
                 {
                     'id': keys['obj_id'],
                 }
-                for keys in self._store.find_object_ids(cond)
+                for keys in ids
             ]
-        qvarn.log.log(
-            'trace', msg_text='Collection.search', show_fields=show_fields,
-            result=result)
+            qvarn.log.log(
+                'trace', msg_text='Collection.search', show_fields=show_fields,
+                result=result)
+            for keys in ids:
+                obj = self._store.get_objects(**keys)
+                qvarn.log.log(
+                    'trace', msg_text='search hit', keys=keys, obj=obj)
         return result
+
+    def _make_cond_type_specific(self, cond):
+        correct_type = qvarn.ResourceTypeIs(self.get_type_name())
+        return qvarn.All(correct_type, cond)
 
     def _strip_obj(self, obj, fields):
         return {

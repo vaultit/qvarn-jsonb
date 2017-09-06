@@ -32,6 +32,10 @@ from .sql import (
     Equal,
     GreaterThan,
     GreaterOrEqual,
+    LessThan,
+    LessOrEqual,
+    NotEqual,
+    ResourceTypeIs,
     Startswith,
     Yes,
 )
