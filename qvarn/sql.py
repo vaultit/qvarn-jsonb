@@ -216,6 +216,28 @@ class Equal(Condition):
         return query, values
 
 
+class GreaterThan(Condition):
+
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    def matches(self, obj):
+        for key, value in qvarn.flatten_object(obj):
+            if key == self.name and value > self.value:
+                return True
+        return False
+
+    def as_sql(self):  # pragma: no cover
+        values = {
+            'name': self.name,
+            'value': self.value,
+        }
+        query = ("_field ->> 'name' = %(name)s AND "
+                 "_field ->> 'value' > %(value)s")
+        return query, values
+
+
 class Contains(Condition):
 
     def __init__(self, name, value):

@@ -30,6 +30,7 @@ from .sql import (
     All,
     Contains,
     Equal,
+    GreaterThan,
     Startswith,
     Yes,
 )

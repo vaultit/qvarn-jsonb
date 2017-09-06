@@ -22,6 +22,7 @@ class SearchParser:
     conditions = {
         'contains': (2, qvarn.Contains),
         'exact': (2, qvarn.Equal),
+        'gt': (2, qvarn.GreaterThan),
         'startswith': (2, qvarn.Startswith),
         'show': (1, 'show'),
     }
