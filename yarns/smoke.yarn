@@ -198,18 +198,19 @@ Thus the result should be an empty set.
     ... GET /subjects/search/contains/full_name/Alfred
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches { "resources": [ "${ID1}", "${ID2}" ]}
+    AND JSON body matches
+    ... {"resources": [{"id": "${ID1}"}, {"id": "${ID2}"}]}
 
     WHEN client requests
     ... GET /subjects/search/contains/full_name/Pennyweather
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches { "resources": [ "${ID1}" ]}
+    AND JSON body matches {"resources": [{"id": "${ID1}"}]}
 
     WHEN client requests
     ... GET /subjects/search/contains/sort_key/MAD
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches { "resources": [ "${ID2}" ]}
+    AND JSON body matches {"resources": [{"id": "${ID2}"}]}
 
     FINALLY qvarn is stopped
