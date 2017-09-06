@@ -274,7 +274,7 @@ class CollectionAPITests(unittest.TestCase):
         }
         new_obj = self.coll.post(obj)
         matches = self.coll.search('exact/full_name/James Bond')
-        self.assertEqual(matches, [new_obj['id']])
+        self.assertEqual(matches, [{'id': new_obj['id']}])
 
     def test_search_return_matching_resources_themselves(self):
         obj = {

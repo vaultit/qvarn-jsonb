@@ -113,24 +113,24 @@ This is an integration test suite for the Qvarn HTTP API.
     WHEN client requests GET /subjects/search/exact/full_name/Alfred
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches { "resources": [ "${ID1}", "${ID2}" ]}
+    AND JSON body matches { "resources": [{"id": "${ID1}"}, {"id": "${ID2}"}]}
 
     WHEN client requests 
     ... GET /subjects/search/exact/full_name/Alfred/exact/full_name/Alfred
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches { "resources": [ "${ID1}", "${ID2}" ]}
+    AND JSON body matches { "resources": [{"id": "${ID1}"}, {"id": "${ID2}"}]}
 
     WHEN client requests GET /subjects/search/exact/full_name/Bruce
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches { "resources": [ "${ID3}" ]}
+    AND JSON body matches { "resources": [{"id": "${ID3}"}]}
 
     WHEN client requests
     ... GET /subjects/search/contains/full_name/fred
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches { "resources": [ "${ID1}", "${ID2}" ]}
+    AND JSON body matches { "resources": [{"id": "${ID1}"}, {"id": "${ID2}"}]}
 
     WHEN client requests
     ... GET /subjects/search/show/full_name/contains/full_name/fred
@@ -170,8 +170,8 @@ Thus the result should be an empty set.
     ... {
     ...     "type": "subject",
     ...     "names": {
-    ...         "full_name": "Alfred Pennywather",
-    ...         "sort_key": "Alfred the butler"
+    ...         "full_name": "Clark Kent",
+    ...         "sort_key": "Clark the superman"
     ...     }
     ... }
     THEN resource id is ID1
@@ -181,34 +181,34 @@ Thus the result should be an empty set.
     ... {
     ...     "type": "subject",
     ...     "names": {
-    ...         "full_name": "Alfred E. Neuman",
-    ...         "sort_key": "Alfred from MAD"
+    ...         "full_name": "Clark Celt",
+    ...         "sort_key": "a nobody"
     ...     }
     ... }
     THEN resource id is ID2
     THEN revision is REV2
 
     WHEN client requests
-    ... GET /subjects/search/contains/full_name/Pennyweather/contains/sort_key/MAD
+    ... GET /subjects/search/contains/full_name/Kent/contains/sort_key/nobody
     ... using token
     THEN HTTP status code is 200 OK
     AND JSON body matches { "resources": [ ]}
 
     WHEN client requests
-    ... GET /subjects/search/contains/full_name/Alfred
+    ... GET /subjects/search/contains/full_name/Clark
     ... using token
     THEN HTTP status code is 200 OK
     AND JSON body matches
     ... {"resources": [{"id": "${ID1}"}, {"id": "${ID2}"}]}
 
     WHEN client requests
-    ... GET /subjects/search/contains/full_name/Pennyweather
+    ... GET /subjects/search/contains/full_name/Kent
     ... using token
     THEN HTTP status code is 200 OK
     AND JSON body matches {"resources": [{"id": "${ID1}"}]}
 
     WHEN client requests
-    ... GET /subjects/search/contains/sort_key/MAD
+    ... GET /subjects/search/contains/sort_key/nobody
     ... using token
     THEN HTTP status code is 200 OK
     AND JSON body matches {"resources": [{"id": "${ID2}"}]}

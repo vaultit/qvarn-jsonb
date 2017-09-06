@@ -105,7 +105,9 @@ class CollectionAPI:
             ]
         else:
             result = [
-                keys['obj_id']
+                {
+                    'id': keys['obj_id'],
+                }
                 for keys in self._store.find_object_ids(cond)
             ]
         qvarn.log.log(
