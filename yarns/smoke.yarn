@@ -139,6 +139,19 @@ This is an integration test suite for the Qvarn HTTP API.
     AND JSON body matches { "resources": [{"id": "${ID3}"}]}
 
     WHEN client requests
+    ... GET /subjects/search/ge/full_name/Alfred
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches 
+    ... {
+    ...     "resources": [
+    ...         {"id": "${ID1}"},
+    ...         {"id": "${ID2}"},
+    ...         {"id": "${ID3}"}
+    ...     ]
+    ... }
+
+    WHEN client requests
     ... GET /subjects/search/startswith/full_name/Alfred
     ... using token
     THEN HTTP status code is 200 OK
