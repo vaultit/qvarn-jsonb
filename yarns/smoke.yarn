@@ -150,3 +150,66 @@ This is an integration test suite for the Qvarn HTTP API.
     ... }
 
     FINALLY qvarn is stopped
+
+
+# More search
+
+This scenario creates two resources, and searches with two conditions.
+Each condition matches a resource, but the two match different ones.
+Thus the result should be an empty set.
+
+    SCENARIO search with two conditions when two resources match one
+
+    GIVEN a running Qvarn instance
+
+    WHEN client gets an authorization token with scope
+    ... "uapi_subjects_post uapi_subjects_search_id_get
+    ...  uapi_subjects_id_delete"
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "type": "subject",
+    ...     "names": {
+    ...         "full_name": "Alfred Pennywather",
+    ...         "sort_key": "Alfred the butler"
+    ...     }
+    ... }
+    THEN resource id is ID1
+    THEN revision is REV1
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "type": "subject",
+    ...     "names": {
+    ...         "full_name": "Alfred E. Neuman",
+    ...         "sort_key": "Alfred from MAD"
+    ...     }
+    ... }
+    THEN resource id is ID2
+    THEN revision is REV2
+
+    WHEN client requests
+    ... GET /subjects/search/contains/full_name/Pennyweather/contains/sort_key/MAD
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches { "resources": [ ]}
+
+    WHEN client requests
+    ... GET /subjects/search/contains/full_name/Alfred
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches { "resources": [ "${ID1}", "${ID2}" ]}
+
+    WHEN client requests
+    ... GET /subjects/search/contains/full_name/Pennyweather
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches { "resources": [ "${ID1}" ]}
+
+    WHEN client requests
+    ... GET /subjects/search/contains/sort_key/MAD
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches { "resources": [ "${ID2}" ]}
+
+    FINALLY qvarn is stopped
