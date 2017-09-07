@@ -169,8 +169,10 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         t.execute(query, keys)
 
     def _insert_into_helper(self, t, table_name, obj, **keys):
+        type_name = obj.get('type', '')
         for field, value in flatten_object(obj):
             x = {
+                'type': type_name,
                 'name': field,
                 'value': value,
             }
