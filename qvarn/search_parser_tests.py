@@ -38,7 +38,7 @@ class SearchParserTests(unittest.TestCase):
         self.assertTrue(isinstance(cond, qvarn.Equal))
         self.assertFalse(show)
         self.assertEqual(cond.name, 'foo')
-        self.assertEqual(cond.value, 'bar')
+        self.assertEqual(cond.pattern, 'bar')
 
     def test_raises_error_if_only_show_specified(self):
         p = qvarn.SearchParser()
@@ -56,7 +56,7 @@ class SearchParserTests(unittest.TestCase):
         self.assertTrue(isinstance(cond, qvarn.Equal))
         self.assertEqual(show, ['foo'])
         self.assertEqual(cond.name, 'foo')
-        self.assertEqual(cond.value, 'bar')
+        self.assertEqual(cond.pattern, 'bar')
 
     def test_returns_all_condition(self):
         p = qvarn.SearchParser()
@@ -67,7 +67,7 @@ class SearchParserTests(unittest.TestCase):
         first, second = cond.conds
         self.assertTrue(isinstance(first, qvarn.Equal))
         self.assertEqual(first.name, 'foo')
-        self.assertEqual(first.value, 'bar')
+        self.assertEqual(first.pattern, 'bar')
         self.assertTrue(isinstance(second, qvarn.Equal))
         self.assertEqual(second.name, 'foobar')
-        self.assertEqual(second.value, 'yo')
+        self.assertEqual(second.pattern, 'yo')
