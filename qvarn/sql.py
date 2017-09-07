@@ -211,15 +211,17 @@ class ResourceTypeIs(Condition):
         return query, values
 
 
-class Equal(Condition):
+class Cmp(Condition):
 
-    def __init__(self, name, value):
+    def __init__(self, name, value, cmp_py, op_sql):
         self.name = name
         self.value = value
+        self.cmp_py = cmp_py
+        self.op_sql = op_sql
 
     def matches(self, obj):
         for key, value in qvarn.flatten_object(obj):
-            if key == self.name and value == self.value:
+            if key == self.name and self.cmp_py(value, self.value):
                 return True
         return False
 
@@ -228,169 +230,61 @@ class Equal(Condition):
             'name': self.name,
             'value': self.value,
         }
-        query = ("_field ->> 'name' = %(name)s AND "
-                 "_field ->> 'value' = %(value)s")
+        query = ("_field ->> 'name' = %%(name)s AND "
+                 "_field ->> 'value' %s") % self.op_sql
         return query, values
 
 
-class NotEqual(Condition):
+class Equal(Cmp):
 
     def __init__(self, name, value):
-        self.name = name
-        self.value = value
-
-    def matches(self, obj):
-        for key, value in qvarn.flatten_object(obj):
-            if key == self.name and value != self.value:
-                return True
-        return False
-
-    def as_sql(self):  # pragma: no cover
-        values = {
-            'name': self.name,
-            'value': self.value,
-        }
-        query = ("_field ->> 'name' = %(name)s AND "
-                 "_field ->> 'value' != %(value)s")
-        return query, values
+        super().__init__(name, value, lambda a, b: a == b, '= %(value)s')
 
 
-class GreaterThan(Condition):
+class NotEqual(Cmp):
 
     def __init__(self, name, value):
-        self.name = name
-        self.value = value
-
-    def matches(self, obj):
-        for key, value in qvarn.flatten_object(obj):
-            if key == self.name and value > self.value:
-                return True
-        return False
-
-    def as_sql(self):  # pragma: no cover
-        values = {
-            'name': self.name,
-            'value': self.value,
-        }
-        query = ("_field ->> 'name' = %(name)s AND "
-                 "_field ->> 'value' > %(value)s")
-        return query, values
+        super().__init__(name, value, lambda a, b: a != b, '!= %(value)s')
 
 
-class GreaterOrEqual(Condition):
+class GreaterThan(Cmp):
 
     def __init__(self, name, value):
-        self.name = name
-        self.value = value
-
-    def matches(self, obj):
-        for key, value in qvarn.flatten_object(obj):
-            if key == self.name and value >= self.value:
-                return True
-        return False
-
-    def as_sql(self):  # pragma: no cover
-        values = {
-            'name': self.name,
-            'value': self.value,
-        }
-        query = ("_field ->> 'name' = %(name)s AND "
-                 "_field ->> 'value' >= %(value)s")
-        return query, values
+        super().__init__(name, value, lambda a, b: a > b, '> %(value)s')
 
 
-class LessThan(Condition):
+class GreaterOrEqual(Cmp):
 
     def __init__(self, name, value):
-        self.name = name
-        self.value = value
-
-    def matches(self, obj):
-        for key, value in qvarn.flatten_object(obj):
-            if key == self.name and value < self.value:
-                return True
-        return False
-
-    def as_sql(self):  # pragma: no cover
-        values = {
-            'name': self.name,
-            'value': self.value,
-        }
-        query = ("_field ->> 'name' = %(name)s AND "
-                 "_field ->> 'value' < %(value)s")
-        return query, values
+        super().__init__(name, value, lambda a, b: a >= b, '>= %(value)s')
 
 
-class LessOrEqual(Condition):
+class LessThan(Cmp):
 
     def __init__(self, name, value):
-        self.name = name
-        self.value = value
-
-    def matches(self, obj):
-        for key, value in qvarn.flatten_object(obj):
-            if key == self.name and value <= self.value:
-                return True
-        return False
-
-    def as_sql(self):  # pragma: no cover
-        values = {
-            'name': self.name,
-            'value': self.value,
-        }
-        query = ("_field ->> 'name' = %(name)s AND "
-                 "_field ->> 'value' <= %(value)s")
-        return query, values
+        super().__init__(name, value, lambda a, b: a < b, '< %(value)s')
 
 
-class Contains(Condition):
+class LessOrEqual(Cmp):
 
     def __init__(self, name, value):
-        self.name = name
-        self.value = value
-
-    def matches(self, obj):
-        for key, value in qvarn.flatten_object(obj):
-            if key == self.name and self.value in value:
-                qvarn.log.log(
-                    'trace', msg_text='Contains matches', key=key,
-                    value=value, name=self.name, selfvalue=self.value)
-                return True
-        return False
-
-    def as_sql(self):  # pragma: no cover
-        values = {
-            'name': self.name,
-            'value': self.value,
-        }
-        query = ("_field ->> 'name' = %(name)s AND "
-                 "_field ->> 'value' LIKE '%%%%' || %(value)s || '%%%%'")
-        return query, values
+        super().__init__(name, value, lambda a, b: a <= b, '<= %(value)s')
 
 
-class Startswith(Condition):
+class Contains(Cmp):
 
     def __init__(self, name, value):
-        self.name = name
-        self.value = value
+        super().__init__(
+            name, value, lambda a, b: b in a,
+            "LIKE '%%' || %(value)s || '%%'")
 
-    def matches(self, obj):
-        for key, value in qvarn.flatten_object(obj):
-            if key == self.name and value.startswith(self.value):
-                qvarn.log.log(
-                    'trace', msg_text='Startswith matches', key=key,
-                    value=value, name=self.name, selfvalue=self.value)
-                return True
-        return False
 
-    def as_sql(self):  # pragma: no cover
-        values = {
-            'name': self.name,
-            'value': self.value,
-        }
-        query = ("_field ->> 'name' = %(name)s AND "
-                 "_field ->> 'value' LIKE %(value)s || '%%%%'")
-        return query, values
+class Startswith(Cmp):
+
+    def __init__(self, name, value):
+        super().__init__(
+            name, value, lambda a, b: b.startswith(a),
+            "LIKE %(value)s || '%%'")
 
 
 class Yes(Condition):
