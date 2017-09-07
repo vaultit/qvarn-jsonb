@@ -11,6 +11,7 @@ import psycopg2.pool
 import psycopg2.extras
 import psycopg2.extensions
 
+import slog
 
 import qvarn
 
@@ -165,6 +166,13 @@ def placeholder(name):
     return '%({})s'.format(quote(name))
 
 
+_counter = slog.Counter()
+
+
+def _get_unique_name(base):
+    return '{}{}'.format(base, _counter.increment())
+
+
 class Condition:
 
     def matches(self, obj):  # pragma: no cover
@@ -203,88 +211,115 @@ class ResourceTypeIs(Condition):
         return obj.get('type') == self.type_name
 
     def as_sql(self):  # pragma: no cover
+        value_name = _get_unique_name('value')
         values = {
-            'value': self.type_name,
+            value_name: self.type_name,
         }
-        query = ("_field ->> 'name' = 'type' AND "
-                 "_field ->> 'value' = %(value)s")
+        query = ("_field ->> 'type' = %({})s".format(value_name))
         return query, values
 
 
 class Cmp(Condition):
 
-    def __init__(self, name, value, cmp_py, op_sql):
+    def __init__(self, name, pattern):
         self.name = name
-        self.value = value
-        self.cmp_py = cmp_py
-        self.op_sql = op_sql
+        self.pattern = pattern
+
+    def _cmp_py(self, actual):
+        raise NotImplementedError()
+
+    def _cmp_sql(self, pattern_name):
+        raise NotImplementedError()
 
     def matches(self, obj):
-        for key, value in qvarn.flatten_object(obj):
-            if key == self.name and self.cmp_py(value, self.value):
+        for key, actual in qvarn.flatten_object(obj):
+            if key == self.name and self._cmp_py(actual):
                 return True
         return False
 
     def as_sql(self):  # pragma: no cover
+        name_name = _get_unique_name('name')
+        pattern_name = _get_unique_name('pattern')
         values = {
-            'name': self.name,
-            'value': self.value,
+            name_name: self.name,
+            pattern_name: self.pattern,
         }
-        query = ("_field ->> 'name' = %%(name)s AND "
-                 "_field ->> 'value' %s") % self.op_sql
+        query = ("_field ->> 'name' = %%(%s)s AND "
+                 "_field ->> 'value' %s") % (
+                     name_name, self._cmp_sql(pattern_name))
         return query, values
 
 
 class Equal(Cmp):
 
-    def __init__(self, name, value):
-        super().__init__(name, value, lambda a, b: a == b, '= %(value)s')
+    def _cmp_py(self, actual):
+        return self.pattern == actual
+
+    def _cmp_sql(self, pattern_name):
+        return '= %({})s'.format(pattern_name)
 
 
 class NotEqual(Cmp):
 
-    def __init__(self, name, value):
-        super().__init__(name, value, lambda a, b: a != b, '!= %(value)s')
+    def _cmp_py(self, actual):
+        return self.pattern != actual
+
+    def _cmp_sql(self, pattern_name):
+        return '!= %({})s'.format(pattern_name)
 
 
 class GreaterThan(Cmp):
 
-    def __init__(self, name, value):
-        super().__init__(name, value, lambda a, b: a > b, '> %(value)s')
+    def _cmp_py(self, actual):
+        return actual > self.pattern
+
+    def _cmp_sql(self, pattern_name):
+        return '> %({})s'.format(pattern_name)
 
 
 class GreaterOrEqual(Cmp):
 
-    def __init__(self, name, value):
-        super().__init__(name, value, lambda a, b: a >= b, '>= %(value)s')
+    def _cmp_py(self, actual):
+        return actual >= self.pattern
+
+    def _cmp_sql(self, pattern_name):
+        return '>= %({})s'.format(pattern_name)
 
 
 class LessThan(Cmp):
 
-    def __init__(self, name, value):
-        super().__init__(name, value, lambda a, b: a < b, '< %(value)s')
+    def _cmp_py(self, actual):
+        return actual < self.pattern
+
+    def _cmp_sql(self, pattern_name):
+        return '< %({})s'.format(pattern_name)
 
 
 class LessOrEqual(Cmp):
 
-    def __init__(self, name, value):
-        super().__init__(name, value, lambda a, b: a <= b, '<= %(value)s')
+    def _cmp_py(self, actual):
+        return actual <= self.pattern
+
+    def _cmp_sql(self, pattern_name):
+        return '<= %({})s'.format(pattern_name)
 
 
 class Contains(Cmp):
 
-    def __init__(self, name, value):
-        super().__init__(
-            name, value, lambda a, b: b in a,
-            "LIKE '%%' || %(value)s || '%%'")
+    def _cmp_py(self, actual):
+        return self.pattern in actual
+
+    def _cmp_sql(self, pattern_name):
+        return "LIKE '%%' || %({})s || '%%'".format(pattern_name)
 
 
 class Startswith(Cmp):
 
-    def __init__(self, name, value):
-        super().__init__(
-            name, value, lambda a, b: b.startswith(a),
-            "LIKE %(value)s || '%%'")
+    def _cmp_py(self, actual):
+        return actual.startswith(self.pattern)
+
+    def _cmp_sql(self, pattern_name):
+        return "LIKE %({})s || '%%'".format(pattern_name)
 
 
 class Yes(Condition):
