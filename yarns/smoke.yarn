@@ -172,13 +172,14 @@ This is an integration test suite for the Qvarn HTTP API.
     ... }
 
     WHEN client requests
-    ... GET /subjects/search/ne/full_name/Alfred
+    ... GET /subjects/search/ne/full_name/Bruce
     ... using token
     THEN HTTP status code is 200 OK
     AND JSON body matches
     ... {
     ...     "resources": [
-    ...         {"id": "${ID3}"}
+    ...         {"id": "${ID1}"},
+    ...         {"id": "${ID2}"} 
     ...     ]
     ... }
 

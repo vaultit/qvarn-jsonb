@@ -236,14 +236,16 @@ class Equal(Condition):
 class NotEqual(Condition):
 
     def __init__(self, name, value):
-        self.eq = Equal(name, value)
+        self.name = name
+        self.value = value
 
     def matches(self, obj):
-        return not self.eq.matches(obj)
+        for key, value in qvarn.flatten_object(obj):
+            if key == self.name and value != self.value:
+                return True
+        return False
 
     def as_sql(self):  # pragma: no cover
-        # FIXME: This doesn't actually do what it is supposed to,
-        # which is be the opposite of Equal.
         values = {
             'name': self.name,
             'value': self.value,
