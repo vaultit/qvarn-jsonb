@@ -113,13 +113,13 @@ class CollectionAPI:
                 }
                 for keys in ids
             ]
-            qvarn.log.log(
-                'trace', msg_text='Collection.search', show_fields=show_fields,
-                result=result)
             for keys in ids:
                 obj = self._store.get_objects(**keys)
                 qvarn.log.log(
                     'trace', msg_text='search hit', keys=keys, obj=obj)
+        qvarn.log.log(
+            'trace', msg_text='Collection.search', show_fields=show_fields,
+            result=result)
         return result
 
     def _make_cond_type_specific(self, cond):
