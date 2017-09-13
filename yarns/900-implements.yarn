@@ -9,6 +9,10 @@ Start a Qvarn running in the background.
     IMPLEMENTS GIVEN a running qvarn instance
     import os, time, cliapp, yaml, yarnutils
     privkey, pubkey = create_token_signing_key_pair()
+    print repr(privkey)
+    print repr(pubkey)
+    assert privkey
+    assert pubkey
     open('key', 'w').write(privkey)
     vars['aud'] = 'http://api.test.example.com'
     vars['iss'] = 'qvarn.yarn'
@@ -107,6 +111,8 @@ Start a Qvarn running in the background.
 
     IMPLEMENTS WHEN client gets an authorization token with scope "(.+)"
     scopes = get_next_match()
+    print 'privkey', repr(vars['privkey'])
+    assert vars['privkey']
     vars['token'] = create_token(vars['privkey'], vars['iss'], vars['aud'], scopes)
 
 ## API request result checking
@@ -138,6 +144,42 @@ Start a Qvarn running in the background.
     print 'actual ', repr(actual)
     print 'wanted3', repr(wanted)
     assertTrue(values_match(wanted, actual))
+
+    IMPLEMENTS THEN search result contains (.+)
+    import json
+    wanted1 = get_next_match()
+    wanted2 = expand_vars(wanted1, vars)
+    wanted = json.loads(wanted2)
+    actual = json.loads(vars['body'])
+    print 'wanted1:', repr(wanted1)
+    print 'wanted2:', repr(wanted2)
+    print 'wanted:', repr(wanted)
+    print 'actual:', repr(actual)
+    assertTrue(actual['resources'])
+    found = False
+    for result in actual['resources']:
+        if values_match(wanted, result):
+            print 'MATCH!', repr(wanted), repr(result)
+            found = True
+            break
+        print 'no match', repr(wanted), repr(result)
+    assertTrue(found)
+
+    IMPLEMENTS THEN search result does NOT contain (.+)
+    import json
+    wanted1 = get_next_match()
+    wanted2 = expand_vars(wanted1, vars)
+    wanted = json.loads(wanted2)
+    actual = json.loads(vars['body'])
+    print 'wanted1:', repr(wanted1)
+    print 'wanted2:', repr(wanted2)
+    print 'wanted:', repr(wanted)
+    print 'actual:', repr(actual)
+    found = False
+    for result in actual['resources']:
+        if values_match(wanted, result):
+            found = True
+    assertFalse(found)
 
     IMPLEMENTS THEN response has header WWW-Authenticate containing "(.+)"
     assert 0

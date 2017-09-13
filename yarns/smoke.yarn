@@ -269,3 +269,53 @@ Thus the result should be an empty set.
     AND JSON body matches {"resources": [{"id": "${ID2}"}]}
 
     FINALLY qvarn is stopped
+
+# Searching with multiple conditions
+
+    SCENARIO search with multiple conditions
+
+    GIVEN a running Qvarn instance
+
+    WHEN client gets an authorization token with scope
+    ... "uapi_contracts_post uapi_contracts_search_id_get"
+
+Create an organisation, a person and an employment contract between them.
+
+    WHEN client requests POST /contracts with token and body
+    ... {"contract_type": "employment",
+    ... "start_date": "2016-01-01",
+    ... "contract_parties": [
+    ...     {
+    ...         "type": "org",
+    ...         "resource_id": "org-1",
+    ...         "role": "employer"
+    ...     },
+    ...     {
+    ...         "type": "person",
+    ...         "resource_id": "person-1",
+    ...         "role": "employee"
+    ...     }
+    ... ],
+    ... "contract_state": "active"
+    ... }
+    THEN HTTP status code is 201 Created
+    AND resource id is CONTRACT_ID1
+
+Perform searches matching different instances of the same nested element.
+
+    WHEN client requests
+    ... GET /contracts/search/exact/resource_id/org-1/exact/resource_id/person-1
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result contains {"id": "${CONTRACT_ID1}"}
+
+    WHEN client requests
+    ... GET /contracts/search/exact/resource_id/org-1/exact/resource_id/wrong_id
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": []
+    ... }
+
+    FINALLY qvarn is stopped
