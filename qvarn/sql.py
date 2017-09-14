@@ -134,13 +134,7 @@ class Transaction:
         return query
 
     def select_objects_on_cond(self, table_name, cond, *keys):
-        sql_cond, values = cond.as_sql()
-        col_names = [self._q(key) for key in keys]
-        query = 'SELECT {} FROM {} WHERE {}'.format(
-            ', '.join(col_names),
-            self._q(table_name),
-            sql_cond,
-        )
+        query, values = qvarn.sql_select(cond)
         return query, values
 
     def _condition(self, cond):
