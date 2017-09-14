@@ -28,9 +28,9 @@ def sql_select(counter, cond):
         }
         template = (
             "SELECT obj_id FROM _aux WHERE "
-            "_field->>'name' = %({})s AND _field->>'value' = %({})s"
+            "_field->>'name' = %({})s AND _field->>'value' {}"
         )
-        query = template.format(name, value)
+        query = template.format(name, cond.cmp_sql(value))
     else:
         params = {
             'count': len(subconds),
@@ -43,17 +43,14 @@ def sql_select(counter, cond):
             "GROUP BY obj_id) WHERE _hits = %(count)s"
         )
 
-        part_template = (
-            "(_field->>'name' = %({})s AND "
-            "_field->>'value' = %({})s)"
-        )
+        part_template = "(_field->>'name' = %({})s AND _field->>'value' {})"
         parts = []
         for subcond in subconds:
             name = qvarn.get_unique_name('name', counter=counter)
             value = qvarn.get_unique_name('value', counter=counter)
             params[name] = subcond.name
             params[value] = subcond.pattern
-            part = part_template.format(name, value)
+            part = part_template.format(name, subcond.cmp_sql(value))
             parts.append(part)
 
         query = template.format(' OR '.join(parts))

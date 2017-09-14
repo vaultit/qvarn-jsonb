@@ -233,15 +233,15 @@ class Cmp(Condition):
         self.name = name
         self.pattern = pattern
 
-    def _cmp_py(self, actual):
+    def cmp_py(self, actual):
         raise NotImplementedError()
 
-    def _cmp_sql(self, pattern_name):
+    def cmp_sql(self, pattern_name):
         raise NotImplementedError()
 
     def matches(self, obj):
         for key, actual in qvarn.flatten_object(obj):
-            if key == self.name and self._cmp_py(actual):
+            if key == self.name and self.cmp_py(actual):
                 return True
         return False
 
@@ -254,79 +254,79 @@ class Cmp(Condition):
         }
         query = ("_field ->> 'name' = %%(%s)s AND "
                  "_field ->> 'value' %s") % (
-                     name_name, self._cmp_sql(pattern_name))
+                     name_name, self.cmp_sql(pattern_name))
         return query, values
 
 
 class Equal(Cmp):
 
-    def _cmp_py(self, actual):
+    def cmp_py(self, actual):
         return self.pattern == actual
 
-    def _cmp_sql(self, pattern_name):
+    def cmp_sql(self, pattern_name):
         return '= %({})s'.format(pattern_name)
 
 
 class NotEqual(Cmp):
 
-    def _cmp_py(self, actual):
+    def cmp_py(self, actual):
         return self.pattern != actual
 
-    def _cmp_sql(self, pattern_name):
+    def cmp_sql(self, pattern_name):
         return '!= %({})s'.format(pattern_name)
 
 
 class GreaterThan(Cmp):
 
-    def _cmp_py(self, actual):
+    def cmp_py(self, actual):
         return actual > self.pattern
 
-    def _cmp_sql(self, pattern_name):
+    def cmp_sql(self, pattern_name):
         return '> %({})s'.format(pattern_name)
 
 
 class GreaterOrEqual(Cmp):
 
-    def _cmp_py(self, actual):
+    def cmp_py(self, actual):
         return actual >= self.pattern
 
-    def _cmp_sql(self, pattern_name):
+    def cmp_sql(self, pattern_name):
         return '>= %({})s'.format(pattern_name)
 
 
 class LessThan(Cmp):
 
-    def _cmp_py(self, actual):
+    def cmp_py(self, actual):
         return actual < self.pattern
 
-    def _cmp_sql(self, pattern_name):
+    def cmp_sql(self, pattern_name):
         return '< %({})s'.format(pattern_name)
 
 
 class LessOrEqual(Cmp):
 
-    def _cmp_py(self, actual):
+    def cmp_py(self, actual):
         return actual <= self.pattern
 
-    def _cmp_sql(self, pattern_name):
+    def cmp_sql(self, pattern_name):
         return '<= %({})s'.format(pattern_name)
 
 
 class Contains(Cmp):
 
-    def _cmp_py(self, actual):
+    def cmp_py(self, actual):
         return self.pattern in actual
 
-    def _cmp_sql(self, pattern_name):
+    def cmp_sql(self, pattern_name):
         return "LIKE '%%' || %({})s || '%%'".format(pattern_name)
 
 
 class Startswith(Cmp):
 
-    def _cmp_py(self, actual):
+    def cmp_py(self, actual):
         return actual.startswith(self.pattern)
 
-    def _cmp_sql(self, pattern_name):
+    def cmp_sql(self, pattern_name):
         return "LIKE %({})s || '%%'".format(pattern_name)
 
 

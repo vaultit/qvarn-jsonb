@@ -23,7 +23,7 @@ import qvarn
 
 class SqlSelectTests(unittest.TestCase):
 
-    def test_returns_simple_query_for_simple_condition(self):
+    def test_returns_simple_query_for_simple_equal(self):
         cond = qvarn.Equal('foo', 'bar')
         counter = slog.Counter()
         sql, values = qvarn.sql_select(counter, cond)
@@ -40,9 +40,26 @@ class SqlSelectTests(unittest.TestCase):
             }
         )
 
+    def test_returns_simple_query_for_simple_not_equal(self):
+        cond = qvarn.NotEqual('foo', 'bar')
+        counter = slog.Counter()
+        sql, values = qvarn.sql_select(counter, cond)
+        self.assertEqual(
+            sql,
+            ("SELECT obj_id FROM _aux WHERE "
+             "_field->>'name' = %(name1)s AND _field->>'value' != %(value2)s")
+        )
+        self.assertEqual(
+            values,
+            {
+                'name1': 'foo',
+                'value2': 'bar',
+            }
+        )
+
     def test_returns_query_for_anded_conditions(self):
         cond1 = qvarn.Equal('foo1', 'bar1')
-        cond2 = qvarn.Equal('foo2', 'bar2')
+        cond2 = qvarn.NotEqual('foo2', 'bar2')
         cond = qvarn.All(cond1, cond2)
         counter = slog.Counter()
         sql, values = qvarn.sql_select(counter, cond)
@@ -54,7 +71,7 @@ class SqlSelectTests(unittest.TestCase):
              "(_field->>'name' = %(name1)s AND "
              "_field->>'value' = %(value2)s) OR "
              "(_field->>'name' = %(name3)s AND "
-             "_field->>'value' = %(value4)s) "
+             "_field->>'value' != %(value4)s) "
              "GROUP BY obj_id) WHERE _hits = %(count)s")
         )
         self.assertEqual(
