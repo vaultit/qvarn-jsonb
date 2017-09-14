@@ -169,11 +169,16 @@ def placeholder(name):
 _counter = slog.Counter()
 
 
-def _get_unique_name(base):
-    return '{}{}'.format(base, _counter.increment())
+def get_unique_name(base, counter=None):
+    if counter is None:
+        counter = _counter
+    return '{}{}'.format(base, counter.increment())
 
 
 class Condition:
+
+    def get_subconditions(self):
+        return []
 
     def matches(self, obj):  # pragma: no cover
         raise NotImplementedError()
@@ -186,6 +191,9 @@ class All(Condition):
 
     def __init__(self, *conds):
         self.conds = conds
+
+    def get_subconditions(self):
+        return self.conds
 
     def matches(self, obj):
         for cond in self.conds:
@@ -211,7 +219,7 @@ class ResourceTypeIs(Condition):
         return obj.get('type') == self.type_name
 
     def as_sql(self):  # pragma: no cover
-        value_name = _get_unique_name('value')
+        value_name = get_unique_name('value')
         values = {
             value_name: self.type_name,
         }
@@ -238,8 +246,8 @@ class Cmp(Condition):
         return False
 
     def as_sql(self):  # pragma: no cover
-        name_name = _get_unique_name('name')
-        pattern_name = _get_unique_name('pattern')
+        name_name = get_unique_name('name')
+        pattern_name = get_unique_name('pattern')
         values = {
             name_name: self.name,
             pattern_name: self.pattern,
