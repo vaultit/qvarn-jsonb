@@ -204,23 +204,6 @@ class All(Condition):
         return '( {} )'.format(conds), values
 
 
-class ResourceTypeIs(Condition):
-
-    def __init__(self, type_name):
-        self.type_name = type_name
-
-    def matches(self, obj):
-        return obj.get('type') == self.type_name
-
-    def as_sql(self):  # pragma: no cover
-        value_name = get_unique_name('value')
-        values = {
-            value_name: self.type_name,
-        }
-        query = ("_field ->> 'type' = %({})s".format(value_name))
-        return query, values
-
-
 class Cmp(Condition):
 
     def __init__(self, name, pattern):
@@ -259,6 +242,15 @@ class Equal(Cmp):
 
     def cmp_sql(self, pattern_name):
         return '= %({})s'.format(pattern_name)
+
+
+class ResourceTypeIs(Equal):
+
+    def __init__(self, type_name):
+        super().__init__('type', type_name)
+
+    def matches(self, obj):
+        return obj.get('type') == self.pattern
 
 
 class NotEqual(Cmp):
