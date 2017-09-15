@@ -115,14 +115,6 @@ This is an integration test suite for the Qvarn HTTP API.
     AND search result contains {"id": "${ID2}"}
     AND search result does NOT contain {"id": "${ID3}"}
 
-    WHEN client requests 
-    ... GET /subjects/search/exact/full_name/Alfred/exact/full_name/Alfred
-    ... using token
-    THEN HTTP status code is 200 OK
-    AND search result contains {"id": "${ID1}"}
-    AND search result contains {"id": "${ID2}"}
-    AND search result does NOT contain {"id": "${ID3}"}
-
     WHEN client requests GET /subjects/search/exact/full_name/Bruce
     ... using token
     THEN HTTP status code is 200 OK
