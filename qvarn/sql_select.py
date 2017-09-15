@@ -18,8 +18,8 @@ import qvarn
 
 
 def sql_select(counter, cond):
-    subconds = cond.get_subconditions()
-    if not subconds:
+    conds = list(flatten(cond))
+    if len(conds) == 1:
         name = qvarn.get_unique_name('name', counter=counter)
         value = qvarn.get_unique_name('value', counter=counter)
         params = {
@@ -33,7 +33,7 @@ def sql_select(counter, cond):
         query = template.format(name, cond.cmp_sql(value))
     else:
         params = {
-            'count': len(subconds),
+            'count': len(conds),
         }
 
         template = (
@@ -45,7 +45,7 @@ def sql_select(counter, cond):
 
         part_template = "(_field->>'name' = %({})s AND _field->>'value' {})"
         parts = []
-        for subcond in subconds:
+        for subcond in conds:
             name = qvarn.get_unique_name('name', counter=counter)
             value = qvarn.get_unique_name('value', counter=counter)
             params[name] = subcond.name
@@ -56,3 +56,13 @@ def sql_select(counter, cond):
         query = template.format(' OR '.join(parts))
 
     return query, params
+
+
+def flatten(cond):
+    subs = cond.get_subconditions()
+    if subs:
+        for sub in subs:
+            for c in flatten(sub):
+                yield c
+    else:
+        yield cond
