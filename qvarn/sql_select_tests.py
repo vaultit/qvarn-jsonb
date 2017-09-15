@@ -72,7 +72,7 @@ class SqlSelectTests(unittest.TestCase):
              "_field->>'value' = %(value2)s) OR "
              "(_field->>'name' = %(name3)s AND "
              "_field->>'value' != %(value4)s) "
-             "GROUP BY obj_id) WHERE _hits = %(count)s")
+             "GROUP BY obj_id) AS _temp WHERE _hits = %(count)s")
         )
         self.assertEqual(
             values,

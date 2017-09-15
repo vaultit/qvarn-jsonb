@@ -40,7 +40,7 @@ def sql_select(counter, cond):
             "SELECT _temp.obj_id, _obj FROM _objects, ("
             "SELECT obj_id, count(obj_id) AS _hits FROM _aux WHERE "
             "{} "
-            "GROUP BY obj_id) WHERE _hits = %(count)s"
+            "GROUP BY obj_id) AS _temp WHERE _hits = %(count)s"
         )
 
         part_template = "(_field->>'name' = %({})s AND _field->>'value' {})"
