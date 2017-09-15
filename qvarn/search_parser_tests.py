@@ -58,6 +58,14 @@ class SearchParserTests(unittest.TestCase):
         self.assertEqual(cond.name, 'foo')
         self.assertEqual(cond.pattern, 'bar')
 
+    def test_returns_show_all_if_specified(self):
+        p = qvarn.SearchParser()
+        cond, show = p.parse('exact/foo/bar/show_all')
+        self.assertEqual(show, 'show_all')
+        self.assertTrue(isinstance(cond, qvarn.Equal))
+        self.assertEqual(cond.name, 'foo')
+        self.assertEqual(cond.pattern, 'bar')
+
     def test_returns_all_condition(self):
         p = qvarn.SearchParser()
         cond, show = p.parse('exact/foo/bar/exact/foobar/yo')

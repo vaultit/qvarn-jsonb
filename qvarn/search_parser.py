@@ -29,6 +29,7 @@ class SearchParser:
         'ne': (2, qvarn.NotEqual),
         'startswith': (2, qvarn.Startswith),
         'show': (1, 'show'),
+        'show_all': (0, 'show_all'),
     }
 
     def parse(self, path):
@@ -37,13 +38,19 @@ class SearchParser:
         pairs = list(self._parse_simple(path))
         conds = [cond for cond, _ in pairs if cond is not None]
 
-        show_fields = []
+        show_what = []
         for _, fields in pairs:
-            if fields:
-                show_fields += fields
+            if fields == 'show_all':
+                show_what = 'show_all'
+            elif fields and isinstance(show_what, list):
+                show_what += fields
+
+        if not show_what:
+            show_what = None
+
         if len(conds) == 1:
-            return conds[0], show_fields
-        return qvarn.All(*conds), show_fields or None
+            return conds[0], show_what
+        return qvarn.All(*conds), show_what
 
     def _parse_simple(self, path):
         words = path.split('/')
@@ -58,8 +65,10 @@ class SearchParser:
                 raise SearchParserError(
                     'Not enough args for {}'.format(words[0]))
             args = words[1:1+num]
-            if isinstance(klass, str):
+            if klass == 'show':
                 yield None, args
+            elif klass == 'show_all':
+                yield None, klass
             else:
                 yield klass(*args), None
             del words[:1+num]
