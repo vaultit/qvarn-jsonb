@@ -134,7 +134,7 @@ class Transaction:
         return query
 
     def select_objects_on_cond(self, table_name, cond, *keys):
-        query, values = qvarn.sql_select(cond)
+        query, values = qvarn.sql_select(_counter, cond)
         return query, values
 
     def _condition(self, cond):
