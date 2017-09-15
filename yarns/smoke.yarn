@@ -111,100 +111,65 @@ This is an integration test suite for the Qvarn HTTP API.
     WHEN client requests GET /subjects/search/exact/full_name/Alfred
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches { "resources": [{"id": "${ID1}"}, {"id": "${ID2}"}]}
+    AND search result contains {"id": "${ID1}"}
+    AND search result contains {"id": "${ID2}"}
+    AND search result does NOT contain {"id": "${ID3}"}
 
     WHEN client requests 
     ... GET /subjects/search/exact/full_name/Alfred/exact/full_name/Alfred
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches { "resources": [{"id": "${ID1}"}, {"id": "${ID2}"}]}
+    AND search result contains {"id": "${ID1}"}
+    AND search result contains {"id": "${ID2}"}
+    AND search result does NOT contain {"id": "${ID3}"}
 
     WHEN client requests GET /subjects/search/exact/full_name/Bruce
     ... using token
     THEN HTTP status code is 200 OK
+    AND search result does NOT contain {"id": "${ID1}"}
+    AND search result does NOT contain {"id": "${ID2}"}
+    AND search result contains {"id": "${ID3}"}
     AND JSON body matches { "resources": [{"id": "${ID3}"}]}
 
     WHEN client requests
     ... GET /subjects/search/contains/full_name/fred
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches { "resources": [{"id": "${ID1}"}, {"id": "${ID2}"}]}
+    AND search result contains {"id": "${ID1}"}
+    AND search result contains {"id": "${ID2}"}
+    AND search result does NOT contain {"id": "${ID3}"}
 
     WHEN client requests
     ... GET /subjects/search/gt/full_name/Alfred
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches { "resources": [{"id": "${ID3}"}]}
+    AND search result does NOT contain {"id": "${ID1}"}
+    AND search result does NOT contain {"id": "${ID2}"}
+    AND search result contains {"id": "${ID3}"}
 
     WHEN client requests
     ... GET /subjects/search/ge/full_name/Alfred
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches 
-    ... {
-    ...     "resources": [
-    ...         {"id": "${ID1}"},
-    ...         {"id": "${ID2}"},
-    ...         {"id": "${ID3}"}
-    ...     ]
-    ... }
-
-    WHEN client requests
-    ... GET /subjects/search/lt/full_name/Alfred
-    ... using token
-    THEN HTTP status code is 200 OK
-    AND JSON body matches
-    ... {
-    ...     "resources": [
-    ...     ]
-    ... }
-
-    WHEN client requests
-    ... GET /subjects/search/le/full_name/Alfred
-    ... using token
-    THEN HTTP status code is 200 OK
-    AND JSON body matches
-    ... {
-    ...     "resources": [
-    ...         {"id": "${ID1}"},
-    ...         {"id": "${ID2}"}
-    ...     ]
-    ... }
-
-    WHEN client requests
-    ... GET /subjects/search/ne/full_name/Bruce
-    ... using token
-    THEN HTTP status code is 200 OK
-    AND JSON body matches
-    ... {
-    ...     "resources": [
-    ...         {"id": "${ID1}"},
-    ...         {"id": "${ID2}"} 
-    ...     ]
-    ... }
+    AND search result contains {"id": "${ID1}"}
+    AND search result contains {"id": "${ID2}"}
+    AND search result contains {"id": "${ID3}"}
 
     WHEN client requests
     ... GET /subjects/search/startswith/full_name/Alfred
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches { "resources": [{"id": "${ID1}"}, {"id": "${ID2}"}]}
+    AND search result contains {"id": "${ID1}"}
+    AND search result contains {"id": "${ID2}"}
+    AND search result does NOT contain {"id": "${ID3}"}
 
     WHEN client requests
     ... GET /subjects/search/show/full_name/contains/full_name/fred
     ... using token
     THEN HTTP status code is 200 OK
-    AND JSON body matches
-    ... {
-    ...     "resources": [
-    ...         {
-    ...             "id": "${ID1}",
-    ...             "full_name": "Alfred"
-    ...         },
-    ...         {
-    ...             "id": "${ID2}"
-    ...         }
-    ...     ]
-    ... }
+    AND search result contains {"id": "${ID1}", "full_name": "Alfred" }
+    AND search result contains {"id": "${ID2}"}
+    AND search result does NOT contain {"id": "${ID3}"}
 
     FINALLY qvarn is stopped
 
