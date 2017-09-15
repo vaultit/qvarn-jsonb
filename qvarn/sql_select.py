@@ -37,10 +37,10 @@ def sql_select(counter, cond):
         }
 
         template = (
-            "SELECT _temp.obj_id, _obj FROM _objects, ("
+            "SELECT _temp.obj_id FROM ("
             "SELECT obj_id, count(obj_id) AS _hits FROM _aux WHERE "
             "{} "
-            "GROUP BY obj_id) AS _temp WHERE _hits = %(count)s"
+            "GROUP BY obj_id) AS _temp WHERE _hits >= %(count)s"
         )
 
         part_template = "(_field->>'name' = %({})s AND _field->>'value' {})"
@@ -55,6 +55,11 @@ def sql_select(counter, cond):
 
         query = template.format(' OR '.join(parts))
 
+    qvarn.log.log(
+        'trace',
+        msg_text='sql_select',
+        query=query,
+        params=params)
     return query, params
 
 

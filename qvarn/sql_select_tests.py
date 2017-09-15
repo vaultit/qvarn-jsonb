@@ -66,13 +66,13 @@ class SqlSelectTests(unittest.TestCase):
         self.maxDiff = None
         self.assertEqual(
             sql,
-            ("SELECT _temp.obj_id, _obj FROM _objects, ("
+            ("SELECT _temp.obj_id FROM ("
              "SELECT obj_id, count(obj_id) AS _hits FROM _aux WHERE "
              "(_field->>'name' = %(name1)s AND "
              "_field->>'value' = %(value2)s) OR "
              "(_field->>'name' = %(name3)s AND "
              "_field->>'value' != %(value4)s) "
-             "GROUP BY obj_id) AS _temp WHERE _hits = %(count)s")
+             "GROUP BY obj_id) AS _temp WHERE _hits >= %(count)s")
         )
         self.assertEqual(
             values,
