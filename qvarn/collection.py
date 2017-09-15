@@ -95,14 +95,16 @@ class CollectionAPI:
         if not search_criteria:
             raise NoSearchCriteria()
         p = qvarn.SearchParser()
-        cond, show_fields = p.parse(search_criteria)
+        cond, show_what = p.parse(search_criteria)
         cond2 = self._make_cond_type_specific(cond)
         qvarn.log.log(
-            'trace', msg_text='Collection.search', show_fields=show_fields,
+            'trace', msg_text='Collection.search', show_what=show_what,
             type=self.get_type_name())
-        if show_fields:
+        if show_what == 'show_all':
+            result = self._store.find_objects(cond2)
+        elif show_what:
             result = [
-                self._strip_obj(obj, show_fields + ['id'])
+                self._strip_obj(obj, show_what + ['id'])
                 for obj in self._store.find_objects(cond2)
             ]
         else:
@@ -118,7 +120,7 @@ class CollectionAPI:
                 qvarn.log.log(
                     'trace', msg_text='search hit', keys=keys, obj=obj)
         qvarn.log.log(
-            'trace', msg_text='Collection.search', show_fields=show_fields,
+            'trace', msg_text='Collection.search', show_what=show_what,
             result=result)
         return result
 

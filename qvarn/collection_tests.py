@@ -288,3 +288,12 @@ class CollectionAPITests(unittest.TestCase):
         }
         matches = self.coll.search('exact/full_name/James Bond/show/full_name')
         self.assertEqual(matches, [wanted])
+
+    def test_search_return_full_resources(self):
+        obj = {
+            'type': 'subject',
+            'full_name': 'James Bond',
+        }
+        new_obj = self.coll.post(obj)
+        matches = self.coll.search('exact/full_name/James Bond/show_all')
+        self.assertEqual(matches, [new_obj])
