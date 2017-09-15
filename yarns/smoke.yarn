@@ -163,6 +163,17 @@ This is an integration test suite for the Qvarn HTTP API.
     AND search result contains {"id": "${ID2}"}
     AND search result does NOT contain {"id": "${ID3}"}
 
+    WHEN client requests
+    ... GET /subjects/search/show_all/exact/full_name/Bruce
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result contains
+    ... {
+    ...     "id": "${ID3}",
+    ...     "full_name": "",
+    ...     "names": [ { "full_name": "Bruce" } ]
+    ... }
+
     FINALLY qvarn is stopped
 
 
