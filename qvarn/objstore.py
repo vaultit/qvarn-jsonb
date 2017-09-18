@@ -207,21 +207,6 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         cursor = t.execute(query, keys)
         return [row['_obj'] for row in t.get_rows(cursor)]
 
-    def _get_single_object_in_transaction(self, t, **keys):
-        query = t.select_objects(self._table, '_obj', *keys.keys())
-        qvarn.log.log(
-            'debug', msg_text='PostgresObjectStore.get_objects',
-            query=query, keys=keys)
-        cursor = t.execute(query, keys)
-        rows = list(t.get_rows(cursor))
-        if len(rows) != 1:
-            qvarn.log.log(
-                'error', msg_text='expected exactly 1 object',
-                objects=rows,
-                keys=keys)
-            raise Exception('wrong number of objects in db')
-        return rows[0]['_obj']
-
     def find_objects(self, cond):
         qvarn.log.log(
             'info', msg_text='PostgresObjectStore.find_objects',
