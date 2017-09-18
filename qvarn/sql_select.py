@@ -33,11 +33,11 @@ def _select_on_simple_cond(counter, cond):
         name: cond.name,
         value: cond.pattern,
     }
-    template = (
-        "SELECT obj_id FROM _aux WHERE "
-        "_field->>'name' = %({})s "
-        "AND _field->>'value' {}"
-    )
+    template = ' '.join("""
+        SELECT obj_id FROM _aux WHERE
+        _field->>'name' = %({})s
+        AND _field->>'value' {}
+    """.split())
     query = template.format(name, cond.cmp_sql(value))
     return query, params
 
