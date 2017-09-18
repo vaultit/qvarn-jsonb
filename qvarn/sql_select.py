@@ -20,17 +20,7 @@ import qvarn
 def sql_select(counter, cond):
     conds = list(flatten(cond))
     if len(conds) == 1:
-        name = qvarn.get_unique_name('name', counter=counter)
-        value = qvarn.get_unique_name('value', counter=counter)
-        params = {
-            name: cond.name,
-            value: cond.pattern,
-        }
-        template = (
-            "SELECT obj_id FROM _aux WHERE "
-            "_field->>'name' = %({})s AND _field->>'value' {}"
-        )
-        query = template.format(name, cond.cmp_sql(value))
+        query, params = _select_on_simple_cond(counter, cond)
     else:
         params = {
             'count': len(conds),
@@ -60,6 +50,22 @@ def sql_select(counter, cond):
         msg_text='sql_select',
         query=query,
         params=params)
+    return query, params
+
+
+def _select_on_simple_cond(counter, cond):
+    name = qvarn.get_unique_name('name', counter=counter)
+    value = qvarn.get_unique_name('value', counter=counter)
+    params = {
+        name: cond.name,
+        value: cond.pattern,
+    }
+    template = (
+        "SELECT obj_id FROM _aux WHERE "
+        "_field->>'name' = %({})s "
+        "AND _field->>'value' {}"
+    )
+    query = template.format(name, cond.cmp_sql(value))
     return query, params
 
 
