@@ -213,10 +213,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             cond=repr(cond))
         with self._sql.transaction() as t:
             keys_objs = self._find_helper(t, cond)
-            return [
-                x['_obj']
-                for x in keys_objs
-            ]
+            return [x['_obj'] for x in keys_objs]
 
     def find_object_ids(self, cond):
         qvarn.log.log(
@@ -224,10 +221,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             cond=repr(cond))
         with self._sql.transaction() as t:
             keys_objs = self._find_helper(t, cond)
-            return [
-                x['obj_id']
-                for x in keys_objs
-            ]
+            return [x for x in keys_objs]
 
     def _find_helper(self, t, cond):
         keys_columns = [key for key in self._keys if key != '_obj']

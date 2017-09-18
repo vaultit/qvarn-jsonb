@@ -72,7 +72,7 @@ class CollectionAPI:
         obj_ids = self._store.find_object_ids(oftype)
         return {
             'resources': [
-                {'id': x['obj_id']} for x in obj_ids
+                {'id': keys['obj_id']} for keys in obj_ids
             ]
         }
 
