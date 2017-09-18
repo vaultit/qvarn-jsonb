@@ -269,7 +269,7 @@ class KeyValueError(Exception):
 
 
 def flatten_object(obj):
-    return list(sorted(_flatten(obj)))
+    return list(sorted(set(_flatten(obj))))
 
 
 def _flatten(obj, obj_key=None):
