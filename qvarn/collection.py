@@ -94,39 +94,48 @@ class CollectionAPI:
     def search(self, search_criteria):
         if not search_criteria:
             raise NoSearchCriteria()
+
         p = qvarn.SearchParser()
         cond, show_what = p.parse(search_criteria)
         cond2 = self._make_cond_type_specific(cond)
+
+        def pick_all(obj):
+            return obj
+
+        def pick_id(obj):
+            return {
+                'id': obj['id'],
+            }
+
+        def pick_some(obj):
+            return {
+                key: obj[key]
+                for key in obj
+                if key in show_what
+            }
+
         if show_what == 'show_all':
-            result = self._store.find_objects(cond2)
+            pick_fields = pick_all
         elif show_what:
-            result = [
-                self._strip_obj(obj, show_what + ['id'])
-                for obj in self._store.find_objects(cond2)
-            ]
+            show_what.append('id')
+            pick_fields = pick_some
         else:
-            ids = self._store.find_object_ids(cond2)
-            result = [
-                {
-                    'id': keys['obj_id'],
-                }
-                for keys in ids
-            ]
+            pick_fields = pick_id
+
+        result = self._find_objects(cond2, pick_fields)
         qvarn.log.log(
             'trace', msg_text='Collection.search', show_what=show_what,
             result=result)
+
         return result
 
     def _make_cond_type_specific(self, cond):
         correct_type = qvarn.ResourceTypeIs(self.get_type_name())
         return qvarn.All(correct_type, cond)
 
-    def _strip_obj(self, obj, fields):
-        return {
-            key: obj[key]
-            for key in obj
-            if key in fields
-        }
+    def _find_objects(self, cond, pick_fields):
+        matches = self._store.find_objects(cond)
+        return [pick_fields(obj) for obj in matches]
 
 
 class WrongRevision(Exception):
