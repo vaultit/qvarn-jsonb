@@ -47,14 +47,6 @@ def _select_on_multiple_conds(counter, conds):
         'count': len(conds),
     }
 
-    template = ' '.join('''
-        SELECT _temp.obj_id FROM (
-            SELECT obj_id, count(obj_id) AS _hits FROM _aux WHERE
-            {}
-            GROUP BY obj_id
-        ) AS _temp WHERE _hits >= %(count)s
-    '''.split())
-
     part_template = "(_field->>'name' = %({})s AND _field->>'value' {})"
     parts = []
     for subcond in conds:
@@ -64,6 +56,14 @@ def _select_on_multiple_conds(counter, conds):
         params[value] = subcond.pattern
         part = part_template.format(name, subcond.cmp_sql(value))
         parts.append(part)
+
+    template = ' '.join('''
+        SELECT _temp.obj_id FROM (
+            SELECT obj_id, count(obj_id) AS _hits FROM _aux WHERE
+            {}
+            GROUP BY obj_id
+        ) AS _temp WHERE _hits >= %(count)s
+    '''.split())
 
     query = template.format(' OR '.join(parts))
 
