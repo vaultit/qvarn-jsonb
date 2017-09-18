@@ -158,6 +158,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             'info', msg_text='PostgresObjectStore.create_object',
             obj=obj, keys=keys)
         with self._sql.transaction() as t:
+            self._remove_objects_in_transaction(t, **keys)
             self._insert_into_object_table(t, self._table, obj, **keys)
             if auxtable:
                 self._insert_into_helper(t, self._auxtable, obj, **keys)
@@ -191,6 +192,16 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
 
             query = t.remove_objects(self._auxtable, *keys.keys())
             t.execute(query, keys)
+
+    def _remove_objects_in_transaction(self, t, **keys):
+        qvarn.log.log(
+            'info',
+            msg_text='PostgresObjectStore._remove_objects_in_transaction',
+            keys=keys)
+        query = t.remove_objects(self._table, *keys.keys())
+        t.execute(query, keys)
+        query = t.remove_objects(self._auxtable, *keys.keys())
+        t.execute(query, keys)
 
     def get_objects(self, **keys):
         qvarn.log.log(
