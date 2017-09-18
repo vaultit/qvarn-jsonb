@@ -227,10 +227,10 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             'info', msg_text='PostgresObjectStore.find_objects',
             cond=repr(cond))
         with self._sql.transaction() as t:
-            keys_dicts = self._find_helper(t, cond)
+            keys_objs = self._find_helper(t, cond)
             return [
-                self._get_single_object_in_transaction(t, **keys_dict)
-                for keys_dict in keys_dicts
+                x['_obj']
+                for x in keys_objs
             ]
 
     def find_object_ids(self, cond):
@@ -238,7 +238,11 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             'info', msg_text='PostgresObjectStore.find_object_ids',
             cond=repr(cond))
         with self._sql.transaction() as t:
-            return self._find_helper(t, cond)
+            keys_objs = self._find_helper(t, cond)
+            return [
+                x['obj_id']
+                for x in keys_objs
+            ]
 
     def _find_helper(self, t, cond):
         keys_columns = [key for key in self._keys if key != '_obj']

@@ -34,9 +34,13 @@ def _select_on_simple_cond(counter, cond):
         value: cond.pattern,
     }
     template = ' '.join('''
-        SELECT obj_id FROM _aux WHERE
-        _field->>'name' = %({})s
-        AND _field->>'value' {}
+        SELECT _objects.obj_id, _objects._obj FROM _objects,
+        (
+            SELECT obj_id FROM _aux WHERE
+            _field->>'name' = %({})s
+            AND _field->>'value' {}
+        ) AS _temp
+        WHERE _temp.obj_id = _objects.obj_id
     '''.split())
     query = template.format(name, cond.cmp_sql(value))
     return query, params
@@ -58,11 +62,11 @@ def _select_on_multiple_conds(counter, conds):
         parts.append(part)
 
     template = ' '.join('''
-        SELECT _temp.obj_id FROM (
+        SELECT _objects.obj_id, _objects._obj FROM _objects, (
             SELECT obj_id, count(obj_id) AS _hits FROM _aux WHERE
             {}
             GROUP BY obj_id
-        ) AS _temp WHERE _hits >= %(count)s
+        ) AS _temp WHERE _hits >= %(count)s AND _temp.obj_id = _objects.obj_id
     '''.split())
 
     query = template.format(' OR '.join(parts))
