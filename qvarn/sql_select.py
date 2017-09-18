@@ -22,28 +22,7 @@ def sql_select(counter, cond):
     if len(conds) == 1:
         query, params = _select_on_simple_cond(counter, cond)
     else:
-        params = {
-            'count': len(conds),
-        }
-
-        template = (
-            "SELECT _temp.obj_id FROM ("
-            "SELECT obj_id, count(obj_id) AS _hits FROM _aux WHERE "
-            "{} "
-            "GROUP BY obj_id) AS _temp WHERE _hits >= %(count)s"
-        )
-
-        part_template = "(_field->>'name' = %({})s AND _field->>'value' {})"
-        parts = []
-        for subcond in conds:
-            name = qvarn.get_unique_name('name', counter=counter)
-            value = qvarn.get_unique_name('value', counter=counter)
-            params[name] = subcond.name
-            params[value] = subcond.pattern
-            part = part_template.format(name, subcond.cmp_sql(value))
-            parts.append(part)
-
-        query = template.format(' OR '.join(parts))
+        query, params = _select_on_multiple_conds(counter, conds)
 
     qvarn.log.log(
         'trace',
@@ -66,6 +45,33 @@ def _select_on_simple_cond(counter, cond):
         "AND _field->>'value' {}"
     )
     query = template.format(name, cond.cmp_sql(value))
+    return query, params
+
+
+def _select_on_multiple_conds(counter, conds):
+    params = {
+        'count': len(conds),
+    }
+
+    template = (
+        "SELECT _temp.obj_id FROM ("
+        "SELECT obj_id, count(obj_id) AS _hits FROM _aux WHERE "
+        "{} "
+        "GROUP BY obj_id) AS _temp WHERE _hits >= %(count)s"
+    )
+
+    part_template = "(_field->>'name' = %({})s AND _field->>'value' {})"
+    parts = []
+    for subcond in conds:
+        name = qvarn.get_unique_name('name', counter=counter)
+        value = qvarn.get_unique_name('value', counter=counter)
+        params[name] = subcond.name
+        params[value] = subcond.pattern
+        part = part_template.format(name, subcond.cmp_sql(value))
+        parts.append(part)
+
+    query = template.format(' OR '.join(parts))
+
     return query, params
 
 
