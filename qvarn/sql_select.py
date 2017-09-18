@@ -23,12 +23,6 @@ def sql_select(counter, cond):
         query, params = _select_on_simple_cond(counter, cond)
     else:
         query, params = _select_on_multiple_conds(counter, conds)
-
-    qvarn.log.log(
-        'trace',
-        msg_text='sql_select',
-        query=query,
-        params=params)
     return query, params
 
 
