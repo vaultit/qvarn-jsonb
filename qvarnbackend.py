@@ -93,7 +93,6 @@ subject.from_spec({
                 'id': '',
                 'type': '',
                 'revision': '',
-                'full_name': '',
                 'names': [
                     {
                         'full_name': '',
