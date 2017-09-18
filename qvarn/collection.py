@@ -97,9 +97,6 @@ class CollectionAPI:
         p = qvarn.SearchParser()
         cond, show_what = p.parse(search_criteria)
         cond2 = self._make_cond_type_specific(cond)
-        qvarn.log.log(
-            'trace', msg_text='Collection.search', show_what=show_what,
-            type=self.get_type_name())
         if show_what == 'show_all':
             result = self._store.find_objects(cond2)
         elif show_what:
@@ -115,10 +112,6 @@ class CollectionAPI:
                 }
                 for keys in ids
             ]
-            for keys in ids:
-                obj = self._store.get_objects(**keys)
-                qvarn.log.log(
-                    'trace', msg_text='search hit', keys=keys, obj=obj)
         qvarn.log.log(
             'trace', msg_text='Collection.search', show_what=show_what,
             result=result)
