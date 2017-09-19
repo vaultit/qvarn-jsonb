@@ -184,7 +184,10 @@ class Condition:
 class All(Condition):
 
     def __init__(self, *conds):
-        self.conds = conds
+        self.conds = list(conds)
+
+    def append_subcondition(self, cond):
+        self.conds.append(cond)
 
     def get_subconditions(self):
         return self.conds
