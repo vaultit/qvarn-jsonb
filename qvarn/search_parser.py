@@ -89,9 +89,13 @@ class SearchParserError(Exception):
 class SearchParameters:
 
     def __init__(self):
+        self.sort_keys = []
         self.show_fields = []
         self.show_all = False
         self.cond = None
+
+    def add_sort_key(self, field_name):
+        self.sort_keys.append(field_name)
 
     def add_show_field(self, field_name):
         if self.show_all:

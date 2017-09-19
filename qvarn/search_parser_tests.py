@@ -86,9 +86,15 @@ class SearchParameTest(unittest.TestCase):
 
     def test_has_correct_initial_state(self):
         sp = qvarn.SearchParameters()
+        self.assertEqual(sp.sort_keys, [])
         self.assertEqual(sp.show_fields, [])
         self.assertEqual(sp.show_all, False)
         self.assertEqual(sp.cond, None)
+
+    def test_adds_sort_key(self):
+        sp = qvarn.SearchParameters()
+        sp.add_sort_key('foo')
+        self.assertEqual(sp.sort_keys, ['foo'])
 
     def test_adds_show_field(self):
         sp = qvarn.SearchParameters()
