@@ -35,6 +35,7 @@ class SearchParserTests(unittest.TestCase):
     def test_returns_exact_condition(self):
         p = qvarn.SearchParser()
         sp = p.parse('exact/foo/bar')
+        self.assertEqual(sp.sort_keys, [])
         self.assertEqual(sp.show_fields, [])
         self.assertEqual(sp.show_all, False)
         self.assertTrue(isinstance(sp.cond, qvarn.Equal))
@@ -54,6 +55,7 @@ class SearchParserTests(unittest.TestCase):
     def test_returns_show_if_specified(self):
         p = qvarn.SearchParser()
         sp = p.parse('exact/foo/bar/show/foo')
+        self.assertEqual(sp.sort_keys, [])
         self.assertEqual(sp.show_fields, ['foo'])
         self.assertTrue(isinstance(sp.cond, qvarn.Equal))
         self.assertEqual(sp.cond.name, 'foo')
@@ -62,6 +64,7 @@ class SearchParserTests(unittest.TestCase):
     def test_returns_show_all_if_specified(self):
         p = qvarn.SearchParser()
         sp = p.parse('exact/foo/bar/show_all')
+        self.assertEqual(sp.sort_keys, [])
         self.assertEqual(sp.show_all, True)
         self.assertTrue(isinstance(sp.cond, qvarn.Equal))
         self.assertEqual(sp.cond.name, 'foo')
@@ -70,6 +73,7 @@ class SearchParserTests(unittest.TestCase):
     def test_returns_all_condition(self):
         p = qvarn.SearchParser()
         sp = p.parse('exact/foo/bar/exact/foobar/yo')
+        self.assertEqual(sp.sort_keys, [])
         self.assertEqual(sp.show_fields, [])
         self.assertTrue(isinstance(sp.cond, qvarn.All))
         self.assertEqual(len(sp.cond.conds), 2)
@@ -80,6 +84,11 @@ class SearchParserTests(unittest.TestCase):
         self.assertTrue(isinstance(second, qvarn.Equal))
         self.assertEqual(second.name, 'foobar')
         self.assertEqual(second.pattern, 'yo')
+
+    def test_returns_sort_keys(self):
+        p = qvarn.SearchParser()
+        sp = p.parse('exact/foo/bar/exact/foobar/yo/sort/a/sort/b')
+        self.assertEqual(sp.sort_keys, ['a', 'b'])
 
 
 class SearchParameTest(unittest.TestCase):

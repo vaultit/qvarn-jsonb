@@ -30,6 +30,7 @@ class SearchParser:
         'startswith': (2, qvarn.Startswith),
         'show': (1, 'show'),
         'show_all': (0, 'show_all'),
+        'sort': (1, 'sort'),
     }
 
     def parse(self, path):
@@ -42,7 +43,10 @@ class SearchParser:
         conds = [cond for cond, _ in pairs if cond is not None]
 
         show_what = []
-        for _, fields in pairs:
+        for thing, fields in pairs:
+            if thing == 'sort':
+                for field in fields:
+                    sp.add_sort_key(field)
             if fields == 'show_all':
                 sp.set_show_all()
             elif fields and isinstance(show_what, list):
@@ -69,7 +73,9 @@ class SearchParser:
                 raise SearchParserError(
                     'Not enough args for {}'.format(words[0]))
             args = words[1:1+num]
-            if klass == 'show':
+            if klass == 'sort':
+                yield 'sort', args
+            elif klass == 'show':
                 yield None, args
             elif klass == 'show_all':
                 yield None, klass
