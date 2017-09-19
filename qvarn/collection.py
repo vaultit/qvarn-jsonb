@@ -132,7 +132,16 @@ class CollectionAPI:
         else:
             result = unsorted
 
-        picked = [pick_fields(o) for o in result]
+        if sp.offset is None and sp.limit is None:
+            chosen = result
+        elif sp.offset is None and sp.limit is not None:
+            chosen = result[:sp.limit]
+        elif sp.offset is not None and sp.limit is None:
+            chosen = result[sp.offset:]
+        elif sp.offset is not None and sp.limit is not None:
+            chosen = result[sp.offset:sp.offset+sp.limit]
+
+        picked = [pick_fields(o) for o in chosen]
 
         qvarn.log.log(
             'trace', msg_text='Collection.search, sorted',

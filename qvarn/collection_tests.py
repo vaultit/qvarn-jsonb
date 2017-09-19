@@ -326,3 +326,35 @@ class CollectionAPITests(unittest.TestCase):
             self.assertEqual(
                 [m['names'][0]['sort_key'] for m in matches],
                 names)
+
+    def test_search_with_limit_only(self):
+        objs = self.create_objects(['1', '2', '3'])
+        search = 'sort/full_name/show_all'
+        matches = self.coll.search(search + '/limit/1')
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches, objs[:1])
+
+    def test_search_with_offset_only(self):
+        objs = self.create_objects(['1', '2', '3'])
+        search = 'sort/full_name/show_all'
+        matches = self.coll.search(search + '/offset/2')
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches, objs[2:])
+
+    def test_search_with_offset_and_limit(self):
+        objs = self.create_objects(['1', '2', '3'])
+        search = 'sort/full_name/show_all'
+        matches = self.coll.search(search + '/offset/1/limit/1')
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches, objs[1:2])
+
+    def create_objects(self, names):
+        objs = []
+        for name in names:
+            obj = {
+                'type': 'subject',
+                'full_name': name,
+            }
+            new_obj = self.coll.post(obj)
+            objs.append(new_obj)
+        return objs
