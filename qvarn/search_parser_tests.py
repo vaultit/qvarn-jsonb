@@ -34,11 +34,12 @@ class SearchParserTests(unittest.TestCase):
 
     def test_returns_exact_condition(self):
         p = qvarn.SearchParser()
-        cond, show = p.parse('exact/foo/bar')
-        self.assertTrue(isinstance(cond, qvarn.Equal))
-        self.assertFalse(show)
-        self.assertEqual(cond.name, 'foo')
-        self.assertEqual(cond.pattern, 'bar')
+        sp = p.parse('exact/foo/bar')
+        self.assertEqual(sp.show_fields, [])
+        self.assertEqual(sp.show_all, False)
+        self.assertTrue(isinstance(sp.cond, qvarn.Equal))
+        self.assertEqual(sp.cond.name, 'foo')
+        self.assertEqual(sp.cond.pattern, 'bar')
 
     def test_raises_error_if_only_show_specified(self):
         p = qvarn.SearchParser()
@@ -52,30 +53,61 @@ class SearchParserTests(unittest.TestCase):
 
     def test_returns_show_if_specified(self):
         p = qvarn.SearchParser()
-        cond, show = p.parse('exact/foo/bar/show/foo')
-        self.assertTrue(isinstance(cond, qvarn.Equal))
-        self.assertEqual(show, ['foo'])
-        self.assertEqual(cond.name, 'foo')
-        self.assertEqual(cond.pattern, 'bar')
+        sp = p.parse('exact/foo/bar/show/foo')
+        self.assertEqual(sp.show_fields, ['foo'])
+        self.assertTrue(isinstance(sp.cond, qvarn.Equal))
+        self.assertEqual(sp.cond.name, 'foo')
+        self.assertEqual(sp.cond.pattern, 'bar')
 
     def test_returns_show_all_if_specified(self):
         p = qvarn.SearchParser()
-        cond, show = p.parse('exact/foo/bar/show_all')
-        self.assertEqual(show, 'show_all')
-        self.assertTrue(isinstance(cond, qvarn.Equal))
-        self.assertEqual(cond.name, 'foo')
-        self.assertEqual(cond.pattern, 'bar')
+        sp = p.parse('exact/foo/bar/show_all')
+        self.assertEqual(sp.show_all, True)
+        self.assertTrue(isinstance(sp.cond, qvarn.Equal))
+        self.assertEqual(sp.cond.name, 'foo')
+        self.assertEqual(sp.cond.pattern, 'bar')
 
     def test_returns_all_condition(self):
         p = qvarn.SearchParser()
-        cond, show = p.parse('exact/foo/bar/exact/foobar/yo')
-        self.assertEqual(show, None)
-        self.assertTrue(isinstance(cond, qvarn.All))
-        self.assertEqual(len(cond.conds), 2)
-        first, second = cond.conds
+        sp = p.parse('exact/foo/bar/exact/foobar/yo')
+        self.assertEqual(sp.show_fields, [])
+        self.assertTrue(isinstance(sp.cond, qvarn.All))
+        self.assertEqual(len(sp.cond.conds), 2)
+        first, second = sp.cond.conds
         self.assertTrue(isinstance(first, qvarn.Equal))
         self.assertEqual(first.name, 'foo')
         self.assertEqual(first.pattern, 'bar')
         self.assertTrue(isinstance(second, qvarn.Equal))
         self.assertEqual(second.name, 'foobar')
         self.assertEqual(second.pattern, 'yo')
+
+
+class SearchParameTest(unittest.TestCase):
+
+    def test_has_correct_initial_state(self):
+        sp = qvarn.SearchParameters()
+        self.assertEqual(sp.show_fields, [])
+        self.assertEqual(sp.show_all, False)
+        self.assertEqual(sp.cond, None)
+
+    def test_adds_show_field(self):
+        sp = qvarn.SearchParameters()
+        sp.add_show_field('foo')
+        self.assertEqual(sp.show_fields, ['foo'])
+
+    def test_set_show_all(self):
+        sp = qvarn.SearchParameters()
+        sp.set_show_all()
+        self.assertEqual(sp.show_all, True)
+
+    def test_show_when_show_all_is_set_raises_error(self):
+        sp = qvarn.SearchParameters()
+        sp.set_show_all()
+        with self.assertRaises(qvarn.SearchParserError):
+            sp.add_show_field('foo')
+
+    def test_setting_show_all_when_fields_are_set_raises_error(self):
+        sp = qvarn.SearchParameters()
+        sp.add_show_field('foo')
+        with self.assertRaises(qvarn.SearchParserError):
+            sp.set_show_all()

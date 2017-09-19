@@ -35,22 +35,26 @@ class SearchParser:
     def parse(self, path):
         if not path:
             raise SearchParserError('No condition given')
+
+        sp = qvarn.SearchParameters()
+
         pairs = list(self._parse_simple(path))
         conds = [cond for cond, _ in pairs if cond is not None]
 
         show_what = []
         for _, fields in pairs:
             if fields == 'show_all':
-                show_what = 'show_all'
+                sp.set_show_all()
             elif fields and isinstance(show_what, list):
-                show_what += fields
-
-        if not show_what:
-            show_what = None
+                for field in fields:
+                    sp.add_show_field(field)
 
         if len(conds) == 1:
-            return conds[0], show_what
-        return qvarn.All(*conds), show_what
+            sp.set_cond(conds[0])
+        else:
+            sp.set_cond(qvarn.All(*conds))
+
+        return sp
 
     def _parse_simple(self, path):
         words = path.split('/')
@@ -80,3 +84,24 @@ class SearchParserError(Exception):
 
     def __init__(self, msg):
         super().__init__(self, msg)
+
+
+class SearchParameters:
+
+    def __init__(self):
+        self.show_fields = []
+        self.show_all = False
+        self.cond = None
+
+    def add_show_field(self, field_name):
+        if self.show_all:
+            raise SearchParserError('/show_all and /show conflict')
+        self.show_fields.append(field_name)
+
+    def set_show_all(self):
+        if self.show_fields:
+            raise SearchParserError('/show_all and /show conflict')
+        self.show_all = True
+
+    def set_cond(self, cond):
+        self.cond = cond

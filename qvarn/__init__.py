@@ -68,6 +68,7 @@ from .validator import (
 
 from .search_parser import (
     SearchParser,
+    SearchParameters,
     SearchParserError,
 )
 
