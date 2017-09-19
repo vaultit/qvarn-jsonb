@@ -95,6 +95,12 @@ class SearchParserTests(unittest.TestCase):
         sp = p.parse('show_all/exact/foo/bar/exact/foobar/yo/sort/a/sort/b')
         self.assertEqual(sp.sort_keys, ['a', 'b'])
 
+    def test_sets_offset_and_limit(self):
+        p = qvarn.SearchParser()
+        sp = p.parse('exact/foo/bar/sort/a/offset/42/limit/128')
+        self.assertEqual(sp.offset, 42)
+        self.assertEqual(sp.limit, 128)
+
 
 class SearchParametersTest(unittest.TestCase):
 

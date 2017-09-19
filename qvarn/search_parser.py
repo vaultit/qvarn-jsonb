@@ -28,9 +28,11 @@ class SearchParser:
         'lt': (2, qvarn.LessThan),
         'ne': (2, qvarn.NotEqual),
         'startswith': (2, qvarn.Startswith),
-        'show': (1, 'show'),
-        'show_all': (0, 'show_all'),
-        'sort': (1, 'sort'),
+        'show': (1, None),
+        'show_all': (0, None),
+        'sort': (1, None),
+        'offset': (1, None),
+        'limit': (1, None),
     }
 
     def parse(self, path):
@@ -50,6 +52,10 @@ class SearchParser:
             elif operator == 'sort':
                 for field in args:
                     sp.add_sort_key(field)
+            elif operator == 'offset':
+                sp.set_offset(int(args[0]))
+            elif operator == 'limit':
+                sp.set_limit(int(args[0]))
             else:
                 klass = self.conditions[operator][1]
                 cond = klass(*args)
