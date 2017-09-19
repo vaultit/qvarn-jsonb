@@ -199,10 +199,13 @@ class QvarnAPI:
 
     def get_search_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, search_criteria='', **kwargs):
-            result = coll.search(search_criteria)
-            body = {
-                'resources': result,
-            }
+            try:
+                result = coll.search(search_criteria)
+                body = {
+                    'resources': result,
+                }
+            except qvarn.NoOffset as e:
+                return bad_request_response(str(e))
             return ok_response(body)
         return wrapper
 

@@ -74,6 +74,7 @@ from .search_parser import (
 
 from .collection import (
     CollectionAPI,
+    NoOffset,
     NoSearchCriteria,
     NoSuchResource,
     WrongRevision,

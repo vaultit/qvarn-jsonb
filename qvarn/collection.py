@@ -135,7 +135,7 @@ class CollectionAPI:
         if sp.offset is None and sp.limit is None:
             chosen = result
         elif sp.offset is None and sp.limit is not None:
-            chosen = result[:sp.limit]
+            raise NoOffset()
         elif sp.offset is not None and sp.limit is None:
             chosen = result[sp.offset:]
         elif sp.offset is not None and sp.limit is not None:
@@ -181,3 +181,9 @@ class NoSearchCriteria(Exception):
 
     def __init__(self):
         super().__init__('No search criteria was given')
+
+
+class NoOffset(Exception):
+
+    def __init__(self):
+        super().__init__('/limit used without /offset')

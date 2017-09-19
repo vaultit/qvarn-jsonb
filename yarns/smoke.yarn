@@ -484,10 +484,17 @@ Create several person resources.
     THEN HTTP status code is 201 Created
     THEN resource id is ID5
 
-Sort, return first two hits.
+Sort, return first two hits without /offset.
 
     WHEN client requests
     ... GET /subjects/search/exact/random_id/${UID}/sort/full_name/limit/2
+    ... using token
+    THEN HTTP status code is 400 Foo
+
+Sort, return first two hits properly.
+
+    WHEN client requests
+    ... GET /subjects/search/exact/random_id/${UID}/sort/full_name/offset/0/limit/2
     ... using token
     THEN HTTP status code is 200 OK
     AND JSON body matches
