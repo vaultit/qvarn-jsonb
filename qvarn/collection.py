@@ -96,8 +96,8 @@ class CollectionAPI:
             raise NoSearchCriteria()
 
         p = qvarn.SearchParser()
-        cond, show_what = p.parse(search_criteria)
-        cond2 = self._make_cond_type_specific(cond)
+        sp = p.parse(search_criteria)
+        sp.set_cond(self._make_cond_type_specific(sp.cond))
 
         def pick_all(obj):
             return obj
@@ -107,24 +107,27 @@ class CollectionAPI:
                 'id': obj['id'],
             }
 
-        def pick_some(obj):
+        def pick_some_from_object(obj, fields):
             return {
                 key: obj[key]
                 for key in obj
-                if key in show_what
+                if key in fields
             }
 
-        if show_what == 'show_all':
+        def pick_some(fields):
+            return lambda obj: pick_some_from_object(obj, fields)
+
+        if sp.show_all:
             pick_fields = pick_all
-        elif show_what:
-            show_what.append('id')
-            pick_fields = pick_some
+        elif sp.show_fields:
+            show_what = sp.show_fields + ['id']
+            pick_fields = pick_some(show_what)
         else:
             pick_fields = pick_id
 
-        result = self._find_objects(cond2, pick_fields)
+        result = self._find_objects(sp.cond, pick_fields)
         qvarn.log.log(
-            'trace', msg_text='Collection.search', show_what=show_what,
+            'trace', msg_text='Collection.search',
             result=result)
 
         return result
