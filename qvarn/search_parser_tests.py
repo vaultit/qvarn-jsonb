@@ -105,6 +105,28 @@ class SearchParametersTest(unittest.TestCase):
         self.assertEqual(sp.show_all, False)
         self.assertEqual(sp.cond, None)
 
+    def test_sets_offset(self):
+        sp = qvarn.SearchParameters()
+        sp.set_offset(42)
+        self.assertEqual(sp.offset, 42)
+
+    def test_raises_error_if_setting_offset_a_second_time(self):
+        sp = qvarn.SearchParameters()
+        sp.set_offset(42)
+        with self.assertRaises(qvarn.SearchParserError):
+            sp.set_offset(42)
+
+    def test_sets_limit(self):
+        sp = qvarn.SearchParameters()
+        sp.set_limit(42)
+        self.assertEqual(sp.limit, 42)
+
+    def test_raises_error_if_setting_limit_a_second_time(self):
+        sp = qvarn.SearchParameters()
+        sp.set_limit(42)
+        with self.assertRaises(qvarn.SearchParserError):
+            sp.set_limit(42)
+
     def test_adds_sort_key(self):
         sp = qvarn.SearchParameters()
         sp.add_sort_key('foo')

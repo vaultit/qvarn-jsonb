@@ -89,6 +89,18 @@ class SearchParameters:
         self.show_fields = []
         self.show_all = False
         self.cond = None
+        self.offset = None
+        self.limit = None
+
+    def set_offset(self, offset):
+        if self.offset is not None:
+            raise SearchParserError('/offset may only be used once')
+        self.offset = offset
+
+    def set_limit(self, limit):
+        if self.limit is not None:
+            raise SearchParserError('/limit may only be used once')
+        self.limit = limit
 
     def add_sort_key(self, field_name):
         self.sort_keys.append(field_name)
