@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import itertools
 import unittest
 
 import qvarn
@@ -35,6 +36,11 @@ class CollectionAPITests(unittest.TestCase):
                         'id': '',
                         'revision': '',
                         'full_name': '',
+                        'names': [
+                            {
+                                'sort_key': '',
+                            },
+                        ],
                         'things': [
                             {
                                 'things': '',
@@ -299,23 +305,24 @@ class CollectionAPITests(unittest.TestCase):
         self.assertEqual(matches, [new_obj])
 
     def test_search_sorts(self):
-        james = {
-            'type': 'subject',
-            'full_name': 'James Bond',
-        }
-        jason = {
-            'type': 'subject',
-            'full_name': 'Jason Bourne',
-        }
-        alfred = {
-            'type': 'subject',
-            'full_name': 'Alfred Pennyweather',
-        }
-        for obj in [james, jason, alfred]:
-            self.coll.post(obj)
+        names = ['Alfred Pennyweather', 'James Bond', 'Jason Bourne']
+        for perm in itertools.permutations(names):
+            self.setUp()
+            for name in perm:
+                obj = {
+                    'type': 'subject',
+                    'full_name': 'Spy',
+                    'names': [
+                        {
+                            'sort_key': name,
+                        },
+                    ],
+                }
+                self.coll.post(obj)
 
-        matches = self.coll.search('gt/full_name/A/show_all/sort/full_name')
-        self.assertEqual(len(matches), 3)
-        self.assertEqual(
-            [m['full_name'] for m in matches],
-            ['Alfred Pennyweather', 'James Bond', 'Jason Bourne'])
+            matches = self.coll.search(
+                'exact/full_name/Spy/show_all/sort/sort_key')
+            self.assertEqual(len(matches), 3)
+            self.assertEqual(
+                [m['names'][0]['sort_key'] for m in matches],
+                names)
