@@ -90,8 +90,13 @@ class SearchParserTests(unittest.TestCase):
         sp = p.parse('exact/foo/bar/exact/foobar/yo/sort/a/sort/b')
         self.assertEqual(sp.sort_keys, ['a', 'b'])
 
+    def test_returns_sort_keys_with_show_all(self):
+        p = qvarn.SearchParser()
+        sp = p.parse('show_all/exact/foo/bar/exact/foobar/yo/sort/a/sort/b')
+        self.assertEqual(sp.sort_keys, ['a', 'b'])
 
-class SearchParameTest(unittest.TestCase):
+
+class SearchParametersTest(unittest.TestCase):
 
     def test_has_correct_initial_state(self):
         sp = qvarn.SearchParameters()
@@ -126,3 +131,18 @@ class SearchParameTest(unittest.TestCase):
         sp.add_show_field('foo')
         with self.assertRaises(qvarn.SearchParserError):
             sp.set_show_all()
+
+    def test_adds_cond(self):
+        cond = qvarn.Yes()
+        sp = qvarn.SearchParameters()
+        self.assertEqual(sp.cond, None)
+        sp.add_cond(cond)
+        self.assertEqual(sp.cond, cond)
+        sp.add_cond(cond)
+        self.assertTrue(isinstance(sp.cond, qvarn.All))
+        self.assertEqual(len(sp.cond.conds), 2)
+        self.assertEqual(sp.cond.conds, [cond, cond])
+        sp.add_cond(cond)
+        self.assertTrue(isinstance(sp.cond, qvarn.All))
+        self.assertEqual(len(sp.cond.conds), 3)
+        self.assertEqual(sp.cond.conds, [cond, cond, cond])

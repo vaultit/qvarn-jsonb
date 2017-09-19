@@ -40,50 +40,40 @@ class SearchParser:
         sp = qvarn.SearchParameters()
 
         pairs = list(self._parse_simple(path))
-        conds = [cond for cond, _ in pairs if cond is not None]
 
-        show_what = []
-        for thing, fields in pairs:
-            if thing == 'sort':
-                for field in fields:
-                    sp.add_sort_key(field)
-            if fields == 'show_all':
+        for operator, args in pairs:
+            if operator == 'show_all':
                 sp.set_show_all()
-            elif fields and isinstance(show_what, list):
-                for field in fields:
+            elif operator == 'show':
+                for field in args:
                     sp.add_show_field(field)
-
-        if len(conds) == 1:
-            sp.set_cond(conds[0])
-        else:
-            sp.set_cond(qvarn.All(*conds))
+            elif operator == 'sort':
+                for field in args:
+                    sp.add_sort_key(field)
+            else:
+                klass = self.conditions[operator][1]
+                cond = klass(*args)
+                sp.add_cond(cond)
 
         return sp
 
     def _parse_simple(self, path):
+        # Yield operator, args pairs.
         words = path.split('/')
         assert len(words) > 0
         while words:
-            len_before = len(words)
-            if words[0] not in self.conditions:
+            operator, words = words[0], words[1:]
+            if operator not in self.conditions:
                 raise SearchParserError(
-                    'Unknown condition {}'.format(words[0]))
-            num, klass = self.conditions[words[0]]
-            if num > len(words) - 1:
+                    'Unknown condition {}'.format(operator))
+
+            num_args = self.conditions[operator][0]
+            if num_args > len(words):
                 raise SearchParserError(
-                    'Not enough args for {}'.format(words[0]))
-            args = words[1:1+num]
-            if klass == 'sort':
-                yield 'sort', args
-            elif klass == 'show':
-                yield None, args
-            elif klass == 'show_all':
-                yield None, klass
-            else:
-                yield klass(*args), None
-            del words[:1+num]
-            assert len_before == len(words) + num + 1
-            assert len(words) < len_before
+                    'Not enough args for {}'.format(operator))
+
+            args, words = words[:num_args], words[num_args:]
+            yield operator, args
 
 
 class SearchParserError(Exception):
@@ -113,5 +103,10 @@ class SearchParameters:
             raise SearchParserError('/show_all and /show conflict')
         self.show_all = True
 
-    def set_cond(self, cond):
-        self.cond = cond
+    def add_cond(self, cond):
+        if self.cond is None:
+            self.cond = cond
+        elif isinstance(self.cond, qvarn.All):
+            self.cond.append_subcondition(cond)
+        else:
+            self.cond = qvarn.All(self.cond, cond)
