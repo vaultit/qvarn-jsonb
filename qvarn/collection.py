@@ -126,6 +126,24 @@ class CollectionAPI:
         else:
             pick_fields = pick_id
 
+        unsorted = self._find_matches(sp.cond)
+        if sp.sort_keys:
+            result = self._sort_objects(unsorted, sp.sort_keys)
+        else:
+            result = unsorted
+
+        picked = [pick_fields(o) for o in result]
+
+        qvarn.log.log(
+            'trace', msg_text='Collection.search, sorted',
+            result=picked)
+
+        return picked
+
+    def _find_matches(self, cond):
+        return self._store.find_objects(cond)
+
+    def _sort_objects(self, objects, sort_keys):
         def object_sort_key(obj, fields):
             return [
                 (key, value)
@@ -133,13 +151,12 @@ class CollectionAPI:
                 if key in fields
             ]
 
-        unsorted = self._store.find_objects(sp.cond)
         qvarn.log.log(
             'trace', msg_text='Collection.search, unsorted',
-            result=unsorted,
-            sort_keys=sp.sort_keys)
+            result=objects,
+            sort_keys=sort_keys)
 
-        keyed = [(object_sort_key(o, sp.sort_keys), o) for o in unsorted]
+        keyed = [(object_sort_key(o, sort_keys), o) for o in objects]
         qvarn.log.log(
             'trace', msg_text='Collection.search, keyed',
             result=keyed)
@@ -149,7 +166,7 @@ class CollectionAPI:
             'trace', msg_text='Collection.search, sorted',
             result=result)
 
-        return [pick_fields(o) for o in result]
+        return result
 
 
 class WrongRevision(Exception):
