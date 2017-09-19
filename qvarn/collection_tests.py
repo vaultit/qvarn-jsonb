@@ -328,9 +328,11 @@ class CollectionAPITests(unittest.TestCase):
                 names)
 
     def test_search_with_limit_only(self):
+        objs = self.create_objects(['1', '2', '3'])
         search = 'sort/full_name/show_all'
-        with self.assertRaises(qvarn.NoOffset):
-            self.coll.search(search + '/limit/1')
+        matches = self.coll.search(search + '/limit/1')
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches, objs[:1])
 
     def test_search_with_offset_only(self):
         objs = self.create_objects(['1', '2', '3'])
