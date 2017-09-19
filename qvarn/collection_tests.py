@@ -297,3 +297,25 @@ class CollectionAPITests(unittest.TestCase):
         new_obj = self.coll.post(obj)
         matches = self.coll.search('exact/full_name/James Bond/show_all')
         self.assertEqual(matches, [new_obj])
+
+    def test_search_sorts(self):
+        james = {
+            'type': 'subject',
+            'full_name': 'James Bond',
+        }
+        jason = {
+            'type': 'subject',
+            'full_name': 'Jason Bourne',
+        }
+        alfred = {
+            'type': 'subject',
+            'full_name': 'Alfred Pennyweather',
+        }
+        for obj in [james, jason, alfred]:
+            self.coll.post(obj)
+
+        matches = self.coll.search('gt/full_name/A/show_all/sort/full_name')
+        self.assertEqual(len(matches), 3)
+        self.assertEqual(
+            [m['full_name'] for m in matches],
+            ['Alfred Pennyweather', 'James Bond', 'Jason Bourne'])

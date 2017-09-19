@@ -97,7 +97,8 @@ class CollectionAPI:
 
         p = qvarn.SearchParser()
         sp = p.parse(search_criteria)
-        sp.set_cond(self._make_cond_type_specific(sp.cond))
+        correct_type = qvarn.ResourceTypeIs(self.get_type_name())
+        sp.add_cond(correct_type)
 
         def pick_all(obj):
             return obj
@@ -125,16 +126,22 @@ class CollectionAPI:
         else:
             pick_fields = pick_id
 
+        def get_key():
+            def object_sort_key(obj):
+                return [
+                    (key, value)
+                    for key, value in qvarn.flatten_object(obj)
+                    if key in sp.sort_keys
+                ]
+            return object_sort_key
+
         result = self._find_objects(sp.cond, pick_fields)
+        result = list(sorted(result, key=get_key()))
         qvarn.log.log(
             'trace', msg_text='Collection.search',
             result=result)
 
         return result
-
-    def _make_cond_type_specific(self, cond):
-        correct_type = qvarn.ResourceTypeIs(self.get_type_name())
-        return qvarn.All(correct_type, cond)
 
     def _find_objects(self, cond, pick_fields):
         matches = self._store.find_objects(cond)
