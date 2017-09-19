@@ -102,6 +102,7 @@ def expand_vars(text, vars):
             result += text
             break
         name = m.group('name')
+        print('expanding ', name)
         result += text[:m.start()] + vars[name]
         text = text[m.end():]
     return result

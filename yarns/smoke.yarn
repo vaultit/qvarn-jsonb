@@ -291,3 +291,122 @@ Perform searches matching different instances of the same nested element.
     ... }
 
     FINALLY qvarn is stopped
+
+# Sort search results
+
+    SCENARIO search with sort
+
+    GIVEN a running Qvarn instance
+
+    WHEN client gets an authorization token with scope
+    ... "uapi_subjects_post uapi_subjects_search_id_get"
+
+Create several person resources.
+
+    GIVEN unique random identifier UID
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "random_id": "${UID}",
+    ...     "names": [
+    ...         {
+    ...             "full_name": "Person A",
+    ...             "sort_key": "3, Person",
+    ...             "given_names": ["Test"],
+    ...             "surnames": ["Person", "A"]
+    ...         }
+    ...     ]
+    ... }
+    THEN HTTP status code is 201 Created
+    THEN resource id is ID3
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "random_id": "${UID}",
+    ...     "names": [
+    ...         {
+    ...             "full_name": "Person B",
+    ...             "sort_key": "1, Person",
+    ...             "given_names": ["Test"],
+    ...             "surnames": ["Person", "B"]
+    ...         }
+    ...     ]
+    ... }
+    THEN HTTP status code is 201 Created
+    THEN resource id is ID1
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "random_id": "${UID}",
+    ...     "names": [
+    ...         {
+    ...             "full_name": "Person C",
+    ...             "sort_key": "2, Person",
+    ...             "given_names": ["Test"],
+    ...             "surnames": ["Person", "C"]
+    ...         }
+    ...     ]
+    ... }
+    THEN HTTP status code is 201 Created
+    THEN resource id is ID2
+
+Search person resources and sort results by `sort_key`.
+
+    WHEN client requests
+    ... GET /subjects/search/exact/random_id/${UID}/sort/sort_key 
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": [
+    ...         {"id": "${ID1}"},
+    ...         {"id": "${ID2}"},
+    ...         {"id": "${ID3}"}
+    ...     ]
+    ... }
+
+Sort person resources using different sort key.
+
+    WHEN client requests
+    ... GET /subjects/search/exact/random_id/${UID}/sort/full_name
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": [
+    ...         {"id": "${ID3}"},
+    ...         {"id": "${ID1}"},
+    ...         {"id": "${ID2}"}
+    ...     ]
+    ... }
+
+Search person resources and sort results by two search keys, where first search
+key is a list containing more than one value. First key is `surnames`, where
+each resource has same first surname, and second key is `sort_key`. Since each
+first surname is the same, results should fall back to the second sort key.
+
+    WHEN client requests
+    ... GET /subjects/search/exact/random_id/${UID}/sort/surnames/sort/sort_key
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": [
+    ...         {"id": "${ID1}"},
+    ...         {"id": "${ID2}"},
+    ...         {"id": "${ID3}"}
+    ...     ]
+    ... }
+
+Search with only search operator should also work, returning all available
+resource ids.
+
+    WHEN client requests
+    ... GET /subjects/search/sort/sort_key
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result contains {"id": "${ID1}"}
+    AND search result contains {"id": "${ID2}"}
+    AND search result contains {"id": "${ID3}"}
+
+    FINALLY qvarn is stopped

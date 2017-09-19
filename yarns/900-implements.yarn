@@ -115,6 +115,13 @@ Start a Qvarn running in the background.
     assert vars['privkey']
     vars['token'] = create_token(vars['privkey'], vars['iss'], vars['aud'], scopes)
 
+## UUID creation
+
+    IMPLEMENTS GIVEN unique random identifier (\S+)
+    import uuid
+    name = get_next_match()
+    vars[name] = str(uuid.uuid4())
+
 ## API request result checking
 
     IMPLEMENTS THEN HTTP status code is (\d+) (.*)
