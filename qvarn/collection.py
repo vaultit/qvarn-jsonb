@@ -151,22 +151,7 @@ class CollectionAPI:
                 if key in fields
             ]
 
-        qvarn.log.log(
-            'trace', msg_text='Collection.search, unsorted',
-            result=objects,
-            sort_keys=sort_keys)
-
-        keyed = [(object_sort_key(o, sort_keys), o) for o in objects]
-        qvarn.log.log(
-            'trace', msg_text='Collection.search, keyed',
-            result=keyed)
-
-        result = list(o for _, o in sorted(keyed, key=lambda x: x[0]))
-        qvarn.log.log(
-            'trace', msg_text='Collection.search, sorted',
-            result=result)
-
-        return result
+        return sorted(objects, key=lambda o: object_sort_key(o, sort_keys))
 
 
 class WrongRevision(Exception):
