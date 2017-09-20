@@ -103,12 +103,12 @@ class SearchParserTests(unittest.TestCase):
 
     def test_raises_error_for_offset_without_sort(self):
         p = qvarn.SearchParser()
-        with self.assertRaises(qvarn.SearchParserError):
+        with self.assertRaises(qvarn.NeedSortOperator):
             p.parse('offset/1')
 
     def test_raises_error_for_limit_without_sort(self):
         p = qvarn.SearchParser()
-        with self.assertRaises(qvarn.SearchParserError):
+        with self.assertRaises(qvarn.NeedSortOperator):
             p.parse('limit/1')
 
     def test_accepts_limit_without_offset(self):

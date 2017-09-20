@@ -70,6 +70,7 @@ from .search_parser import (
     SearchParser,
     SearchParameters,
     SearchParserError,
+    NeedSortOperator,
 )
 
 from .collection import (

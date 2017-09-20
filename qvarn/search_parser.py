@@ -88,14 +88,19 @@ class SearchParser:
         has_offset = sp.offset is not None
         has_limit = sp.limit is not None
         if (has_limit or has_offset) and not has_sort:
-            raise SearchParserError(
-                '/offset and /limit are only valid with /sort')
+            raise NeedSortOperator()
 
 
 class SearchParserError(Exception):
 
     def __init__(self, msg):
         super().__init__(self, msg)
+
+
+class NeedSortOperator(SearchParserError):
+
+    def __init__(self):
+        super().__init__('/offset and /limit only valid with /sort')
 
 
 class SearchParameters:

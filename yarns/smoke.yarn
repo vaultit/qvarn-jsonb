@@ -524,3 +524,27 @@ Sort, return third set of two hits, which is actualy only one item.
     ...         {"id": "${ID5}"}
     ...     ]
     ... }
+
+Don't sort. Then /offset and /limit are verboten.
+
+    WHEN client requests
+    ... GET /subjects/search/exact/random_id/${UID}/offset/1
+    ... using token
+    THEN HTTP status code is 400 Error
+    AND JSON body matches
+    ... {
+    ...   "message": "LIMIT and OFFSET can only be used with together SORT.",
+    ...   "error_code": "LimitWithoutSortError"
+    ... }
+
+    WHEN client requests
+    ... GET /subjects/search/exact/random_id/${UID}/offset/1
+    ... using token
+    THEN HTTP status code is 400 Error
+    AND JSON body matches
+    ... {
+    ...   "message": "LIMIT and OFFSET can only be used with together SORT.",
+    ...   "error_code": "LimitWithoutSortError"
+    ... }
+
+    FINALLY qvarn is stopped

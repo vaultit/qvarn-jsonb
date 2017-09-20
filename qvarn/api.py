@@ -201,8 +201,8 @@ class QvarnAPI:
         def wrapper(content_type, body, search_criteria='', **kwargs):
             try:
                 result = coll.search(search_criteria)
-            except qvarn.SearchParserError as e:
-                return bad_request_response(str(e))
+            except qvarn.NeedSortOperator:
+                return need_sort_response()
             body = {
                 'resources': result,
             }
@@ -244,6 +244,17 @@ def created_response(body, location):  # pragma: no cover
 def bad_request_response(body):  # pragma: no cover
     headers = {
         'Content-Type': 'text/plain',
+    }
+    return response(apifw.HTTP_BAD_REQUEST, body, headers)
+
+
+def need_sort_response():  # pragma: no cover
+    headers = {
+        'Content-Type': 'application/json',
+    }
+    body = {
+        'message': 'LIMIT and OFFSET can only be used with together SORT.',
+        'error_code': 'LimitWithoutSortError',
     }
     return response(apifw.HTTP_BAD_REQUEST, body, headers)
 
