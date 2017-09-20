@@ -101,6 +101,22 @@ class SearchParserTests(unittest.TestCase):
         self.assertEqual(sp.offset, 42)
         self.assertEqual(sp.limit, 128)
 
+    def test_raises_error_for_offset_without_sort(self):
+        p = qvarn.SearchParser()
+        with self.assertRaises(qvarn.SearchParserError):
+            p.parse('offset/1')
+
+    def test_raises_error_for_limit_without_sort(self):
+        p = qvarn.SearchParser()
+        with self.assertRaises(qvarn.SearchParserError):
+            p.parse('limit/1')
+
+    def test_accepts_limit_without_offset(self):
+        p = qvarn.SearchParser()
+        sp = p.parse('sort/x/limit/1')
+        self.assertEqual(sp.offset, None)
+        self.assertEqual(sp.limit, 1)
+
 
 class SearchParametersTest(unittest.TestCase):
 

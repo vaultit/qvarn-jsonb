@@ -327,12 +327,20 @@ class CollectionAPITests(unittest.TestCase):
                 [m['names'][0]['sort_key'] for m in matches],
                 names)
 
+    def test_limit_without_sort(self):
+        with self.assertRaises(qvarn.SearchParserError):
+            self.coll.search('/limit/1')
+
+    def test_offset_without_sort(self):
+        with self.assertRaises(qvarn.SearchParserError):
+            self.coll.search('/offset/1')
+
     def test_search_with_limit_only(self):
         objs = self.create_objects(['1', '2', '3'])
         search = 'sort/full_name/show_all'
-        matches = self.coll.search(search + '/limit/1')
-        self.assertEqual(len(matches), 1)
-        self.assertEqual(matches, objs[:1])
+        matches = self.coll.search(search + '/limit/2')
+        self.assertEqual(len(matches), 2)
+        self.assertEqual(matches, objs[:2])
 
     def test_search_with_offset_only(self):
         objs = self.create_objects(['1', '2', '3'])

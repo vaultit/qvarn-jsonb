@@ -61,6 +61,8 @@ class SearchParser:
                 cond = klass(*args)
                 sp.add_cond(cond)
 
+        self._check_params(sp)
+
         return sp
 
     def _parse_simple(self, path):
@@ -80,6 +82,14 @@ class SearchParser:
 
             args, words = words[:num_args], words[num_args:]
             yield operator, args
+
+    def _check_params(self, sp):
+        has_sort = sp.sort_keys != []
+        has_offset = sp.offset is not None
+        has_limit = sp.limit is not None
+        if (has_limit or has_offset) and not has_sort:
+            raise SearchParserError(
+                '/offset and /limit are only valid with /sort')
 
 
 class SearchParserError(Exception):
