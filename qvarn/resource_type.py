@@ -77,7 +77,11 @@ class ResourceType:
 
     def get_subpaths(self):
         v = self._versions[-1]
-        return v.get('subpaths', {})
+        subpaths = v.get('subpaths', {})
+        return {
+            subpath: subpaths[subpath]['prototype']
+            for subpath in subpaths
+        }
 
 
 def load_resource_types(dirname):  # pragma: no cover
@@ -123,7 +127,7 @@ def _fill_in_dict(proto, obj):
             elif type(proto[field][0]) in defaults:
                 new[field] = list(obj[field])
         else:  # pragma: no cover
-            assert 0
+            assert 0, 'field is {!r}'.format(field)
 
     if isinstance(obj, dict):  # pragma: no cover
         for field in obj:
