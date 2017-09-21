@@ -104,7 +104,7 @@ don't need to be created specially.
     GIVEN a running qvarn instance
 
     WHEN client gets an authorization token with scope
-    ... "uapi_subject_sub_put uapi_subject_sub_get"
+    ... "uapi_subjects_post uapi_subjects_sub_put uapi_subjects_sub_get"
 
     WHEN client requests POST /subjects with token and body
     ... { "type": "subject", "names": [ { "full_name": "Alfred" } ] }
@@ -115,9 +115,20 @@ don't need to be created specially.
     THEN HTTP status code is 200 OK
     AND JSON body matches
     ... {
-    ...     "id": "${ID}",
-    ...     "revision": "${REV}",
     ...     "subfield": ""
+    ... }
+
+    WHEN client requests PUT /subjects/${ID}/sub with token and body
+    ... {
+    ...     "revision": "${REV}",
+    ...     "subfield": "Steven Segal"
+    ... }
+    THEN HTTP status code is 200 OK
+    AND revision is REV2
+    AND JSON body matches
+    ... {
+    ...     "revision": "${REV2}",
+    ...     "subfield": "Steven Segal"
     ... }
 
     FINALLY qvarn is stopped
