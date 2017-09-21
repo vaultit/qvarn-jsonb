@@ -55,6 +55,13 @@ class QvarnAPITests(unittest.TestCase):
                         'revision': '',
                         'name': '',
                     },
+                    'subpaths': {
+                        'sub': {
+                            'prototype': {
+                                'subfoo': '',
+                            },
+                        },
+                    },
                 },
             ],
         }
