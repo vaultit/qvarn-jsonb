@@ -58,7 +58,7 @@ class QvarnAPI:
         coll.set_resource_type(rt)
 
         id_path = os.path.join(path, '<id>')
-        return [
+        routes = [
             {
                 'method': 'POST',
                 'path': path,
@@ -90,6 +90,15 @@ class QvarnAPI:
                 'callback': self.delete_resource_callback(coll),
             },
         ]
+
+        for subpath in rt.get_subpaths():
+            routes.append({
+                'method': 'GET',
+                'path': '{}/{}'.format(id_path, subpath),
+                'callback': self.get_subpath_callback(coll, subpath),
+            })
+
+        return routes
 
     def version(self, content_type, body):
         version = {
@@ -173,7 +182,7 @@ class QvarnAPI:
             except qvarn.WrongRevision as e:
                 return conflict_response(str(e))
             except qvarn.NoSuchResource as e:
-                return bad_request_response(str(e))
+                return no_such_resource_response(str(e))
 
             return ok_response(result_body)
         return wrapper
@@ -182,12 +191,17 @@ class QvarnAPI:
         def wrapper(content_type, body, **kwargs):
             try:
                 obj = coll.get(kwargs['id'])
-            except qvarn.NoSuchResource:
-                return {
-                    'status': apifw.HTTP_NOT_FOUND,
-                    'body': '',
-                    'headers': {},
-                }
+            except qvarn.NoSuchResource as e:
+                return no_such_resource_response(str(e))
+            return ok_response(obj)
+        return wrapper
+
+    def get_subpath_callback(self, coll, subpath):  # pragma: no cover
+        def wrapper(content_type, body, **kwargs):
+            try:
+                obj = coll.get_subresource(kwargs['id'], subpath)
+            except qvarn.NoSuchResource as e:
+                return no_such_resource_response(str(e))
             return ok_response(obj)
         return wrapper
 
@@ -231,6 +245,10 @@ def ok_response(body):  # pragma: no cover
         'Content-Type': 'application/json',
     }
     return response(apifw.HTTP_OK, body, headers)
+
+
+def no_such_resource_response(msg):  # pragma: no cover
+    return response(apifw.HTTP_NOT_FOUND, msg, {})
 
 
 def created_response(body, location):  # pragma: no cover
