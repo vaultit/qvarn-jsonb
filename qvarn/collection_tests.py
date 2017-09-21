@@ -117,7 +117,6 @@ class CollectionAPITests(unittest.TestCase):
         self.assertEqual(sub, {'subfield': ''})
 
     def test_post_creates_a_new_resource_with_dict_list(self):
-        print()
         obj = {
             'type': 'subject',
             'full_name': 'James Bond',

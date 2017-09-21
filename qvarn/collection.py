@@ -56,10 +56,8 @@ class CollectionAPI:
 
         rt = self.get_type()
         subprotos = rt.get_subpaths()
-        print('subprotos', subprotos)
         for subpath, subproto in subprotos.items():
             empty = self._new_object(subproto, {})
-            print('create sub {}/{}'.format(new_obj['id'], subpath))
             self._store.create_object(
                 empty, obj_id=new_obj['id'], subpath=subpath)
 
