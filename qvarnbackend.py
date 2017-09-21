@@ -103,8 +103,15 @@ subject.from_spec({
                         'surnames': [''],
                     },
                 ],
-            }
-        }
+            },
+            'subpaths': {
+                'sub': {
+                    'prototype': {
+                        'subfield': '',
+                    },
+                },
+            },
+        },
     ],
 })
 
