@@ -19,18 +19,25 @@ import qvarn
 
 class CollectionAPI:
 
+    object_keys = {
+        'obj_id': str,
+        'subpath': str,
+    }
+
     def __init__(self):
         self._store = None
         self._type = None
+        self._proto = None
         self._idgen = qvarn.ResourceIdGenerator()
 
     def set_object_store(self, store):
         self._store = store
-        store.create_store(obj_id=str)
+        store.create_store(**self.object_keys)
 
     def set_resource_type(self, rt):
         assert isinstance(rt, qvarn.ResourceType)
         self._type = rt
+        self._proto = self._type.get_latest_prototype()
 
     def get_type(self):
         return self._type
@@ -42,26 +49,46 @@ class CollectionAPI:
         v = qvarn.Validator()
         v.validate_new_resource(obj, self.get_type())
 
-        new_obj = self._new_object(obj)
+        new_obj = self._new_object(self._proto, obj)
         new_obj['id'] = self._invent_id(obj['type'])
         new_obj['revision'] = self._invent_id('revision')
-        self._store.create_object(new_obj, obj_id=new_obj['id'])
+        self._store.create_object(new_obj, obj_id=new_obj['id'], subpath='')
+
+        rt = self.get_type()
+        subprotos = rt.get_subpaths()
+        print('subprotos', subprotos)
+        for subpath, subproto in subprotos.items():
+            empty = self._new_object(subproto, {})
+            print('create sub {}/{}'.format(new_obj['id'], subpath))
+            self._store.create_object(
+                empty, obj_id=new_obj['id'], subpath=subpath)
+
         return new_obj
 
-    def _new_object(self, obj):
-        return qvarn.add_missing_fields(self.get_type(), obj)
+    def _new_object(self, proto, obj):
+        return qvarn.add_missing_fields(proto, obj)
 
     def _invent_id(self, resource_type):
         return self._idgen.new_id(resource_type)
 
     def get(self, obj_id):
-        qvarn.log.log('debug', msg_text='CollectionAPI.get', obj_id=obj_id)
-        objs = self._store.get_objects(obj_id=obj_id)
-        qvarn.log.log('debug', msg_text='CollectionAPI.get', objs=objs)
+        return self._get_object(obj_id, '')
+
+    def get_subresource(self, obj_id, subpath):
+        return self._get_object(obj_id, subpath)
+
+    def _get_object(self, obj_id, subpath):
+        keys = {
+            'obj_id': obj_id,
+            'subpath': subpath,
+        }
+        qvarn.log.log(
+            'debug', msg_text='CollectionAPI._get_object', keys=keys)
+        objs = self._store.get_objects(**keys)
         assert len(objs) <= 1
         if objs:
             return objs[0]
-        raise NoSuchResource(obj_id)
+        raise NoSuchResource(**keys)
 
     def delete(self, obj_id):
         self.get(obj_id)
@@ -173,8 +200,10 @@ class WrongRevision(Exception):
 
 class NoSuchResource(Exception):
 
-    def __init__(self, obj_id):
-        super().__init__("There is no resource with id {}".format(obj_id))
+    def __init__(self, **keys):
+        keys_str = ', '.join(
+            '{}={}'.format(key, keys[key]) for key in sorted(keys))
+        super().__init__("There is no resource with keys {}".format(keys_str))
 
 
 class NoSearchCriteria(Exception):
