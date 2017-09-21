@@ -50,7 +50,9 @@ class CollectionAPITests(unittest.TestCase):
                     },
                     'subpaths': {
                         'sub': {
-                            'subfield': '',
+                            'prototype': {
+                                'subfield': '',
+                            },
                         },
                     },
                 },
