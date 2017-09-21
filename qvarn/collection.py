@@ -52,16 +52,21 @@ class CollectionAPI:
         new_obj = self._new_object(self._proto, obj)
         new_obj['id'] = self._invent_id(obj['type'])
         new_obj['revision'] = self._invent_id('revision')
-        self._store.create_object(new_obj, obj_id=new_obj['id'], subpath='')
+        self._create_object(new_obj, obj_id=new_obj['id'], subpath='')
 
         rt = self.get_type()
         subprotos = rt.get_subpaths()
         for subpath, subproto in subprotos.items():
             empty = self._new_object(subproto, {})
-            self._store.create_object(
-                empty, obj_id=new_obj['id'], subpath=subpath)
+            self._create_object(empty, obj_id=new_obj['id'], subpath=subpath)
 
         return new_obj
+
+    def _create_object(self, obj, **keys):
+        assert(set(keys.keys()) == set(self.object_keys.keys()))
+        qvarn.log.log(
+            'debug', msg_text='Collection._create_object', obj=obj, keys=keys)
+        self._store.create_object(obj, **keys)
 
     def _new_object(self, proto, obj):
         return qvarn.add_missing_fields(proto, obj)
@@ -105,7 +110,6 @@ class CollectionAPI:
         v = qvarn.Validator()
         v.validate_resource_update(obj, self.get_type())
 
-        qvarn.log.log('xxx', msg_text='get old version', obj_id=obj['id'])
         old = self.get(obj['id'])
         if old['revision'] != obj['revision']:
             raise WrongRevision(obj['revision'], old['revision'])
@@ -113,7 +117,7 @@ class CollectionAPI:
         new_obj = dict(obj)
         new_obj['revision'] = self._invent_id('revision')
         self._store.remove_objects(obj_id=new_obj['id'])
-        self._store.create_object(new_obj, obj_id=new_obj['id'])
+        self._create_object(new_obj, obj_id=new_obj['id'], subpath='')
 
         return new_obj
 
