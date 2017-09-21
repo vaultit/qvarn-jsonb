@@ -276,6 +276,47 @@ class CollectionAPITests(unittest.TestCase):
             if key != 'revision'
         }
 
+    def test_putting_subresource(self):
+        parent = {
+            'type': 'subject',
+            'full_name': 'James Bond',
+        }
+        sub = {
+            'subfield': 'subvalue',
+        }
+        new_obj = self.coll.post(parent)
+        obj_id = new_obj['id']
+        revision = new_obj['revision']
+        new_sub = self.coll.put_subresource(
+            sub, subpath='sub', obj_id=obj_id, revision=revision)
+        self.assertNotEqual(new_sub['revision'], revision)
+        self.assertEqual(self.coll.get_subresource(obj_id, 'sub'), sub)
+
+        new_parent = self.coll.get(obj_id)
+        self.assertNotEqual(new_parent['revision'], revision)
+        self.assertEqual(new_parent['revision'], new_sub['revision'])
+
+    def test_putting_subresource_raises_error_without_parent_object(self):
+        sub = {
+            'subfield': 'subvalue',
+        }
+        with self.assertRaises(qvarn.NoSuchResource):
+            self.coll.put_subresource(
+                sub, obj_id='unknown', revision='unknown', subpath='sub')
+
+    def test_putting_subresource_raises_error_if_revision_is_wrong(self):
+        parent = {
+            'type': 'subject',
+            'full_name': 'James Bond',
+        }
+        sub = {
+            'subfield': 'subvalue',
+        }
+        new_obj = self.coll.post(parent)
+        with self.assertRaises(qvarn.WrongRevision):
+            self.coll.put_subresource(
+                sub, obj_id=new_obj['id'], revision='wrong', subpath='sub')
+
     def test_search_with_empty_criteria_raises_error(self):
         with self.assertRaises(qvarn.NoSearchCriteria):
             self.coll.search('')

@@ -63,7 +63,7 @@ class CollectionAPI:
         return new_obj
 
     def _create_object(self, obj, **keys):
-        assert(set(keys.keys()) == set(self.object_keys.keys()))
+        assert set(keys.keys()) == set(self.object_keys.keys())
         qvarn.log.log(
             'debug', msg_text='Collection._create_object', obj=obj, keys=keys)
         self._store.create_object(obj, **keys)
@@ -116,10 +116,36 @@ class CollectionAPI:
 
         new_obj = dict(obj)
         new_obj['revision'] = self._invent_id('revision')
-        self._store.remove_objects(obj_id=new_obj['id'])
+        self._store.remove_objects(obj_id=new_obj['id'], subpath='')
         self._create_object(new_obj, obj_id=new_obj['id'], subpath='')
 
         return new_obj
+
+    def put_subresource(self, sub_obj, subpath=None, **keys):
+        assert subpath is not None
+        obj_id = keys.pop('obj_id')
+        revision = keys.pop('revision')
+        parent = self.get(obj_id)
+        if parent['revision'] != revision:
+            raise WrongRevision(revision, parent['revision'])
+        keys = {
+            'obj_id': obj_id,
+            'subpath': subpath,
+        }
+        self._store.remove_objects(**keys)
+        self._create_object(sub_obj, **keys)
+
+        parent = self._update_revision(obj_id)
+        new_sub = dict(sub_obj)
+        new_sub['revision'] = parent['revision']
+        return new_sub
+
+    def _update_revision(self, obj_id):
+        obj = self.get(obj_id)
+        obj['revision'] = self._invent_id('revision')
+        self._store.remove_objects(obj_id=obj_id, subpath='')
+        self._create_object(obj, obj_id=obj_id, subpath='')
+        return obj
 
     def search(self, search_criteria):
         if not search_criteria:
