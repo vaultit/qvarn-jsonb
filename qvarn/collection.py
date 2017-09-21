@@ -105,6 +105,7 @@ class CollectionAPI:
         v = qvarn.Validator()
         v.validate_resource_update(obj, self.get_type())
 
+        qvarn.log.log('xxx', msg_text='get old version', obj_id=obj['id'])
         old = self.get(obj['id'])
         if old['revision'] != obj['revision']:
             raise WrongRevision(obj['revision'], old['revision'])
@@ -200,7 +201,7 @@ class NoSuchResource(Exception):
 
     def __init__(self, **keys):
         keys_str = ', '.join(
-            '{}={}'.format(key, keys[key]) for key in sorted(keys))
+            '{}={!r}'.format(key, keys[key]) for key in sorted(keys))
         super().__init__("There is no resource with keys {}".format(keys_str))
 
 
