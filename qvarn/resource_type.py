@@ -83,6 +83,12 @@ class ResourceType:
             for subpath in subpaths
         }
 
+    def get_subprototype(self, subpath):
+        v = self._versions[-1]
+        subpaths = v.get('subpaths', {})
+        subproto = subpaths.get(subpath, {})
+        return subproto.get('prototype')
+
 
 def load_resource_types(dirname):  # pragma: no cover
     assert dirname is not None

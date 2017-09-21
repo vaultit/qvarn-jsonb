@@ -90,6 +90,10 @@ class ResourceTypeTests(unittest.TestCase):
                 'subfoo':
                 spec['versions'][-1]['subpaths']['subfoo']['prototype'],
             })
+        self.assertEqual(
+            rt.get_subprototype('subfoo'),
+            spec['versions'][-1]['subpaths']['subfoo']['prototype']
+        )
 
 
 class AddMissingFieldsTests(unittest.TestCase):
