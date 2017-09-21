@@ -35,6 +35,13 @@ class ValidatorTests(unittest.TestCase):
                         'revision': '',
                         'foo': '',
                     },
+                    'subpaths': {
+                        'sub': {
+                            'prototype': {
+                                'subfield': '',
+                            },
+                        },
+                    },
                 },
             ]
         }
@@ -49,6 +56,10 @@ class ValidatorTests(unittest.TestCase):
             'id': 'resource-1',
             'revision': 'revision-1',
             'foo': 'this is foo',
+        }
+
+        self.subresource = {
+            'subfield': 'bananarama',
         }
 
     def test_accepts_valid_resource(self):
@@ -107,3 +118,14 @@ class ValidatorTests(unittest.TestCase):
         with self.assertRaises(qvarn.UnknownField):
             self.validator.validate_resource_update(
                 self.resource, self.resource_type)
+
+    def test_accepts_valid_subresource(self):
+        self.assertEqual(
+            self.validator.validate_subresource(
+                'sub', self.resource_type, self.subresource),
+            None)
+
+    def test_rejects_unknown_subresouce_path(self):
+        with self.assertRaises(qvarn.UnknownSubpath):
+            self.validator.validate_subresource(
+                'unknown', self.resource_type, None)
