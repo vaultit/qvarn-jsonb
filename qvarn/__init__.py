@@ -63,6 +63,7 @@ from .validator import (
     NoId,
     NoRevision,
     UnknownField,
+    UnknownSubpath,
     WrongType,
 )
 

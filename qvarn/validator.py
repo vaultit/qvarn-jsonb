@@ -105,3 +105,11 @@ class UnknownField(ValidationError):  # pragma: no cover
         super().__init__(
             'Resource type {} has unknown field {}'.format(
                 type_name, name))
+
+
+class UnknownSubpath(ValidationError):  # pragma: no cover
+
+    def __init__(self, type_name, subpath):
+        super().__init__(
+            'Resource type {} has not sub-resource {}'.format(
+                type_name, subpath))
