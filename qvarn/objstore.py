@@ -59,6 +59,15 @@ class ObjectStoreInterface:  # pragma: no cover
             if keys[key] != str:
                 raise WrongKeyType(key, keys[key])
 
+    def get_known_keys(self):
+        raise NotImplementedError()
+
+    def check_all_keys_are_allowed(self, **keys):
+        known_keys = self.get_known_keys()
+        for key in keys:
+            if key not in known_keys:
+                raise UnknownKey(key)
+
     def create_object(self, obj, auxtable=True, **keys):
         raise NotImplementedError()
 
@@ -81,6 +90,9 @@ class MemoryObjectStore(ObjectStoreInterface):
         self._objs = []
         self._known_keys = {}
 
+    def get_known_keys(self):
+        return self._known_keys
+
     def create_store(self, **keys):
         self.check_keys_have_str_type(**keys)
         qvarn.log.log(
@@ -88,11 +100,10 @@ class MemoryObjectStore(ObjectStoreInterface):
         self._known_keys = keys
 
     def create_object(self, obj, auxtable=True, **keys):
+        self.check_all_keys_are_allowed(**keys)
         qvarn.log.log(
             'trace', msg_text='Creating object', object=repr(obj), keys=keys)
         for key in keys:
-            if key not in self._known_keys:
-                raise UnknownKey(key=key)
             if type(keys[key]) is not self._known_keys[key]:
                 raise KeyValueError(key, keys[key])
 
@@ -102,10 +113,12 @@ class MemoryObjectStore(ObjectStoreInterface):
         self._objs.append((obj, keys))
 
     def remove_objects(self, **keys):
+        self.check_all_keys_are_allowed(**keys)
         self._objs = [
             (o, k) for o, k in self._objs if not self._keys_match(k, keys)]
 
     def get_objects(self, **keys):
+        self.check_all_keys_are_allowed(**keys)
         return [o for o, k in self._objs if self._keys_match(k, keys)]
 
     def _keys_match(self, got_keys, wanted_keys):
@@ -132,6 +145,9 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
     def __init__(self, sql):
         self._sql = sql
         self._keys = None
+
+    def get_known_keys(self):
+        return self._keys
 
     def create_store(self, **keys):
         self.check_keys_have_str_type(**keys)
