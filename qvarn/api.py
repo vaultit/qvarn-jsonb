@@ -92,11 +92,18 @@ class QvarnAPI:
         ]
 
         for subpath in rt.get_subpaths():
-            routes.append({
-                'method': 'GET',
-                'path': '{}/{}'.format(id_path, subpath),
-                'callback': self.get_subpath_callback(coll, subpath),
-            })
+            routes.extend([
+                {
+                    'method': 'GET',
+                    'path': '{}/{}'.format(id_path, subpath),
+                    'callback': self.get_subpath_callback(coll, subpath),
+                },
+                {
+                    'method': 'PUT',
+                    'path': '{}/{}'.format(id_path, subpath),
+                    'callback': self.put_subpath_callback(coll, subpath),
+                },
+            ])
 
         return routes
 
@@ -179,6 +186,36 @@ class QvarnAPI:
 
             try:
                 result_body = coll.put(body)
+            except qvarn.WrongRevision as e:
+                return conflict_response(str(e))
+            except qvarn.NoSuchResource as e:
+                return no_such_resource_response(str(e))
+
+            return ok_response(result_body)
+        return wrapper
+
+    def put_subpath_callback(self, coll, subpath):  # pragma: no cover
+        def wrapper(content_type, body, **kwargs):
+            qvarn.log.log('xxx', body=body)
+
+            if content_type != 'application/json':
+                raise NotJson(content_type)
+
+            obj_id = kwargs['id']
+            if 'revision' not in body:
+                return bad_request_response('must have revision')
+            revision = body.pop('revision')
+
+            rt = coll.get_type()
+            try:
+                self._validator.validate_subresource(subpath, rt, body)
+            except qvarn.ValidationError as e:
+                qvarn.log.log('error', msg_text=str(e), body=body)
+                return bad_request_response(str(e))
+
+            try:
+                result_body = coll.put_subresource(
+                    body, subpath=subpath, obj_id=obj_id, revision=revision)
             except qvarn.WrongRevision as e:
                 return conflict_response(str(e))
             except qvarn.NoSuchResource as e:
