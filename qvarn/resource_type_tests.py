@@ -61,7 +61,11 @@ class ResourceTypeTests(unittest.TestCase):
                         'bar': '',
                     },
                     'subpaths': {
-                        'subfoo': '',
+                        'subfoo': {
+                            'prototype': {
+                                'subbar': '',
+                            },
+                        },
                     },
                 },
             ],
@@ -80,7 +84,12 @@ class ResourceTypeTests(unittest.TestCase):
         self.assertEqual(
             rt.get_latest_prototype(), spec['versions'][-1]['prototype'])
         self.assertEqual(rt.as_dict(), spec)
-        self.assertEqual(rt.get_subpaths(), spec['versions'][-1]['subpaths'])
+        self.assertEqual(
+            rt.get_subpaths(),
+            {
+                'subfoo':
+                spec['versions'][-1]['subpaths']['subfoo']['prototype'],
+            })
 
 
 class AddMissingFieldsTests(unittest.TestCase):
