@@ -60,6 +60,9 @@ class ResourceTypeTests(unittest.TestCase):
                         'foo': '',
                         'bar': '',
                     },
+                    'subpaths': {
+                        'subfoo': '',
+                    },
                 },
             ],
         }
@@ -77,6 +80,7 @@ class ResourceTypeTests(unittest.TestCase):
         self.assertEqual(
             rt.get_latest_prototype(), spec['versions'][-1]['prototype'])
         self.assertEqual(rt.as_dict(), spec)
+        self.assertEqual(rt.get_subpaths(), spec['versions'][-1]['subpaths'])
 
 
 class AddMissingFieldsTests(unittest.TestCase):
@@ -103,10 +107,11 @@ class AddMissingFieldsTests(unittest.TestCase):
         }
         self.rt = qvarn.ResourceType()
         self.rt.from_spec(spec)
+        self.proto = self.rt.get_latest_prototype()
 
     def test_fills_in_toplevel_fields(self):
         self.assertEqual(
-            qvarn.add_missing_fields(self.rt, {}),
+            qvarn.add_missing_fields(self.proto, {}),
             {
                 'foo': '',
                 'bars': [],
@@ -121,7 +126,7 @@ class AddMissingFieldsTests(unittest.TestCase):
             ],
         }
         self.assertEqual(
-            qvarn.add_missing_fields(self.rt, obj),
+            qvarn.add_missing_fields(self.proto, obj),
             {
                 'foo': '',
                 'bars': [
@@ -143,7 +148,7 @@ class AddMissingFieldsTests(unittest.TestCase):
             ],
         }
         self.assertEqual(
-            qvarn.add_missing_fields(self.rt, obj),
+            qvarn.add_missing_fields(self.proto, obj),
             {
                 'foo': '',
                 'bars': [

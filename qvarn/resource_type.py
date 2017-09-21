@@ -75,6 +75,10 @@ class ResourceType:
     def get_latest_prototype(self):
         return self._prototype
 
+    def get_subpaths(self):
+        v = self._versions[-1]
+        return v.get('subpaths', {})
+
 
 def load_resource_types(dirname):  # pragma: no cover
     assert dirname is not None
@@ -90,10 +94,9 @@ def load_resource_types(dirname):  # pragma: no cover
     return resource_types
 
 
-def add_missing_fields(rt, obj):
+def add_missing_fields(proto, obj):
     # Assume obj is validated.
 
-    proto = rt.get_latest_prototype()
     return _fill_in_dict(proto, obj)
 
 
