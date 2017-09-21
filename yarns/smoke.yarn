@@ -86,6 +86,44 @@ This is an integration test suite for the Qvarn HTTP API.
 
     FINALLY qvarn is stopped
 
+
+
+# Use subresources
+
+Subresources are additional resources that are attached to a resource,
+and be managed and access controlled separetly. However, they share
+existence and revision with their parent: if the parent is deleted, so
+is the subresource, and if either the parent or the subresource is
+changed, and gets a new revision, so does the other.
+
+Subresources always exist, if defined in the resource type spec. They
+don't need to be created specially.
+
+    SCENARIO manage subresources
+
+    GIVEN a running qvarn instance
+
+    WHEN client gets an authorization token with scope
+    ... "uapi_subject_sub_put uapi_subject_sub_get"
+
+    WHEN client requests POST /subjects with token and body
+    ... { "type": "subject", "names": [ { "full_name": "Alfred" } ] }
+    THEN resource id is ID
+    AND revision is REV
+
+    WHEN client requests GET /subjects/${ID}/sub using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "id": "${ID}",
+    ...     "revision": "${REV}",
+    ...     "subfield": ""
+    ... }
+
+    FINALLY qvarn is stopped
+
+
+
 # Search subjects
 
     SCENARIO search subjects

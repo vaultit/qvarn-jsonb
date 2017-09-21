@@ -131,6 +131,7 @@ Start a Qvarn running in the background.
     IMPLEMENTS THEN resource id is (\S+)
     import json
     name = get_next_match()
+    print 'body:', repr(vars['body'])
     body = json.loads(vars['body'])
     vars[name] = body['id']
 
