@@ -19,6 +19,17 @@ import qvarn
 
 class Validator:
 
+    def _validate_against_prototype(
+            self, resource_type_name, resource, prototype):
+        actual_schema = qvarn.schema(resource)
+        wanted_schema = qvarn.schema(prototype)
+
+        allowed_names = [x[0] for x in wanted_schema]
+        for actual in actual_schema:
+            if actual[0] not in allowed_names:
+                dotted = '.'.join(actual[0])
+                raise UnknownField(resource_type_name, dotted)
+
     def _validate(self, resource, resource_type):
         if not isinstance(resource, dict):
             raise NotADict(resource)
@@ -27,14 +38,8 @@ class Validator:
         if resource['type'] != resource_type.get_type():
             raise WrongType(resource['type'], resource_type.get_type())
 
-        actual_schema = qvarn.schema(resource)
-        wanted_schema = qvarn.schema(resource_type.get_latest_prototype())
-
-        allowed_names = [x[0] for x in wanted_schema]
-        for actual in actual_schema:
-            if actual[0] not in allowed_names:
-                dotted = '.'.join(actual[0])
-                raise UnknownField(resource['type'], dotted)
+        prototype = resource_type.get_latest_prototype()
+        self._validate_against_prototype(resource['type'], resource, prototype)
 
     def validate_new_resource(self, resource, resource_type):
         self._validate(resource, resource_type)
@@ -49,6 +54,15 @@ class Validator:
             raise NoId()
         if 'revision' not in resource:
             raise NoRevision()
+
+    def validate_subresource(self, subpath, resource_type, sub):
+        qvarn.log.log(
+            'debug', msg_text='validating subresource', subpath=subpath,
+            sub=sub)
+        subproto = resource_type.get_subprototype(subpath)
+        if subproto is None:
+            raise UnknownSubpath(resource_type.get_type(), subpath)
+        self._validate_against_prototype('FIXME', sub, subproto)
 
 
 class ValidationError(Exception):
