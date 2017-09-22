@@ -240,7 +240,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             cond=repr(cond))
         with self._sql.transaction() as t:
             keys_objs = self._find_helper(t, cond)
-            return [x['_obj'] for x in keys_objs]
+            return [x['_obj'] for x in keys_objs if x['subpath'] == '']
 
     def find_object_ids(self, cond):
         qvarn.log.log(
