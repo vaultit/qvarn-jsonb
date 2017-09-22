@@ -241,7 +241,7 @@ class Cmp(Condition):
 class Equal(Cmp):
 
     def cmp_py(self, actual):
-        return self.pattern == actual
+        return self.pattern.lower() == actual.lower()
 
     def cmp_sql(self, pattern_name):
         return '= %({})s'.format(pattern_name)
@@ -259,7 +259,7 @@ class ResourceTypeIs(Equal):
 class NotEqual(Cmp):
 
     def cmp_py(self, actual):
-        return self.pattern != actual
+        return self.pattern.lower() != actual.lower()
 
     def cmp_sql(self, pattern_name):
         return '!= %({})s'.format(pattern_name)
@@ -268,7 +268,7 @@ class NotEqual(Cmp):
 class GreaterThan(Cmp):
 
     def cmp_py(self, actual):
-        return actual > self.pattern
+        return actual.lower() > self.pattern.lower()
 
     def cmp_sql(self, pattern_name):
         return '> %({})s'.format(pattern_name)
@@ -277,7 +277,7 @@ class GreaterThan(Cmp):
 class GreaterOrEqual(Cmp):
 
     def cmp_py(self, actual):
-        return actual >= self.pattern
+        return actual.lower() >= self.pattern.lower()
 
     def cmp_sql(self, pattern_name):
         return '>= %({})s'.format(pattern_name)
@@ -286,7 +286,7 @@ class GreaterOrEqual(Cmp):
 class LessThan(Cmp):
 
     def cmp_py(self, actual):
-        return actual < self.pattern
+        return actual.lower() < self.pattern.lower()
 
     def cmp_sql(self, pattern_name):
         return '< %({})s'.format(pattern_name)
@@ -295,7 +295,7 @@ class LessThan(Cmp):
 class LessOrEqual(Cmp):
 
     def cmp_py(self, actual):
-        return actual <= self.pattern
+        return actual.lower() <= self.pattern.lower()
 
     def cmp_sql(self, pattern_name):
         return '<= %({})s'.format(pattern_name)
@@ -304,7 +304,7 @@ class LessOrEqual(Cmp):
 class Contains(Cmp):
 
     def cmp_py(self, actual):
-        return self.pattern in actual
+        return self.pattern.lower() in actual.lower()
 
     def cmp_sql(self, pattern_name):
         return "LIKE '%%' || %({})s || '%%'".format(pattern_name)
@@ -313,7 +313,7 @@ class Contains(Cmp):
 class Startswith(Cmp):
 
     def cmp_py(self, actual):
-        return actual.startswith(self.pattern)
+        return actual.lower().startswith(self.pattern.lower())
 
     def cmp_sql(self, pattern_name):
         return "LIKE %({})s || '%%'".format(pattern_name)
