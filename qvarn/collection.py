@@ -206,7 +206,7 @@ class CollectionAPI:
         return picked
 
     def _find_matches(self, cond):
-        return self._store.find_objects(cond)
+        return [o for _, o in self._store.find_objects(cond)]
 
     def _sort_objects(self, objects, sort_keys):
         def object_sort_key(obj, fields):
