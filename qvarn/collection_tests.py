@@ -333,6 +333,15 @@ class CollectionAPITests(unittest.TestCase):
         matches = self.coll.search('exact/full_name/James Bond')
         self.assertEqual(matches, [{'id': new_obj['id']}])
 
+    def test_search_ignores_case(self):
+        obj = {
+            'type': 'subject',
+            'full_name': 'JAMES',
+        }
+        new_obj = self.coll.post(obj)
+        matches = self.coll.search('exact/full_name/james')
+        self.assertEqual(matches, [{'id': new_obj['id']}])
+
     def test_search_return_matching_resources_themselves(self):
         obj = {
             'type': 'subject',
