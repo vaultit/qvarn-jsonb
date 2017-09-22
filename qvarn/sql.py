@@ -217,6 +217,10 @@ class Cmp(Condition):
         raise NotImplementedError()
 
     def cmp_sql(self, pattern_name):
+        return "lower(_field->>'value') {} lower(%({})s)".format(
+            self.get_operator(), pattern_name)
+
+    def get_operator(self):
         raise NotImplementedError()
 
     def matches(self, obj):
@@ -243,8 +247,8 @@ class Equal(Cmp):
     def cmp_py(self, actual):
         return self.pattern.lower() == actual.lower()
 
-    def cmp_sql(self, pattern_name):
-        return '= %({})s'.format(pattern_name)
+    def get_operator(self):
+        return '='
 
 
 class ResourceTypeIs(Equal):
@@ -261,8 +265,8 @@ class NotEqual(Cmp):
     def cmp_py(self, actual):
         return self.pattern.lower() != actual.lower()
 
-    def cmp_sql(self, pattern_name):
-        return '!= %({})s'.format(pattern_name)
+    def get_operator(self):
+        return '!='
 
 
 class GreaterThan(Cmp):
@@ -270,8 +274,8 @@ class GreaterThan(Cmp):
     def cmp_py(self, actual):
         return actual.lower() > self.pattern.lower()
 
-    def cmp_sql(self, pattern_name):
-        return '> %({})s'.format(pattern_name)
+    def get_operator(self):
+        return '>'
 
 
 class GreaterOrEqual(Cmp):
@@ -279,8 +283,8 @@ class GreaterOrEqual(Cmp):
     def cmp_py(self, actual):
         return actual.lower() >= self.pattern.lower()
 
-    def cmp_sql(self, pattern_name):
-        return '>= %({})s'.format(pattern_name)
+    def get_operator(self):
+        return '>='
 
 
 class LessThan(Cmp):
@@ -288,8 +292,8 @@ class LessThan(Cmp):
     def cmp_py(self, actual):
         return actual.lower() < self.pattern.lower()
 
-    def cmp_sql(self, pattern_name):
-        return '< %({})s'.format(pattern_name)
+    def get_operator(self):
+        return '<'
 
 
 class LessOrEqual(Cmp):
@@ -297,8 +301,8 @@ class LessOrEqual(Cmp):
     def cmp_py(self, actual):
         return actual.lower() <= self.pattern.lower()
 
-    def cmp_sql(self, pattern_name):
-        return '<= %({})s'.format(pattern_name)
+    def get_operator(self):
+        return '<='
 
 
 class Contains(Cmp):
@@ -307,7 +311,11 @@ class Contains(Cmp):
         return self.pattern.lower() in actual.lower()
 
     def cmp_sql(self, pattern_name):
-        return "LIKE '%%' || %({})s || '%%'".format(pattern_name)
+        t = "lower(_field->>'value') LIKE '%%' || lower(%({})s) || '%%'"
+        return t.format(pattern_name)
+
+    def get_operator(self):
+        pass
 
 
 class Startswith(Cmp):
@@ -316,7 +324,11 @@ class Startswith(Cmp):
         return actual.lower().startswith(self.pattern.lower())
 
     def cmp_sql(self, pattern_name):
-        return "LIKE %({})s || '%%'".format(pattern_name)
+        t = "lower(_field->>'value') LIKE lower(%({})s) || '%%'"
+        return t.format(pattern_name)
+
+    def get_operator(self):
+        pass
 
 
 class Yes(Condition):
