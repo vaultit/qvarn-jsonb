@@ -120,26 +120,6 @@ class ObjectStoreTests(unittest.TestCase):
         objs = store.find_objects(cond)
         self.assertEqual(objs, [self.obj1])
 
-    def test_finds_ids_of_objects(self):
-        store = self.create_store(key=str)
-        store.create_object(self.obj1, key='1st')
-        store.create_object(self.obj2, key='2nd')
-
-        cond = qvarn.Equal('name', self.obj1['name'])
-        ids = store.find_object_ids(cond)
-        self.assertEqual(ids, [{'key': '1st'}])
-
-    def test_finds_ids_of_multiple_objects(self):
-        store = self.create_store(key=str)
-        store.create_object(self.obj1, key='1st')
-        store.create_object(self.obj2, key='2nd')
-
-        ids = store.find_object_ids(qvarn.Yes())
-        self.assertEqual(
-            self.sorted_dicts(ids),
-            self.sorted_dicts([{'key': '1st'}, {'key': '2nd'}])
-        )
-
 
 class FlattenObjectsTests(unittest.TestCase):
 

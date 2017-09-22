@@ -80,9 +80,6 @@ class ObjectStoreInterface:  # pragma: no cover
     def find_objects(self, cond):
         raise NotImplementedError()
 
-    def find_object_ids(self, cond):
-        raise NotImplementedError()
-
 
 class MemoryObjectStore(ObjectStoreInterface):
 
@@ -129,9 +126,6 @@ class MemoryObjectStore(ObjectStoreInterface):
 
     def find_objects(self, cond):
         return [obj for obj, _ in self._objs if cond.matches(obj)]
-
-    def find_object_ids(self, cond):
-        return [keys for obj, keys in self._objs if cond.matches(obj)]
 
 
 class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
@@ -241,14 +235,6 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         with self._sql.transaction() as t:
             keys_objs = self._find_helper(t, cond)
             return [x['_obj'] for x in keys_objs if x['subpath'] == '']
-
-    def find_object_ids(self, cond):
-        qvarn.log.log(
-            'info', msg_text='PostgresObjectStore.find_object_ids',
-            cond=repr(cond))
-        with self._sql.transaction() as t:
-            keys_objs = self._find_helper(t, cond)
-            return [x for x in keys_objs]
 
     def _find_helper(self, t, cond):
         keys_columns = [key for key in self._keys if key != '_obj']
