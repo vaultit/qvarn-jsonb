@@ -37,12 +37,12 @@ def _select_on_simple_cond(counter, cond):
         SELECT _objects.obj_id, _objects.subpath, _objects._obj FROM _objects,
         (
             SELECT obj_id FROM _aux WHERE
-            _field->>'name' = %({})s
-            AND _field->>'value' {}
+            _field->>'name' = %({name})s
+            AND {valuecmp}
         ) AS _temp
         WHERE _temp.obj_id = _objects.obj_id
     '''.split())
-    query = template.format(name, cond.cmp_sql(value))
+    query = template.format(name=name, valuecmp=cond.cmp_sql(value))
     return query, params
 
 
@@ -51,14 +51,14 @@ def _select_on_multiple_conds(counter, conds):
         'count': len(conds),
     }
 
-    part_template = "(_field->>'name' = %({})s AND _field->>'value' {})"
+    part_template = "(_field->>'name' = %({name})s AND {valuecmp})"
     parts = []
     for subcond in conds:
         name = qvarn.get_unique_name('name', counter=counter)
         value = qvarn.get_unique_name('value', counter=counter)
         params[name] = subcond.name
         params[value] = subcond.pattern
-        part = part_template.format(name, subcond.cmp_sql(value))
+        part = part_template.format(name=name, valuecmp=subcond.cmp_sql(value))
         parts.append(part)
 
     template = ' '.join('''
