@@ -189,7 +189,10 @@ class QvarnAPI:
             except qvarn.WrongRevision as e:
                 return conflict_response(str(e))
             except qvarn.NoSuchResource as e:
-                return no_such_resource_response(str(e))
+                # We intentionally say bad request, instead of not found.
+                # This is to be compatible with old Qvarn. This may get
+                # changed later.
+                return bad_request_response(str(e))
 
             return ok_response(result_body)
         return wrapper
@@ -321,7 +324,7 @@ def conflict_response(body):  # pragma: no cover
     return response(apifw.HTTP_CONFLICT, body, headers)
 
 
-class NoSuchResourceType(Exception):
+class NoSuchResourceType(Exception):  # pragma: no cover
 
     def __init__(self, path):
         super().__init__('No resource type for path {}'.format(path))
