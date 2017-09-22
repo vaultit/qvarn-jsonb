@@ -1,4 +1,5 @@
 setup.py
+qvarnbackend.py
 qvarn/__init__.py
 qvarn/logging.py
 qvarn/sql.py
