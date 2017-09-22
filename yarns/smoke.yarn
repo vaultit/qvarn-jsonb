@@ -128,6 +128,13 @@ don't need to be created specially.
 
     WHEN client requests PUT /subjects/${ID}/sub with token and body
     ... {
+    ...     "revision": "wrong",
+    ...     "subfield": "Steven Segal"
+    ... }
+    THEN HTTP status code is 409 Conflict
+
+    WHEN client requests PUT /subjects/${ID}/sub with token and body
+    ... {
     ...     "revision": "${REV}",
     ...     "subfield": "Steven Segal"
     ... }
