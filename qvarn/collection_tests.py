@@ -346,6 +346,22 @@ class CollectionAPITests(unittest.TestCase):
         matches = self.coll.search('exact/full_name/James Bond/show/full_name')
         self.assertEqual(matches, [wanted])
 
+    def test_search_return_matching_resources_if_subresource_matches(self):
+        obj = {
+            'type': 'subject',
+            'full_name': 'James Bond',
+        }
+        sub = {
+            'subfield': 'xyzzy',
+        }
+
+        new_obj = self.coll.post(obj)
+        self.coll.put_subresource(
+            sub, subpath='sub', obj_id=new_obj['id'],
+            revision=new_obj['revision'])
+        matches = self.coll.search('exact/full_name/James Bond/show_all')
+        self.assertEqual(matches, [new_obj])
+
     def test_search_return_full_resources(self):
         obj = {
             'type': 'subject',
