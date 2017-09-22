@@ -33,7 +33,7 @@ class QvarnAPI:
 
     def set_object_store(self, store):
         self._store = store
-        self._store.create_store(obj_id=str)
+        self._store.create_store(obj_id=str, subpath=str)
 
     def find_missing_route(self, path):
         qvarn.log.log('info', msg_text='find_missing_route', path=path)
