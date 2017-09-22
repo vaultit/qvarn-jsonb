@@ -233,8 +233,12 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             'info', msg_text='PostgresObjectStore.find_objects',
             cond=repr(cond))
         with self._sql.transaction() as t:
-            keys_objs = self._find_helper(t, cond)
-            return [x['_obj'] for x in keys_objs if x['subpath'] == '']
+            rows = self._find_helper(t, cond)
+            return [
+                self._split_row(row)
+                for row in rows
+                if row['subpath'] == ''
+            ]
 
     def _find_helper(self, t, cond):
         keys_columns = [key for key in self._keys if key != '_obj']
@@ -242,6 +246,11 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             self._auxtable, cond, *keys_columns)
         cursor = t.execute(query, values)
         return t.get_rows(cursor)
+
+    def _split_row(self, row):
+        keys = dict(row)
+        obj = row.pop('_obj')
+        return keys, obj
 
 
 class KeyCollision(Exception):
