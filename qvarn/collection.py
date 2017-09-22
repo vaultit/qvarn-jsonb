@@ -99,10 +99,10 @@ class CollectionAPI:
 
     def list(self):
         oftype = qvarn.Equal('type', self._type.get_type())
-        obj_ids = self._store.find_object_ids(oftype)
+        matches = self._store.find_objects(oftype)
         return {
             'resources': [
-                {'id': keys['obj_id']} for keys in obj_ids
+                {'id': keys['obj_id']} for keys, _ in matches
             ]
         }
 

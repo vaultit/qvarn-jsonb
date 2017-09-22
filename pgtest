@@ -48,7 +48,7 @@ print('done finding')
 
 print('finding keys')
 cond = qvarn.Equal('foo', 'bar')
-objs = pos.find_object_ids(cond)
+objs = pos.find_objects(cond)
 for obj in objs:
     print('keys: ', repr(obj))
 print('done finding keys')
