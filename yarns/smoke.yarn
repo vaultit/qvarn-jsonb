@@ -178,14 +178,16 @@ don't need to be created specially.
     THEN HTTP status code is 200 OK
     AND JSON body matches { "resources": []}
 
-    WHEN client requests GET /subjects/search/exact/full_name/Alfred
+Make sure searches are case-insensitive.
+
+    WHEN client requests GET /subjects/search/exact/full_name/ALFRED
     ... using token
     THEN HTTP status code is 200 OK
     AND search result contains {"id": "${ID1}"}
     AND search result contains {"id": "${ID2}"}
     AND search result does NOT contain {"id": "${ID3}"}
 
-    WHEN client requests GET /subjects/search/exact/full_name/Bruce
+    WHEN client requests GET /subjects/search/exact/full_name/bruce
     ... using token
     THEN HTTP status code is 200 OK
     AND search result does NOT contain {"id": "${ID1}"}
