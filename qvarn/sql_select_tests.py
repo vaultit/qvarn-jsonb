@@ -29,7 +29,8 @@ class SqlSelectTests(unittest.TestCase):
         sql, values = qvarn.sql_select(counter, cond)
         self.assertEqual(
             sql,
-            ("SELECT _objects.obj_id, _objects._obj FROM _objects, "
+            ("SELECT _objects.obj_id, _objects.subpath, _objects._obj "
+             "FROM _objects, "
              "( SELECT obj_id FROM _aux WHERE "
              "_field->>'name' = %(name1)s AND "
              "_field->>'value' = %(value2)s ) AS _temp "
@@ -49,7 +50,8 @@ class SqlSelectTests(unittest.TestCase):
         sql, values = qvarn.sql_select(counter, cond)
         self.assertEqual(
             sql,
-            ("SELECT _objects.obj_id, _objects._obj FROM _objects, "
+            ("SELECT _objects.obj_id, _objects.subpath, _objects._obj "
+             "FROM _objects, "
              "( SELECT obj_id FROM _aux WHERE "
              "_field->>'name' = %(name1)s AND "
              "_field->>'value' != %(value2)s ) AS _temp "
@@ -72,7 +74,8 @@ class SqlSelectTests(unittest.TestCase):
         self.maxDiff = None
         self.assertEqual(
             sql,
-            ("SELECT _objects.obj_id, _objects._obj FROM _objects, ( "
+            ("SELECT _objects.obj_id, _objects.subpath, _objects._obj "
+             "FROM _objects, ( "
              "SELECT obj_id, count(obj_id) AS _hits FROM _aux WHERE "
              "(_field->>'name' = %(name1)s AND "
              "_field->>'value' = %(value2)s) OR "

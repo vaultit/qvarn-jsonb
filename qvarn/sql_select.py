@@ -34,7 +34,7 @@ def _select_on_simple_cond(counter, cond):
         value: cond.pattern,
     }
     template = ' '.join('''
-        SELECT _objects.obj_id, _objects._obj FROM _objects,
+        SELECT _objects.obj_id, _objects.subpath, _objects._obj FROM _objects,
         (
             SELECT obj_id FROM _aux WHERE
             _field->>'name' = %({})s
@@ -62,7 +62,8 @@ def _select_on_multiple_conds(counter, conds):
         parts.append(part)
 
     template = ' '.join('''
-        SELECT _objects.obj_id, _objects._obj FROM _objects, (
+        SELECT _objects.obj_id, _objects.subpath, _objects._obj
+            FROM _objects, (
             SELECT obj_id, count(obj_id) AS _hits FROM _aux WHERE
             {}
             GROUP BY obj_id
