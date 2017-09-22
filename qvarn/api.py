@@ -128,7 +128,8 @@ class QvarnAPI:
                 'id': path,
                 'spec': rt.as_dict(),
             }
-            self._store.create_object(obj, obj_id=path, auxtable=False)
+            self._store.create_object(
+                obj, obj_id=path, subpath='', auxtable=False)
 
     def get_resource_type(self, path):
         objs = self._store.get_objects(obj_id=path)
