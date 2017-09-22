@@ -125,7 +125,7 @@ class MemoryObjectStore(ObjectStoreInterface):
         return True
 
     def find_objects(self, cond):
-        return [obj for obj, _ in self._objs if cond.matches(obj)]
+        return [(keys, obj) for obj, keys in self._objs if cond.matches(obj)]
 
 
 class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover

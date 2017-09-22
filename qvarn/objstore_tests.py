@@ -35,7 +35,7 @@ class ObjectStoreTests(unittest.TestCase):
         return store
 
     def get_all_objects(self, store):
-        return store.find_objects(qvarn.Yes())
+        return [obj for _, obj in store.find_objects(qvarn.Yes())]
 
     def sorted_dicts(self, dicts):
         return sorted(dicts, key=lambda d: sorted(d.items()))
@@ -118,7 +118,10 @@ class ObjectStoreTests(unittest.TestCase):
 
         cond = qvarn.Equal('name', self.obj1['name'])
         objs = store.find_objects(cond)
-        self.assertEqual(objs, [self.obj1])
+        self.assertEqual(
+            objs,
+            [({'key': '1st'}, self.obj1)]
+        )
 
 
 class FlattenObjectsTests(unittest.TestCase):
@@ -188,10 +191,18 @@ class FindObjectsTests(unittest.TestCase):
             'bars': [],
         }
 
+        keys1 = {
+            'key': '1st',
+        }
+
+        keys2 = {
+            'key': '2nd',
+        }
+
         store = self.create_store(key=str)
-        store.create_object(obj1, key='1st')
-        store.create_object(obj2, key='2nd')
+        store.create_object(obj1, **keys1)
+        store.create_object(obj2, **keys2)
 
         cond = qvarn.Equal('bar', 'yo')
         objs = store.find_objects(cond)
-        self.assertEqual(objs, [obj1])
+        self.assertEqual(objs, [(keys1, obj1)])
