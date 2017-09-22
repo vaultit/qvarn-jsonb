@@ -61,6 +61,14 @@ This is an integration test suite for the Qvarn HTTP API.
     ... { "revision": "${REV1}", "id": "${ID1}", "type": "subject",
     ...   "names": [{ "full_name": "Jason Bourne" }] }
 
+For silly hysterical raisins, the Qvarn API is defined to return 400
+if updating a resource with the wrong revision in the body, instead
+of 404. We may want to fix this some day.
+
+    WHEN client requests PUT /subjects/${ID1} with token and body
+    ... { "id": "wrong", "revision": "wrong", "names": [{"full_name": "Dave Webb"}]}
+    THEN HTTP status code is 400 Bad
+
     WHEN client requests PUT /subjects/${ID1} with token and body
     ... { "id": "${ID1}", "revision": "${REV1}", "names": [{"full_name": "Dave Webb"}]}
     THEN HTTP status code is 200 OK
