@@ -163,6 +163,7 @@ don't need to be created specially.
     WHEN client requests POST /subjects with token and body
     ... { "type": "subject", "names": [ { "full_name": "Alfred" } ] }
     THEN resource id is ID1
+    AND revision is REV1
 
     WHEN client requests POST /subjects with token and body
     ... { "type": "subject", "names": [ { "full_name": "Alfred" } ] }
@@ -241,6 +242,15 @@ don't need to be created specially.
     ...     "id": "${ID3}",
     ...     "names": [ { "full_name": "Bruce" } ]
     ... }
+
+    GIVEN unique random identifier RANDOM
+    WHEN client requests PUT /subjects/${ID1}/sub with token and body
+    ... { "subfield": "${RANDOM}", "revision": "${REV1}" }
+    THEN HTTP status code is 200 OK
+
+    WHEN client requests GET /subjects/search/exact/subfield/${RANDOM} using token
+    THEN HTTP status code is 200 OK
+    AND search result contains {"id": "${ID1}"}
 
     FINALLY qvarn is stopped
 
