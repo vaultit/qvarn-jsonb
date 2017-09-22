@@ -153,8 +153,8 @@ class CollectionAPI:
 
         p = qvarn.SearchParser()
         sp = p.parse(search_criteria)
-        correct_type = qvarn.ResourceTypeIs(self.get_type_name())
-        sp.add_cond(correct_type)
+        if sp.cond is None:
+            sp.cond = qvarn.Equal('type', self.get_type_name())
 
         def pick_all(obj):
             return obj
@@ -206,7 +206,21 @@ class CollectionAPI:
         return picked
 
     def _find_matches(self, cond):
-        return [o for _, o in self._store.find_objects(cond)]
+        matches = self._store.find_objects(cond)
+        qvarn.log.log('xxx', matches=matches)
+        obj_ids = self._uniq(keys['obj_id'] for keys, _ in matches)
+        objects = [
+            self._get_object(obj_id=obj_id, subpath='')
+            for obj_id in obj_ids
+        ]
+        return [o for o in objects if o['type'] == self.get_type_name()]
+
+    def _uniq(self, items):
+        seen = set()
+        for item in items:
+            if item not in seen:
+                yield item
+                seen.add(item)
 
     def _sort_objects(self, objects, sort_keys):
         def object_sort_key(obj, fields):
