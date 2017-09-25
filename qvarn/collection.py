@@ -288,6 +288,7 @@ class UnknownSearchField(Exception):
 
     def __init__(self, field):
         super().__init__('There is no field {}'.format(field))
+        self.field = field
 
 
 class NoSearchCriteria(Exception):
