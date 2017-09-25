@@ -259,9 +259,11 @@ class QvarnAPI:
             try:
                 result = coll.search(search_criteria)
             except qvarn.UnknownSearchField as e:
-                return bad_request_response(str(e))
+                return unknown_search_field_response(e)
             except qvarn.NeedSortOperator:
                 return need_sort_response()
+            except qvarn.SearchParserError as e:
+                return search_parser_error_response(e)
             body = {
                 'resources': result,
             }
@@ -318,6 +320,29 @@ def need_sort_response():  # pragma: no cover
     body = {
         'message': 'LIMIT and OFFSET can only be used with together SORT.',
         'error_code': 'LimitWithoutSortError',
+    }
+    return response(apifw.HTTP_BAD_REQUEST, body, headers)
+
+
+def search_parser_error_response(e):  # pragma: no cover
+    headers = {
+        'Content-Type': 'application/json',
+    }
+    body = {
+        'message': 'Could not parse search condition',
+        'error_code': 'BadSearchCondition',
+    }
+    return response(apifw.HTTP_BAD_REQUEST, body, headers)
+
+
+def unknown_search_field_response(e):  # pragma: no cover
+    headers = {
+        'Content-Type': 'application/json',
+    }
+    body = {
+        'field': e.field,
+        'message': 'Resource does not contain given field',
+        'error_code': 'FieldNotInResource',
     }
     return response(apifw.HTTP_BAD_REQUEST, body, headers)
 
