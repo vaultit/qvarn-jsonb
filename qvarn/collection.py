@@ -182,6 +182,12 @@ class CollectionAPI:
         else:
             pick_fields = pick_id
 
+        # FIXME: This is needed because Qvarn API stupidly requires
+        # all fields to actually be defined by the resource type. If
+        # we drop that, we can drop this check, but that needs to be a
+        # managed transition, and for now we can't just drop it.
+        self._check_fields_are_allowed(sp.cond)
+
         unsorted = self._find_matches(sp.cond)
         if sp.sort_keys:
             result = self._sort_objects(unsorted, sp.sort_keys)
@@ -204,6 +210,35 @@ class CollectionAPI:
             result=picked)
 
         return picked
+
+    def _check_fields_are_allowed(self, cond):
+        names = set(self._get_names_from_cond(cond))
+        allowed = set(self._get_allowed_names())
+        for name in names.difference(allowed):
+            raise UnknownSearchField(name)
+
+    def _get_names_from_cond(self, cond):
+        for c in qvarn.flatten(cond):
+            name = getattr(c, 'name')
+            if name is not None:
+                yield name
+
+    def _get_allowed_names(self):
+        rt = self.get_type()
+        proto = rt.get_latest_prototype()
+        for name in self._get_names_from_prototype(proto):
+            yield name
+
+        for subpath in rt.get_subpaths():
+            subproto = rt.get_subprototype(subpath)
+            for name in self._get_names_from_prototype(subproto):
+                yield name
+
+    def _get_names_from_prototype(self, proto):
+        schema = qvarn.schema(proto)
+        for t in schema:
+            for name in t[0]:
+                yield name
 
     def _find_matches(self, cond):
         matches = self._store.find_objects(cond)
@@ -247,6 +282,12 @@ class NoSuchResource(Exception):
         keys_str = ', '.join(
             '{}={!r}'.format(key, keys[key]) for key in sorted(keys))
         super().__init__("There is no resource with keys {}".format(keys_str))
+
+
+class UnknownSearchField(Exception):
+
+    def __init__(self, field):
+        super().__init__('There is no field {}'.format(field))
 
 
 class NoSearchCriteria(Exception):

@@ -258,6 +258,8 @@ class QvarnAPI:
             search_criteria = path.split('/search/', 1)[1]
             try:
                 result = coll.search(search_criteria)
+            except qvarn.UnknownSearchField as e:
+                return bad_request_response(str(e))
             except qvarn.NeedSortOperator:
                 return need_sort_response()
             body = {
