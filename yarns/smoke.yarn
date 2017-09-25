@@ -245,6 +245,12 @@ Make sure searches are case-insensitive.
     ...     "names": [ { "full_name": "Bruce" } ]
     ... }
 
+    WHEN client requests
+    ... GET /subjects/search/exact/full_name/Br%2Fce
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches { "resources": [] }
+
     GIVEN unique random identifier RANDOM
     WHEN client requests PUT /subjects/${ID1}/sub with token and body
     ... { "subfield": "${RANDOM}", "revision": "${REV1}" }
