@@ -107,7 +107,7 @@ class QvarnAPI:
 
         return routes
 
-    def version(self, content_type, body):
+    def version(self, content_type, body, **kwargs):
         version = {
             'api': {
                 'version': qvarn.__version__,
@@ -142,7 +142,7 @@ class QvarnAPI:
         return rt
 
     def get_post_callback(self, coll):  # pragma: no cover
-        def wrapper(content_type, body):
+        def wrapper(content_type, body, **kwargs):
             if content_type != 'application/json':
                 raise NotJson(content_type)
             if 'type' not in body:
@@ -253,7 +253,9 @@ class QvarnAPI:
         return wrapper
 
     def get_search_callback(self, coll):  # pragma: no cover
-        def wrapper(content_type, body, search_criteria='', **kwargs):
+        def wrapper(content_type, body, **kwargs):
+            path = kwargs['raw_uri_path']
+            search_criteria = path.split('/search/', 1)[1]
             try:
                 result = coll.search(search_criteria)
             except qvarn.NeedSortOperator:
