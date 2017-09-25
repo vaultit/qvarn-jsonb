@@ -14,6 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import urllib
+
 import qvarn
 
 
@@ -67,7 +69,7 @@ class SearchParser:
 
     def _parse_simple(self, path):
         # Yield operator, args pairs.
-        words = path.split('/')
+        words = [self._unquote(w) for w in path.split('/')]
         assert len(words) > 0
         while words:
             operator, words = words[0], words[1:]
@@ -82,6 +84,9 @@ class SearchParser:
 
             args, words = words[:num_args], words[num_args:]
             yield operator, args
+
+    def _unquote(self, word):
+        return urllib.parse.unquote(word)
 
     def _check_params(self, sp):
         has_sort = sp.sort_keys != []

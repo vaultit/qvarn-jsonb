@@ -42,6 +42,16 @@ class SearchParserTests(unittest.TestCase):
         self.assertEqual(sp.cond.name, 'foo')
         self.assertEqual(sp.cond.pattern, 'bar')
 
+    def test_handles_url_encoded_slash(self):
+        p = qvarn.SearchParser()
+        sp = p.parse('exact/operating_system/gnu%2Flinux')
+        self.assertEqual(sp.sort_keys, [])
+        self.assertEqual(sp.show_fields, [])
+        self.assertEqual(sp.show_all, False)
+        self.assertTrue(isinstance(sp.cond, qvarn.Equal))
+        self.assertEqual(sp.cond.name, 'operating_system')
+        self.assertEqual(sp.cond.pattern, 'gnu/linux')
+
     def test_raises_error_if_only_show_specified(self):
         p = qvarn.SearchParser()
         with self.assertRaises(qvarn.SearchParserError):
