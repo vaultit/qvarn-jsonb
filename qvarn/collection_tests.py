@@ -321,8 +321,12 @@ class CollectionAPITests(unittest.TestCase):
         with self.assertRaises(qvarn.NoSearchCriteria):
             self.coll.search('')
 
+    def test_search_with_comparison_on_unknown_field_raises_error(self):
+        with self.assertRaises(qvarn.UnknownSearchField):
+            self.coll.search('exact/DOESNOTEXIST/sanity')
+
     def test_search_without_matches_returns_empty_list(self):
-        self.assertEqual(self.coll.search('exact/foo/nomatch'), [])
+        self.assertEqual(self.coll.search('exact/full_name/nomatch'), [])
 
     def test_search_return_matching_resource_ids(self):
         obj = {

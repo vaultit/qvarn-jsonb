@@ -40,7 +40,7 @@ from .sql import (
     Startswith,
     Yes,
 )
-from .sql_select import sql_select
+from .sql_select import sql_select, flatten
 
 from .objstore import (
     ObjectStoreInterface,
@@ -78,6 +78,7 @@ from .collection import (
     CollectionAPI,
     NoSearchCriteria,
     NoSuchResource,
+    UnknownSearchField,
     WrongRevision,
 )
 
