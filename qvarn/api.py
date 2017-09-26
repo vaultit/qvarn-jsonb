@@ -39,20 +39,38 @@ class QvarnAPI:
         qvarn.log.log('info', msg_text='find_missing_route', path=path)
 
         if path == '/version':
-            return [
-                {
-                    'method': 'GET',
-                    'path': '/version',
-                    'callback': self.version,
-                    'needs-authorization': False,
-                },
-            ]
+            return self.version_route()
 
         try:
             rt = self.get_resource_type(path)
         except NoSuchResourceType:
             return []
 
+        return self.resource_routes(path, rt)
+
+    def version_route(self):
+        return [
+            {
+                'method': 'GET',
+                'path': '/version',
+                'callback': self.version,
+                'needs-authorization': False,
+            },
+        ]
+
+    def version(self, content_type, body, **kwargs):
+        version = {
+            'api': {
+                'version': qvarn.__version__,
+            },
+            'implementation': {
+                'name': 'Qvarn',
+                'version': qvarn.__version__,
+            },
+        }
+        return ok_response(version)
+
+    def resource_routes(self, path, rt):
         coll = qvarn.CollectionAPI()
         coll.set_object_store(self._store)
         coll.set_resource_type(rt)
@@ -106,18 +124,6 @@ class QvarnAPI:
             ])
 
         return routes
-
-    def version(self, content_type, body, **kwargs):
-        version = {
-            'api': {
-                'version': qvarn.__version__,
-            },
-            'implementation': {
-                'name': 'Qvarn',
-                'version': qvarn.__version__,
-            },
-        }
-        return ok_response(version)
 
     def add_resource_type(self, rt):
         path = rt.get_path()
