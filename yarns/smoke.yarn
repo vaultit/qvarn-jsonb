@@ -630,3 +630,22 @@ Don't sort. Then /offset and /limit are verboten.
     ... }
 
     FINALLY qvarn is stopped
+
+
+# Handle resource types via API
+
+Qvarn API allows listing and looking at all the resource types it
+knows about. In the future, it will allow manipulaing them as well.
+
+    SCENARIO manage resource types
+
+    GIVEN a running Qvarn instance
+
+    WHEN client gets an authorization token with scope
+    ... "uapi_resource_types_get"
+
+    WHEN client requests GET /resource_types using token
+    THEN HTTP status code is 200 OK
+    AND search result contains { "id": "/subjects" }
+
+    FINALLY qvarn is stopped
