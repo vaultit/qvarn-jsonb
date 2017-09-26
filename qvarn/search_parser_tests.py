@@ -57,6 +57,11 @@ class SearchParserTests(unittest.TestCase):
         with self.assertRaises(qvarn.SearchParserError):
             p.parse('show')
 
+    def test_raises_error_if_both_show_and_show_all_specified(self):
+        p = qvarn.SearchParser()
+        with self.assertRaises(qvarn.SearchParserError):
+            p.parse('exact/foo/bar/show_all/show/foo')
+
     def test_raises_error_if_show_specified_but_without_operand(self):
         p = qvarn.SearchParser()
         with self.assertRaises(qvarn.SearchParserError):
