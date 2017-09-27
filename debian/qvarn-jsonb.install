@@ -1,2 +1,2 @@
 resource_type/*.yaml etc/qvarn/resource_type
-qvarnbackend usr/bin
+start_qvarn usr/bin
