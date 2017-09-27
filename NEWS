@@ -1,0 +1,15 @@
+NEWS for Qvarn (JSONB)
+=============================================================================
+
+This file has release notes for Qvarn (the JSONB version).
+
+Version 0.82+git, not yet released
+-----------------------------------------------------------------------------
+
+* This is the first release of Qvarn (JSONB), and has been rewritten
+  from scratch to use the Postgres JSONB data type for storing
+  resources. It is NOT yet ready for production use. This release is
+  done so we can test Ansible modifications, run benchmarks, and other
+  such things.
+
+  Do not use this release.
