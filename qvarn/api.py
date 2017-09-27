@@ -14,11 +14,28 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import io
 import os
 
+import yaml
 
 import apifw
 import qvarn
+
+
+resource_type_spec_yaml = '''
+type: resource_type
+path: /resource_types
+versions:
+
+- version: v0
+  prototype:
+    type: ""
+    id: ""
+    revision: ""
+    name: ""
+    yaml: ""
+'''
 
 
 class QvarnAPI:
@@ -27,6 +44,7 @@ class QvarnAPI:
         self._store = None
         self._validator = qvarn.Validator()
         self._baseurl = None
+        self._rt_coll = None
 
     def set_base_url(self, baseurl):  # pragma: no cover
         self._baseurl = baseurl
@@ -34,6 +52,38 @@ class QvarnAPI:
     def set_object_store(self, store):
         self._store = store
         self._store.create_store(obj_id=str, subpath=str)
+        self.set_up_resource_types()
+
+    def set_up_resource_types(self):
+        f = io.StringIO(resource_type_spec_yaml)
+        spec = yaml.safe_load(f)
+        rt = qvarn.ResourceType()
+        rt.from_spec(spec)
+        self._rt_coll = qvarn.CollectionAPI()
+        self._rt_coll.set_object_store(self._store)
+        self._rt_coll.set_resource_type(rt)
+
+    def add_resource_type(self, rt):
+        path = rt.get_path()
+        objs = self._store.get_objects(obj_id=path)
+        if not objs:
+            obj = {
+                'type': 'resource_type',
+                'id': path,
+                'spec': rt.as_dict(),
+            }
+            self._store.create_object(
+                obj, obj_id=path, subpath='', auxtable=True)
+
+    def get_resource_type(self, path):
+        objs = self._store.get_objects(obj_id=path)
+        if len(objs) == 0:
+            raise NoSuchResourceType(path)
+        elif len(objs) > 1:  # pragma: no cover
+            raise TooManyResourceTypes(path)
+        rt = qvarn.ResourceType()
+        rt.from_spec(objs[0]['spec'])
+        return rt
 
     def find_missing_route(self, path):
         qvarn.log.log('info', msg_text='find_missing_route', path=path)
@@ -124,28 +174,6 @@ class QvarnAPI:
             ])
 
         return routes
-
-    def add_resource_type(self, rt):
-        path = rt.get_path()
-        objs = self._store.get_objects(obj_id=path)
-        if not objs:
-            obj = {
-                'type': 'resource_type',
-                'id': path,
-                'spec': rt.as_dict(),
-            }
-            self._store.create_object(
-                obj, obj_id=path, subpath='', auxtable=False)
-
-    def get_resource_type(self, path):
-        objs = self._store.get_objects(obj_id=path)
-        if len(objs) == 0:
-            raise NoSuchResourceType(path)
-        elif len(objs) > 1:  # pragma: no cover
-            raise TooManyResourceTypes(path)
-        rt = qvarn.ResourceType()
-        rt.from_spec(objs[0]['spec'])
-        return rt
 
     def get_post_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
