@@ -1,3 +1,2 @@
-qvarn.conf etc/qvarn
 resource_type/*.yaml etc/qvarn/resource_type
 qvarnbackend usr/bin
