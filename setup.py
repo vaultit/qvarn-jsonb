@@ -24,7 +24,7 @@ import qvarn
 
 
 setup(
-    name='qvarn',
+    name='qvarn-jsonb',
     version=qvarn.__version__,
     description='backend service for JSON and binary data storage',
     author='Lars Wirzenius',
