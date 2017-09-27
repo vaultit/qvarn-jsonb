@@ -23,4 +23,4 @@ gunicorn3 \
     -w1 \
     --log-file /var/log/qvarn/gunicorn3.log \
     --log-level debug \
-    qvarnbackend:app
+    qvarn.backend:app
