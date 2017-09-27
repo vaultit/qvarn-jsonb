@@ -30,5 +30,4 @@ setup(
     author='Lars Wirzenius',
     author_email='liw@qvarnlabs.com',
     packages=['qvarn'],
-    py_modules=['qvarnbackend.py'],
 )
