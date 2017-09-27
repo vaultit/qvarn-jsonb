@@ -109,7 +109,7 @@ class QvarnAPITests(unittest.TestCase):
         self.assertTrue(isinstance(rt2, qvarn.ResourceType))
         self.assertEqual(rt2.as_dict(), spec)
 
-    def test_get_resource_type_is_ok_adding_type_again(self):
+    def test_add_resource_type_is_ok_adding_type_again(self):
         spec = {
             'type': 'subject',
             'path': '/subjects',

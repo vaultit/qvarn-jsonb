@@ -65,18 +65,28 @@ class QvarnAPI:
 
     def add_resource_type(self, rt):
         path = rt.get_path()
-        objs = self._store.get_objects(obj_id=path)
+        cond1 = qvarn.Equal('path', path)
+        cond2 = qvarn.Equal('type', 'resource_type')
+        cond = qvarn.All(cond1, cond2)
+        results = self._store.find_objects(cond)
+        objs = [obj for _, obj in results]
         if not objs:
             obj = {
+                'id': rt.get_type(),
                 'type': 'resource_type',
-                'id': path,
+                'path': path,
                 'spec': rt.as_dict(),
             }
             self._store.create_object(
-                obj, obj_id=path, subpath='', auxtable=True)
+                obj, obj_id=obj['id'], subpath='', auxtable=True)
 
     def get_resource_type(self, path):
-        objs = self._store.get_objects(obj_id=path)
+        cond1 = qvarn.Equal('path', path)
+        cond2 = qvarn.Equal('type', 'resource_type')
+        cond = qvarn.All(cond1, cond2)
+        results = self._store.find_objects(cond)
+        objs = [obj for _, obj in results]
+        qvarn.log.log('debug', objs=objs)
         if len(objs) == 0:
             raise NoSuchResourceType(path)
         elif len(objs) > 1:  # pragma: no cover
