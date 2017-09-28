@@ -1,0 +1,76 @@
+#!/bin/sh
+#
+# scripts/build-and-deploy - build Qvarn and upgrade it on given host
+#
+# Copyright 2016-2017  Lars Wirzenius
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# This program builds Qvarn and installs it on the host given on the
+# command line as an upgrade. The host must already have been
+# configured to run Qvarn. This script does nothing to update
+# configuration files, for example.
+#
+# This script is meant to be used while developing Qvarn: make
+# changes, commit them, build, deploy to a server, and then test the
+# server.
+#
+# Usage:
+#
+#    $0 HOST BOOL
+#
+# where HOST is the address of the server on which to upgrade Qvarn,
+# and BOOL is "true" to indicate the databases should be emptied
+# (recreated), and log files deleted, and "false" if not.
+#
+# Note that changes must be committed to git before running this
+# script, and you must be able to ssh into the server and run sudo
+# there.
+
+
+set -eux
+
+[ -d .git ]
+[ -e qvarn/__init__.py ]
+
+host="$1"
+cleandb="$2"
+
+debian_version="$(dpkg-parsechangelog | sed -n '/^Version: /s///p')"
+upstream_version="$(echo "$debian_version" | sed 's/-.*//')"
+package="qvarn-jsonb"
+
+rm -f ../qvarn*_*
+
+git archive HEAD | xz > "../${package}_${upstream_version}.orig.tar.xz"
+
+if [ -f "/etc/debian_version" ]; then
+  debuild -us -uc
+else
+  debuild -d -us -uc
+fi
+
+deb="${package}_${debian_version}_all.deb"
+scp "../$deb" "$host:"
+
+ssh "$host" sudo systemctl stop qvarn || true
+ssh "$host" sudo dpkg -i "$deb"
+if [ "$cleandb" = true ]
+then
+    ssh "$host" sudo -u postgres dropdb qvarn || true
+    ssh "$host" sudo -u postgres createdb -O qvarn -E UTF8 -T template0 qvarn
+    ssh "$host" sudo find /var/log/qvarn -mindepth 1 -type f -delete
+fi
+ssh "$host" sudo systemctl restart haproxy
+ssh "$host" sudo systemctl restart qvarn
