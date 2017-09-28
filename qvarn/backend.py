@@ -15,13 +15,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-# This is a Qvarn backend program that serves all the API requests. It is based on
-# apifw, which takes care of routing, logging, and authorization.
+# This is a Qvarn backend program that serves all the API requests. It
+# is based on apifw, which takes care of routing, logging, and
+# authorization.
 
 
-import logging
 import os
-import sys
 
 import yaml
 
@@ -37,18 +36,20 @@ def dict_logger(log, stack_info=None):
     qvarn.log.log(exc_info=stack_info, **log)
 
 
-def read_config(config_filename):
-    with open(config_filename) as f:
+def read_config(filename):
+    with open(filename) as f:
         return yaml.safe_load(f)
 
 
-def check_config(config):
-    for key in config:
-        if config[key] is None:
+def check_config(cfg):
+    for key in cfg:
+        if cfg[key] is None:
             raise Exception('Configration %s should not be None' % key)
 
 
 _counter = slog.Counter()
+
+
 def counter():
     new_context = 'HTTP transaction {}'.format(_counter.increment())
     qvarn.log.set_context(new_context)
@@ -56,7 +57,6 @@ def counter():
 
 default_config = {
     'baseurl': 'https://unconfigured-base-url/',
-    'log': None,
     'token-public-key': None,
     'token-audience': None,
     'token-issuer': None,
@@ -75,7 +75,8 @@ default_config = {
 }
 
 
-actual_config = read_config(os.environ.get('QVARN_CONFIG', DEFAULT_CONFIG_FILE))
+config_filename = os.environ.get('QVARN_CONFIG', DEFAULT_CONFIG_FILE)
+actual_config = read_config(config_filename)
 config = dict(default_config)
 config.update(actual_config or {})
 check_config(config)
