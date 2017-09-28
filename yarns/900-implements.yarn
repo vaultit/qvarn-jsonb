@@ -43,7 +43,7 @@ Start a Qvarn running in the background.
         '--daemon',
         '--bind', '127.0.0.1:{}'.format(vars['port']),
         '-p', vars['pid-file'],
-        'qvarnbackend:app',
+        'qvarn.backend:app',
     ]
     cliapp.runcmd(argv, env=env, stdout=None, stderr=None)
     until = time.time() + 2.0
