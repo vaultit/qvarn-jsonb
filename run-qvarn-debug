@@ -168,7 +168,7 @@ token-issuer: $ISS
 token-audience: $AUD
 token-public-key: $(cat "$key.pub")
 resource-type-dir: resource_type
-memory-database: no
+memory-database: yes
 database:
   host: localhost
   port: 5432
@@ -183,4 +183,4 @@ export QVARN_CONFIG="$tmp/qvarn.yaml"
 export PYTHONPATH=/home/liw/apifw
 gunicorn3 --bind 127.0.0.1:12765 -p "$tmp/pid" -w1 --log-file g.log \
           --log-level debug \
-          qvarnbackend:app
+          qvarn.backend:app
