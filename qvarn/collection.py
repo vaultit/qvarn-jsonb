@@ -98,11 +98,14 @@ class CollectionAPI:
         self._store.remove_objects(obj_id=obj_id)
 
     def list(self):
-        oftype = qvarn.Equal('type', self._type.get_type())
+        oftype = qvarn.Equal('type', self.get_type_name())
         matches = self._store.find_objects(oftype)
+        qvarn.log.log('xxx', matches=matches, type=self.get_type_name())
         return {
             'resources': [
-                {'id': keys['obj_id']} for keys, _ in matches
+                {'id': obj['id']}
+                for _, obj in matches
+                if obj['type'] == self.get_type_name()
             ]
         }
 
