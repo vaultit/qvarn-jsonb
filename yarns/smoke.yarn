@@ -41,6 +41,10 @@ This is an integration test suite for the Qvarn HTTP API.
     AND client requests GET /subjects using token
     THEN HTTP status code is 200 OK
 
+    WHEN client requests GET /subjects using  token
+    THEN HTTP status code is 200 OK
+    AND search result does NOT contain { "id": "subject" }
+
     WHEN client requests POST /subjects with token and body
     ... {
     ...     "type": "subject",
