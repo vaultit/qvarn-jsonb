@@ -19,7 +19,7 @@ import qvarn
 
 class Validator:
 
-    def _validate_against_prototype(
+    def validate_against_prototype(
             self, resource_type_name, resource, prototype):
         actual_schema = qvarn.schema(resource)
         wanted_schema = qvarn.schema(prototype)
@@ -39,7 +39,7 @@ class Validator:
             raise WrongType(resource['type'], resource_type.get_type())
 
         prototype = resource_type.get_latest_prototype()
-        self._validate_against_prototype(resource['type'], resource, prototype)
+        self.validate_against_prototype(resource['type'], resource, prototype)
 
     def validate_new_resource(self, resource, resource_type):
         self._validate(resource, resource_type)
@@ -62,7 +62,7 @@ class Validator:
         subproto = resource_type.get_subprototype(subpath)
         if subproto is None:
             raise UnknownSubpath(resource_type.get_type(), subpath)
-        self._validate_against_prototype('FIXME', sub, subproto)
+        self.validate_against_prototype('FIXME', sub, subproto)
 
 
 class ValidationError(Exception):
