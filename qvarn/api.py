@@ -132,8 +132,17 @@ class QvarnAPI:
         objs = [obj for _, obj in results]
         qvarn.log.log('debug', objs=objs)
         if len(objs) == 0:
+            qvarn.log.log(
+                'error',
+                msg_text='There is no resource type for path',
+                path=path)
             raise NoSuchResourceType(path)
         elif len(objs) > 1:  # pragma: no cover
+            qvarn.log.log(
+                'error',
+                msg_text='There are more than one resource types for path',
+                path=path,
+                objs=objs)
             raise TooManyResourceTypes(path)
         rt = qvarn.ResourceType()
         rt.from_spec(objs[0]['spec'])
