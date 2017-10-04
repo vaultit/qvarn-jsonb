@@ -132,8 +132,8 @@ api.add_resource_type(subject)
 for rt in resource_types:
     api.add_resource_type(rt)
 
-
-app = apifw.create_bottle_application(api, counter, dict_logger, config)
+app = apifw.create_bottle_application(
+    api, counter, dict_logger, config, resource_types)
 
 # If we are running this program directly with Python, and not via
 # gunicorn, we can use the Bottle built-in debug server, which can
