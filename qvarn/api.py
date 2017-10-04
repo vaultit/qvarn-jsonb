@@ -167,14 +167,25 @@ class QvarnAPI:
         qvarn.log.log('info', msg_text='find_missing_route', path=path)
 
         if path == '/version':
+            qvarn.log.log('info', msg_text='Add /version route')
             return self.version_route()
 
         try:
             rt = self.get_resource_type(path)
         except NoSuchResourceType:
+            qvarn.log.log('warning', msg_text='No such route', path=path)
             return []
 
-        return self.resource_routes(path, rt)
+        routes = self.resource_routes(path, rt)
+        loggable_routes = [
+            {
+                key: repr(r[key])
+                for key in r
+            }
+            for r in routes
+        ]
+        qvarn.log.log('info', msg_text='Add routes', routes=loggable_routes)
+        return routes
 
     def version_route(self):
         return [
