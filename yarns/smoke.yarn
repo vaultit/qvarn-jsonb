@@ -99,6 +99,337 @@ of 404. We may want to fix this some day.
     FINALLY qvarn is stopped
 
 
+# Manage notifications
+
+Notifications are a special resource type. Notifications created
+automatically by Qvarn, but the API client may delete them.
+
+    SCENARIO manage notifications
+
+    GIVEN a running Qvarn instance
+
+Client has needed access rights for orgs resource.
+
+    WHEN client gets an authorization token with scope
+    ... "uapi_orgs_listeners_post uapi_orgs_listeners_id_get
+    ...  uapi_orgs_listeners_get uapi_orgs_listeners_id_notifications_get
+    ...  uapi_orgs_post uapi_orgs_listeners_id_notifications_id_get
+    ...  uapi_orgs_listeners_id_put uapi_orgs_id_put uapi_orgs_id_delete
+    ...  uapi_orgs_listeners_id_delete
+    ...  uapi_orgs_listeners_id_notifications_id_delete"
+
+    WHEN client requests POST /orgs/listeners with token and body
+    ... {
+    ...     "notify_of_new": true
+    ... }
+    THEN HTTP status code is 201 Created
+    AND JSON body matches
+    ... {
+    ...     "type": "listener",
+    ...     "notify_of_new": true,
+    ...     "listen_on": []
+    ... }
+    AND resource id is LISTENID1
+    AND HTTP Location header is ${API_URL}/orgs/listeners/${LISTENID1}
+
+    WHEN client requests POST /orgs/listeners with token and body
+    ... {
+    ...     "notify_of_new": false
+    ... }
+    THEN HTTP status code is 201 Created
+    AND JSON body matches
+    ... {
+    ...     "type": "listener",
+    ...     "notify_of_new": false,
+    ...     "listen_on": []
+    ... }
+    AND resource id is LISTENID2
+    AND HTTP Location header is ${API_URL}/orgs/listeners/${LISTENID2}
+    AND revision is REV1
+
+    WHEN client requests POST /orgs/listeners with token and body
+    ... {
+    ...     "notify_of_new": false,
+    ...     "listen_on_all": true
+    ... }
+    THEN HTTP status code is 201 Created
+    AND JSON body matches
+    ... {
+    ...     "type": "listener",
+    ...     "notify_of_new": false,
+    ...     "listen_on_all": true,
+    ...     "listen_on": []
+    ... }
+    AND resource id is LISTENID3
+    AND HTTP Location header is ${API_URL}/orgs/listeners/${LISTENID3}
+
+    WHEN client requests GET /orgs/listeners/${LISTENID1} using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "id": "${LISTENID1}",
+    ...     "type": "listener",
+    ...     "notify_of_new": true,
+    ...     "listen_on": []
+    ... }
+
+    WHEN client requests GET /orgs/listeners using token
+    THEN HTTP status code is 200 OK
+    THEN search result contains  {"id": "${LISTENID1}"}
+    THEN search result contains  {"id": "${LISTENID2}"}
+
+A listener has no notifications initially.
+
+    WHEN client requests 
+    ... GET /orgs/listeners/${LISTENID1}/notifications
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": []
+    ... }
+
+    WHEN client requests POST /orgs with token and body
+    ... {
+    ...     "names": ["Universal Exports"]
+    ... }
+    THEN resource id is ORGID1
+    AND revision is REV2
+
+    WHEN client requests POST /orgs with token and body
+    ... {
+    ...     "names": ["Telebulvania Ltd"]
+    ... }
+    THEN resource id is ORGID2
+
+After adding the new organizations the first listener should be notified while
+the second and third should have no notifications.
+
+    WHEN client requests
+    ... GET /orgs/listeners/${LISTENID1}/notifications
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result at index 0 has id MSGID1
+    AND search result at index 1 has id MSGID1
+
+    WHEN client requests 
+    ... GET /orgs/listeners/${LISTENID1}/notifications/${MSGID1}
+    ... using token
+    THEN JSON body matches
+    ... {
+    ...     "id": "${MSGID1}",
+    ...     "type": "notification",
+    ...     "resource_id": "${ORGID1}",
+    ...     "resource_change": "created"
+    ... }
+
+    WHEN client requests
+    ... GET /orgs/listeners/${LISTENID1}/notifications/${MSGID2}
+    ... using token
+    THEN JSON body matches
+    ... {
+    ...     "id": "${MSGID2}",
+    ...     "type": "notification",
+    ...     "resource_id": "${ORGID2}",
+    ...     "resource_change": "created"
+    ... }
+
+    WHEN client requests 
+    ... GET /orgs/listeners/${LISTENID2}/notifications
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": []
+    ... }
+
+    WHEN client requests
+    ... GET /orgs/listeners/${LISTENID3}/notifications
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": []
+    ... }
+
+We update the empty listener to listen on organization changes and update the
+organization checking for the correct notification to appear. The third
+listener listening to all the changes should get the notification, too.
+
+    WHEN client requests PUT /orgs/listeners/${LISTENID2} with token and body
+    ... {
+    ...     "notify_of_new": false,
+    ...     "listen_on": ["${ORGID1}"],
+    ...     "revision": "${REV1}"
+    ... }
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "type": "listener",
+    ...     "notify_of_new": false,
+    ...     "listen_on": ["${ORGID1}"]
+    ... }
+
+    WHEN client requests PUT /orgs/${ORGID1} with token and body
+    ... {
+    ...     "names": ["Universal Experts"],
+    ...     "revision": "${REV2}"
+    ... }
+    THEN HTTP status code is 200 OK
+
+    WHEN client requests 
+    ... GET /orgs/listeners/${LISTENID2}/notifications
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result at index 0 has id MSGID3
+
+    WHEN client requests 
+    ... GET /orgs/listeners/${LISTENID2}/notifications/${MSGID3}
+    ... using token
+    THEN JSON body matches
+    ... {
+    ...     "id": "${MSGID3}",
+    ...     "type": "notification",
+    ...     "resource_id": "${ORGID1}",
+    ...     "resource_change": "updated"
+    ... }
+
+    WHEN client requests 
+    ... GET /orgs/listeners/${LISTENID3}/notifications
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result at index 0 has id MSGID4
+
+    WHEN client requests
+    ... GET /orgs/listeners/${LISTENID3}/notifications/${MSGID4}
+    ... using token
+    THEN JSON body matches
+    ... {
+    ...     "id": "${MSGID4}",
+    ...     "type": "notification",
+    ...     "resource_id": "${ORGID1}",
+    ...     "resource_change": "updated"
+    ... }
+
+The first listener gets no additional notifications.
+
+    WHEN client requests 
+    ... GET /orgs/listeners/${LISTENID1}/notifications
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": [
+    ...         {"id": "${MSGID1}"}, {"id": "${MSGID2}"}
+    ...     ]
+    ... }
+
+We delete the organization and check for the correct notification to appear.
+
+    WHEN client requests DELETE /orgs/${ORGID1} with token
+    THEN HTTP status code is 200 OK
+
+    WHEN client requests 
+    ... GET /orgs/listeners/${LISTENID2}/notifications
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result at index 1 has id MSGID5
+
+    WHEN client requests 
+    ... GET /orgs/listeners/${LISTENID2}/notifications/${MSGID5}
+    ... using token
+    THEN JSON body matches
+    ... {
+    ...     "id": "${MSGID5}",
+    ...     "type": "notification",
+    ...     "resource_id": "${ORGID1}",
+    ...     "resource_revision": null,
+    ...     "resource_change": "deleted"
+    ... }
+
+    WHEN client requests
+    ... GET /orgs/listeners/${LISTENID3}/notifications
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result at index 1 has id MSGID6
+
+    WHEN client requests
+    ... GET /orgs/listeners/${LISTENID3}/notifications/${MSGID6}
+    ... using token
+    THEN JSON body matches
+    ... {
+    ...     "id": "${MSGID6}",
+    ...     "type": "notification",
+    ...     "resource_id": "${ORGID1}",
+    ...     "resource_revision": null,
+    ...     "resource_change": "deleted"
+    ... }
+
+The first listener gets no additional notifications.
+
+    WHEN client requests
+    ... GET /orgs/listeners/${LISTENID1}/notifications
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": [
+    ...         {"id": "${MSGID1}"}, {"id": "${MSGID2}"}
+    ...     ]
+    ... }
+
+Deletion of a listener deletes also the notifications.
+
+    WHEN client requests DELETE /orgs/listeners/${LISTENID1} with token
+    THEN HTTP status code is 200 OK
+
+    WHEN client requests
+    ... GET /orgs/listeners/${LISTENID1}/notifications/${MSGID1}
+    ... using token
+    THEN HTTP status code is 404 Not Found
+
+    WHEN client requests
+    ... GET /orgs/listeners/${LISTENID1}/notifications/${MSGID2}
+    ... using token
+    THEN HTTP status code is 404 Not Found
+
+    WHEN client requests GET /orgs/listeners/${LISTENID1} using token
+    THEN HTTP status code is 404 Not Found
+
+Notification can be deleted.
+
+    WHEN client requests 
+    ... DELETE /orgs/listeners/${LISTENID2}/notifications/${MSGID3}
+    ... with token
+    THEN HTTP status code is 200 OK
+
+    WHEN client requests
+    ... GET /orgs/listeners/${LISTENID2}/notifications/${MSGID3}
+    ... using token
+    THEN HTTP status code is 404 Not Found
+
+    WHEN client requests
+    ... DELETE /orgs/listeners/${LISTENID3}/notifications/${MSGID4}
+    ... with token
+    THEN HTTP status code is 200 OK
+
+    WHEN client requests
+    ... GET /orgs/listeners/${LISTENID3}/notifications/${MSGID4}
+    ... using token
+    THEN HTTP status code is 404 Not Found
+
+    WHEN client requests
+    ... DELETE /orgs/listeners/${LISTENID2}/notifications/${MSGID5}
+    ... with token
+    THEN HTTP status code is 200 OK
+
+    WHEN client requests
+    ... DELETE /orgs/listeners/${LISTENID3}/notifications/${MSGID6}
+    ... with token
+    THEN HTTP status code is 200 OK
+
+
+    FINALLY qvarn is stopped
 
 # Use subresources
 

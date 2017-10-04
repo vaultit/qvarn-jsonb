@@ -128,6 +128,11 @@ Start a Qvarn running in the background.
     expected = int(get_next_match())
     assertEqual(vars['status_code'], expected)
 
+    IMPLEMENTS THEN HTTP (\S+) header is (.+)
+    header = get_next_match()
+    value = get_next_match()
+    assert 0
+
     IMPLEMENTS THEN resource id is (\S+)
     import json
     name = get_next_match()
@@ -188,6 +193,12 @@ Start a Qvarn running in the background.
         if values_match(wanted, result):
             found = True
     assertFalse(found)
+
+    IMPLEMENTS THEN search result at index (\d+) has id (\S+)
+    import json
+    index = get_next_match()
+    id_name = get_next_match()
+    assert 0
 
     IMPLEMENTS THEN response has header WWW-Authenticate containing "(.+)"
     assert 0
