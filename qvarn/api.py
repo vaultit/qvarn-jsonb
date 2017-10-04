@@ -37,6 +37,45 @@ versions:
     yaml: ""
 '''
 
+listener_spec = {
+    'type': 'listener',
+    'path': '/listeners',
+    'versions': [
+        {
+            'version': 'v0',
+            'prototype': {
+                'id': '',
+                'type': '',
+                'revision': '',
+                'notify_of_new': False,
+                'listen_on_all': False,
+                'listen_on': [''],
+            },
+            'subpaths': {},
+        },
+    ],
+}
+
+notification_spec = {
+    'type': 'notification',
+    'path': '/notifications',
+    'versions': [
+        {
+            'version': 'v0',
+            'prototype': {
+                'id': '',
+                'type': '',
+                'revision': '',
+                'resource_id': '',
+                'resource_revision': '',
+                'resource_change': '',
+                'timestamp': '',
+            },
+            'subpaths': {},
+        },
+    ],
+}
+
 
 class QvarnAPI:
 
@@ -62,6 +101,11 @@ class QvarnAPI:
         self._rt_coll = qvarn.CollectionAPI()
         self._rt_coll.set_object_store(self._store)
         self._rt_coll.set_resource_type(rt)
+
+        for spec in [listener_spec, notification_spec]:
+            rt2 = qvarn.ResourceType()
+            rt2.from_spec(spec)
+            self.add_resource_type(rt2)
 
     def add_resource_type(self, rt):
         path = rt.get_path()
@@ -91,6 +135,21 @@ class QvarnAPI:
             raise NoSuchResourceType(path)
         elif len(objs) > 1:  # pragma: no cover
             raise TooManyResourceTypes(path)
+        rt = qvarn.ResourceType()
+        rt.from_spec(objs[0]['spec'])
+        return rt
+
+    def get_listener_resource_type(self):
+        cond1 = qvarn.Equal('id', 'listener')
+        cond2 = qvarn.Equal('type', 'resource_type')
+        cond = qvarn.All(cond1, cond2)
+        results = self._store.find_objects(cond)
+        objs = [obj for _, obj in results]
+        qvarn.log.log('debug', objs=objs)
+        if len(objs) == 0:  # pragma: no cover
+            raise NoSuchResourceType('listener')
+        elif len(objs) > 1:  # pragma: no cover
+            raise TooManyResourceTypes('listener')
         rt = qvarn.ResourceType()
         rt.from_spec(objs[0]['spec'])
         return rt
@@ -183,7 +242,44 @@ class QvarnAPI:
                 },
             ])
 
-        return routes
+        return routes + self._get_notification_routes(path, id_path)
+
+    def _get_notification_routes(self, path, id_path):
+        rt = self.get_listener_resource_type()
+        listeners = qvarn.CollectionAPI()
+        listeners.set_object_store(self._store)
+        listeners.set_resource_type(rt)
+
+        return [
+            {
+                'method': 'POST',
+                'path': path + '/listeners',
+                'callback': self.get_post_listener_callback(listeners),
+            }
+        ]
+
+    def get_post_listener_callback(self, listeners):  # pragma: no cover
+        def wrapper(content_type, body, **kwargs):
+            if content_type != 'application/json':
+                raise NotJson(content_type)
+
+            rt = listeners.get_type()
+            try:
+                self._validator.validate_against_prototype(
+                    rt.get_type(), body, rt.get_latest_prototype())
+            except qvarn.ValidationError as e:
+                qvarn.log.log('error', msg_text=str(e), body=body)
+                return bad_request_response(str(e))
+
+            result_body = listeners.post(body)
+            qvarn.log.log(
+                'debug', msg_text='POST a new listener, result',
+                body=result_body)
+            location = '{}{}/{}'.format(
+                self._baseurl, listeners.get_type().get_path(),
+                result_body['id'])
+            return created_response(result_body, location)
+        return wrapper
 
     def get_post_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
