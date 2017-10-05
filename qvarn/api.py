@@ -285,6 +285,11 @@ class QvarnAPI:
                 'method': 'GET',
                 'path': path + '/listeners/<id>',
                 'callback': self.get_listener_callback(coll, listeners),
+            },
+            {
+                'method': 'GET',
+                'path': path + '/listeners/<id>/notifications',
+                'callback': self.get_notifications_list_callback(),
             }
         ]
 
@@ -327,6 +332,25 @@ class QvarnAPI:
             except qvarn.NoSuchResource as e:
                 return no_such_resource_response(str(e))
             return ok_response(obj)
+        return wrapper
+
+    def get_notifications_list_callback(self):  # pragma: no cover
+        def wrapper(content_type, body, **kwargs):
+            rid = kwargs['id']
+            cond = qvarn.All(
+                qvarn.Equal('type', 'notification'),
+                qvarn.Equal('resource_id', rid)
+            )
+            pairs = self._store.find_objects(cond)
+            body = {
+                'resources': [
+                    {
+                        'id': keys['obj_id']
+                    }
+                    for keys, _ in pairs
+                ]
+            }
+            return ok_response(body)
         return wrapper
 
     def get_post_callback(self, coll):  # pragma: no cover
