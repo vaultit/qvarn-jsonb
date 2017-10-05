@@ -23,12 +23,14 @@ Start a Qvarn running in the background.
     vars['pid-file'] = 'pid'
     vars['port'] = cliapp.runcmd([os.path.join(srcdir, 'randport' )]).strip()
     vars['url'] = 'http://127.0.0.1:{}'.format(vars['port'])
+    vars['API_URL'] = vars['url']
     config = {
         'log': [
             {
                 'filename': vars['api.log'],
             },
         ],
+        'baseurl': vars['url'],
         'token-issuer': vars['iss'],
         'token-audience': vars['aud'],
         'token-public-key': vars['pubkey'],
@@ -63,7 +65,7 @@ Start a Qvarn running in the background.
     IMPLEMENTS WHEN client requests GET (/.+) without token
     path = get_next_match()
     path = expand_vars(path, vars)
-    vars['status_code'], vars['body'] = get(vars['url'] + path)
+    vars['status_code'], vars['headers'], vars['body'] = get(vars['url'] + path)
 
     IMPLEMENTS WHEN client requests GET (/.+) using token
     path = get_next_match()
@@ -71,7 +73,8 @@ Start a Qvarn running in the background.
     headers = {
         'Authorization': 'Bearer {}'.format(vars['token']),
     }
-    vars['status_code'], vars['body'] = get(vars['url'] + path, headers)
+    vars['status_code'], vars['headers'], vars['body'] = get(
+        vars['url'] + path, headers)
 
     IMPLEMENTS WHEN client requests POST (/.+) with token and body (.+)
     path = get_next_match()
@@ -80,7 +83,7 @@ Start a Qvarn running in the background.
         'Authorization': 'Bearer {}'.format(vars['token']),
         'Content-Type': 'application/json',
     }
-    vars['status_code'], vars['body'] = post(
+    vars['status_code'], vars['headers'], vars['body'] = post(
         vars['url'] + path, headers=headers, body=body)
 
     IMPLEMENTS WHEN client requests PUT (/.+) with token and body (.+)
@@ -92,7 +95,7 @@ Start a Qvarn running in the background.
         'Authorization': 'Bearer {}'.format(vars['token']),
         'Content-Type': 'application/json',
     }
-    vars['status_code'], vars['body'] = put(
+    vars['status_code'], vars['headers'], vars['body'] = put(
         vars['url'] + path, headers=headers, body=body)
 
     IMPLEMENTS WHEN client requests DELETE (/.+) with token
@@ -101,7 +104,7 @@ Start a Qvarn running in the background.
     headers = {
         'Authorization': 'Bearer {}'.format(vars['token']),
     }
-    vars['status_code'], vars['body'] = delete(
+    vars['status_code'], vars['headers'], vars['body'] = delete(
         vars['url'] + path, headers=headers)
 
     IMPLEMENTS WHEN client uploads a fake jpg
@@ -130,8 +133,8 @@ Start a Qvarn running in the background.
 
     IMPLEMENTS THEN HTTP (\S+) header is (.+)
     header = get_next_match()
-    value = get_next_match()
-    assert 0
+    value = expand_vars(get_next_match(), vars)
+    assertEqual(vars['headers'].get(header), value)
 
     IMPLEMENTS THEN resource id is (\S+)
     import json
