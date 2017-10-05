@@ -275,6 +275,11 @@ class QvarnAPI:
                 'method': 'POST',
                 'path': path + '/listeners',
                 'callback': self.get_post_listener_callback(coll, listeners),
+            },
+            {
+                'method': 'GET',
+                'path': path + '/listeners/<id>',
+                'callback': self.get_listener_callback(coll, listeners),
             }
         ]
 
@@ -302,6 +307,15 @@ class QvarnAPI:
                 self._baseurl, coll.get_type().get_path(),
                 result_body['id'])
             return created_response(result_body, location)
+        return wrapper
+
+    def get_listener_callback(self, coll, listeners):  # pragma: no cover
+        def wrapper(content_type, body, **kwargs):
+            try:
+                obj = listeners.get(kwargs['id'])
+            except qvarn.NoSuchResource as e:
+                return no_such_resource_response(str(e))
+            return ok_response(obj)
         return wrapper
 
     def get_post_callback(self, coll):  # pragma: no cover
