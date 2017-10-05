@@ -213,5 +213,14 @@ Start a Qvarn running in the background.
     print 'id', repr(obj['id'])
     vars[id_name] = obj['id']
 
+    IMPLEMENTS THEN search result has (\d+) resources
+    wanted = int(get_next_match())
+    body = json.loads(vars['body'])
+    print 'body', repr(body)
+    resources = body['resources']
+    print 'resources', repr(resources)
+    print 'len resources', len(resources)
+    assertEqual(wanted, len(resources))
+
     IMPLEMENTS THEN response has header WWW-Authenticate containing "(.+)"
     assert 0
