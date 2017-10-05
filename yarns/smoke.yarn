@@ -210,7 +210,7 @@ the second and third should have no notifications.
     ... using token
     THEN HTTP status code is 200 OK
     AND search result at index 0 has id MSGID1
-    AND search result at index 1 has id MSGID1
+    AND search result at index 1 has id MSGID2
 
     WHEN client requests 
     ... GET /orgs/listeners/${LISTENID1}/notifications/${MSGID1}
