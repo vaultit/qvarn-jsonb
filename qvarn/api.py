@@ -441,12 +441,28 @@ class QvarnAPI:
             return ok_response(pairs[0][1])
         return wrapper
 
-    def delete_listener_callback(self, coll):  # pragma: no cover
+    def delete_listener_callback(self, listeners):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
-            obj_id = kwargs['id']
-            coll.delete(obj_id)
+            listener_id = kwargs['id']
+            listeners.delete(listener_id)
+            for obj_id in self.find_notifications(listener_id):
+                self._store.remove_objects(obj_id=obj_id)
             return ok_response({})
         return wrapper
+
+    def find_notifications(self, listener_id):  # pragma: no cover
+        cond = qvarn.All(
+            qvarn.Equal('type', 'notification'),
+            qvarn.Equal('listener_id', listener_id),
+        )
+        obj_ids = [
+            keys['obj_id']
+            for keys, _ in self._store.find_objects(cond)
+        ]
+        qvarn.log.log(
+            'trace', msg_text='Found notifications',
+            notifications=obj_ids)
+        return obj_ids
 
     def notify(self, rid, rrev, change):  # pragma: no cover
         rt = self.get_notification_resource_type()
@@ -619,9 +635,8 @@ class QvarnAPI:
     def delete_resource_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
             obj_id = kwargs['id']
-            obj = coll.get(obj_id)
             coll.delete(obj_id)
-            self.notify(obj_id, obj['revision'], 'deleted')
+            self.notify(obj_id, None, 'deleted')
             return ok_response({})
         return wrapper
 
