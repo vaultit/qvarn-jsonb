@@ -201,7 +201,22 @@ Start a Qvarn running in the background.
     import json
     index = get_next_match()
     id_name = get_next_match()
-    assert 0
+    body = json.loads(vars['body'])
+    print 'body', repr(body)
+    print 'resources', repr(body['resources'])
+    print 'at index', repr(body['resources'][index])
+    print 'id', repr(body['resources'][index]['id'])
+    vars[id_name] = body['resources'][index]['id']
+
+    found = False
+    for result in actual['resources']:
+        if values_match(wanted, result):
+            print 'MATCH!', repr(wanted), repr(result)
+            found = True
+            break
+        print 'no match', repr(wanted), repr(result)
+    assertTrue(found)
+
 
     IMPLEMENTS THEN response has header WWW-Authenticate containing "(.+)"
     assert 0
