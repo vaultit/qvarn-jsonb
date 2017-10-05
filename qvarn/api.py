@@ -323,6 +323,11 @@ class QvarnAPI:
                 'path': path + '/listeners/<listener_id>/notifications/<id>',
                 'callback': self.get_notification_callback(),
             },
+            {
+                'method': 'DELETE',
+                'path': path + '/listeners/<listener_id>/notifications/<id>',
+                'callback': self.delete_notification_callback(),
+            },
         ]
 
     def get_post_listener_callback(self, coll, listeners):  # pragma: no cover
@@ -447,6 +452,20 @@ class QvarnAPI:
             listeners.delete(listener_id)
             for obj_id in self.find_notifications(listener_id):
                 self._store.remove_objects(obj_id=obj_id)
+            return ok_response({})
+        return wrapper
+
+    def delete_notification_callback(self):  # pragma: no cover
+        def wrapper(content_type, body, **kwargs):
+            listener_id = kwargs['listener_id']
+            notification_id = kwargs['id']
+            cond = qvarn.All(
+                qvarn.Equal('type', 'notification'),
+                qvarn.Equal('listener_id', listener_id),
+                qvarn.Equal('id', notification_id),
+            )
+            for keys, _ in self._store.find_objects(cond):
+                self._store.remove_objects(**keys)
             return ok_response({})
         return wrapper
 
