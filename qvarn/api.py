@@ -402,7 +402,9 @@ class QvarnAPI:
                 qvarn.Equal('listener_id', rid)
             )
             pairs = self._store.find_objects(cond)
-            qvarn.log.log('xxx', pairs=pairs)
+            qvarn.log.log(
+                'trace', msg_text='Found notifications',
+                notifications=pairs)
             body = {
                 'resources': [
                     {
@@ -424,7 +426,9 @@ class QvarnAPI:
                 qvarn.Equal('id', notification_id),
             )
             pairs = self._store.find_objects(cond)
-            qvarn.log.log('xxx', pairs=pairs)
+            qvarn.log.log(
+                'trace', msg_text='Found notifications',
+                notifications=pairs)
             if len(pairs) == 0:
                 return no_such_resource_response(notification_id)
             if len(pairs) > 1:
@@ -461,7 +465,7 @@ class QvarnAPI:
     def listener_matches(self, obj, rid, change):  # pragma: no cover
         if change == 'created' and obj.get('notify_of_new'):
             return True
-        if obj.get('listen_on_all'):
+        if change == 'updated' and obj.get('listen_on_all'):
             return True
         if rid in obj.get('listen_on', []):
             return True
@@ -525,14 +529,13 @@ class QvarnAPI:
                 # changed later.
                 return bad_request_response(str(e))
 
-            self.notify(result_body['id'], result_body['revision'], 'updated')
+            self.notify(
+                result_body['id'], result_body['revision'], 'updated')
             return ok_response(result_body)
         return wrapper
 
     def put_subpath_callback(self, coll, subpath):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
-            qvarn.log.log('xxx', body=body)
-
             if content_type != 'application/json':
                 raise NotJson(content_type)
 
