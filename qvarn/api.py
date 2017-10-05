@@ -307,6 +307,11 @@ class QvarnAPI:
                 'method': 'GET',
                 'path': path + '/listeners/<id>/notifications',
                 'callback': self.get_notifications_list_callback(),
+            },
+            {
+                'method': 'GET',
+                'path': path + '/listeners/<listener_id>/notifications/<id>',
+                'callback': self.get_notification_callback(),
             }
         ]
 
@@ -369,6 +374,24 @@ class QvarnAPI:
                 ]
             }
             return ok_response(body)
+        return wrapper
+
+    def get_notification_callback(self):  # pragma: no cover
+        def wrapper(content_type, body, **kwargs):
+            listener_id = kwargs['listener_id']
+            notification_id = kwargs['id']
+            cond = qvarn.All(
+                qvarn.Equal('type', 'notification'),
+                qvarn.Equal('listener_id', listener_id),
+                qvarn.Equal('id', notification_id),
+            )
+            pairs = self._store.find_objects(cond)
+            qvarn.log.log('xxx', pairs=pairs)
+            if len(pairs) == 0:
+                return no_such_resource_response(notification_id)
+            if len(pairs) > 1:
+                raise TooManyResources(notification_id)
+            return ok_response(pairs[0][1])
         return wrapper
 
     def notify(self, rid, rrev, change):  # pragma: no cover
@@ -633,6 +656,12 @@ class TooManyResourceTypes(Exception):  # pragma: no cover
 
     def __init__(self, path):
         super().__init__('Too many resource types for path {}'.format(path))
+
+
+class TooManyResources(Exception):  # pragma: no cover
+
+    def __init__(self, resource_id):
+        super().__init__('Too many resources with id {}'.format(resource_id))
 
 
 class NotJson(Exception):  # pragma: no cover
