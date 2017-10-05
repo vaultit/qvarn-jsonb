@@ -262,9 +262,9 @@ class QvarnAPI:
                 },
             ])
 
-        return routes + self._get_notification_routes(path, id_path)
+        return routes + self._get_notification_routes(coll, path, id_path)
 
-    def _get_notification_routes(self, path, id_path):
+    def _get_notification_routes(self, coll, path, id_path):
         rt = self.get_listener_resource_type()
         listeners = qvarn.CollectionAPI()
         listeners.set_object_store(self._store)
@@ -274,11 +274,11 @@ class QvarnAPI:
             {
                 'method': 'POST',
                 'path': path + '/listeners',
-                'callback': self.get_post_listener_callback(listeners),
+                'callback': self.get_post_listener_callback(coll, listeners),
             }
         ]
 
-    def get_post_listener_callback(self, listeners):  # pragma: no cover
+    def get_post_listener_callback(self, coll, listeners):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
             if content_type != 'application/json':
                 raise NotJson(content_type)
@@ -291,12 +291,15 @@ class QvarnAPI:
                 qvarn.log.log('error', msg_text=str(e), body=body)
                 return bad_request_response(str(e))
 
+            if 'type' not in body:
+                body['type'] = 'listener'
+
             result_body = listeners.post(body)
             qvarn.log.log(
                 'debug', msg_text='POST a new listener, result',
                 body=result_body)
-            location = '{}{}/{}'.format(
-                self._baseurl, listeners.get_type().get_path(),
+            location = '{}{}/listeners/{}'.format(
+                self._baseurl, coll.get_type().get_path(),
                 result_body['id'])
             return created_response(result_body, location)
         return wrapper
