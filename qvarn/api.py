@@ -16,6 +16,7 @@
 
 import io
 import os
+import time
 
 import yaml
 
@@ -66,6 +67,7 @@ notification_spec = {
                 'id': '',
                 'type': '',
                 'revision': '',
+                'listener_id': '',
                 'resource_id': '',
                 'resource_revision': '',
                 'resource_change': '',
@@ -150,6 +152,21 @@ class QvarnAPI:
 
     def get_listener_resource_type(self):
         cond1 = qvarn.Equal('id', 'listener')
+        cond2 = qvarn.Equal('type', 'resource_type')
+        cond = qvarn.All(cond1, cond2)
+        results = self._store.find_objects(cond)
+        objs = [obj for _, obj in results]
+        qvarn.log.log('debug', objs=objs)
+        if len(objs) == 0:  # pragma: no cover
+            raise NoSuchResourceType('listener')
+        elif len(objs) > 1:  # pragma: no cover
+            raise TooManyResourceTypes('listener')
+        rt = qvarn.ResourceType()
+        rt.from_spec(objs[0]['spec'])
+        return rt
+
+    def get_notification_resource_type(self):  # pragma: no cover
+        cond1 = qvarn.Equal('id', 'notification')
         cond2 = qvarn.Equal('type', 'resource_type')
         cond = qvarn.All(cond1, cond2)
         results = self._store.find_objects(cond)
@@ -339,9 +356,10 @@ class QvarnAPI:
             rid = kwargs['id']
             cond = qvarn.All(
                 qvarn.Equal('type', 'notification'),
-                qvarn.Equal('resource_id', rid)
+                qvarn.Equal('listener_id', rid)
             )
             pairs = self._store.find_objects(cond)
+            qvarn.log.log('xxx', pairs=pairs)
             body = {
                 'resources': [
                     {
@@ -352,6 +370,44 @@ class QvarnAPI:
             }
             return ok_response(body)
         return wrapper
+
+    def notify(self, rid, rrev, change):  # pragma: no cover
+        rt = self.get_notification_resource_type()
+        notifs = qvarn.CollectionAPI()
+        notifs.set_object_store(self._store)
+        notifs.set_resource_type(rt)
+        obj = {
+            'type': 'notification',
+            'resource_id': rid,
+            'resource_revision': rrev,
+            'resource_change': change,
+            'timestamp': self.get_current_timestamp(),
+        }
+        for listener in self.find_listeners(rid, change):
+            obj['listener_id'] = listener['id']
+            qvarn.log.log(
+                'info', msg_text='Notify listener of change',
+                notification=obj)
+            notifs.post(obj)
+
+    def find_listeners(self, rid, change):  # pragma: no cover
+        cond = qvarn.Equal('type', 'listener')
+        pairs = self._store.find_objects(cond)
+        for _, obj in pairs:
+            if self.listener_matches(obj, rid, change):
+                yield obj
+
+    def listener_matches(self, obj, rid, change):  # pragma: no cover
+        if change == 'created' and obj.get('notify_of_new'):
+            return True
+        if obj.get('listen_on_all'):
+            return True
+        if rid in obj.get('listen_on', []):
+            return True
+        return False
+
+    def get_current_timestamp(self):  # pragma: no cover
+        return time.strftime('%Y-%m-%dT%H:%M:%S')
 
     def get_post_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
@@ -370,6 +426,7 @@ class QvarnAPI:
                 body=result_body)
             location = '{}{}/{}'.format(
                 self._baseurl, coll.get_type().get_path(), result_body['id'])
+            self.notify(result_body['id'], result_body['revision'], 'created')
             return created_response(result_body, location)
         return wrapper
 
