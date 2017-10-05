@@ -278,6 +278,11 @@ class QvarnAPI:
             },
             {
                 'method': 'GET',
+                'path': path + '/listeners',
+                'callback': self.get_listener_list_callback(listeners),
+            },
+            {
+                'method': 'GET',
                 'path': path + '/listeners/<id>',
                 'callback': self.get_listener_callback(coll, listeners),
             }
@@ -307,6 +312,12 @@ class QvarnAPI:
                 self._baseurl, coll.get_type().get_path(),
                 result_body['id'])
             return created_response(result_body, location)
+        return wrapper
+
+    def get_listener_list_callback(self, listeners):  # pragma: no cover
+        def wrapper(content_type, body, **kwargs):
+            body = listeners.list()
+            return ok_response(body)
         return wrapper
 
     def get_listener_callback(self, coll, listeners):  # pragma: no cover
