@@ -47,22 +47,22 @@ def add_postgres_config(config):
 def get(url, headers=None):
     print('get: url={} headers={}'.format(url, headers))
     r = requests.get(url, headers=headers)
-    return r.status_code, r.text
+    return r.status_code, dict(r.headers), r.text
 
 
 def post(url, headers=None, body=None):
     r = requests.post(url, headers=headers, data=body)
-    return r.status_code, r.text
+    return r.status_code, dict(r.headers), r.text
 
 
 def put(url, headers=None, body=None):
     r = requests.put(url, headers=headers, data=body)
-    return r.status_code, r.text
+    return r.status_code, dict(r.headers), r.text
 
 
 def delete(url, headers=None):
     r = requests.delete(url, headers=headers)
-    return r.status_code, r.text
+    return r.status_code, dict(r.headers), r.text
 
 
 def create_token_signing_key_pair():
