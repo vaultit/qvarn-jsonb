@@ -309,6 +309,11 @@ class QvarnAPI:
                 'callback': self.put_listener_callback(listeners),
             },
             {
+                'method': 'DELETE',
+                'path': path + '/listeners/<id>',
+                'callback': self.delete_listener_callback(listeners),
+            },
+            {
                 'method': 'GET',
                 'path': path + '/listeners/<id>/notifications',
                 'callback': self.get_notifications_list_callback(),
@@ -436,6 +441,13 @@ class QvarnAPI:
             return ok_response(pairs[0][1])
         return wrapper
 
+    def delete_listener_callback(self, coll):  # pragma: no cover
+        def wrapper(content_type, body, **kwargs):
+            obj_id = kwargs['id']
+            coll.delete(obj_id)
+            return ok_response({})
+        return wrapper
+
     def notify(self, rid, rrev, change):  # pragma: no cover
         rt = self.get_notification_resource_type()
         notifs = qvarn.CollectionAPI()
@@ -465,7 +477,7 @@ class QvarnAPI:
     def listener_matches(self, obj, rid, change):  # pragma: no cover
         if change == 'created' and obj.get('notify_of_new'):
             return True
-        if change == 'updated' and obj.get('listen_on_all'):
+        if change != 'created' and obj.get('listen_on_all'):
             return True
         if rid in obj.get('listen_on', []):
             return True
@@ -606,8 +618,11 @@ class QvarnAPI:
 
     def delete_resource_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
-            body = coll.delete(kwargs['id'])
-            return ok_response(body)
+            obj_id = kwargs['id']
+            obj = coll.get(obj_id)
+            coll.delete(obj_id)
+            self.notify(obj_id, obj['revision'], 'deleted')
+            return ok_response({})
         return wrapper
 
 
