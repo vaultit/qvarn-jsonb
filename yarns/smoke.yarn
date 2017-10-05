@@ -298,6 +298,7 @@ listener listening to all the changes should get the notification, too.
     ... GET /orgs/listeners/${LISTENID3}/notifications
     ... using token
     THEN HTTP status code is 200 OK
+    AND search result has 1 resources
     AND search result at index 0 has id MSGID4
 
     WHEN client requests
