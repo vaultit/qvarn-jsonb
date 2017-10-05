@@ -304,6 +304,11 @@ class QvarnAPI:
                 'callback': self.get_listener_callback(coll, listeners),
             },
             {
+                'method': 'PUT',
+                'path': path + '/listeners/<id>',
+                'callback': self.put_listener_callback(listeners),
+            },
+            {
                 'method': 'GET',
                 'path': path + '/listeners/<id>/notifications',
                 'callback': self.get_notifications_list_callback(),
@@ -312,7 +317,7 @@ class QvarnAPI:
                 'method': 'GET',
                 'path': path + '/listeners/<listener_id>/notifications/<id>',
                 'callback': self.get_notification_callback(),
-            }
+            },
         ]
 
     def get_post_listener_callback(self, coll, listeners):  # pragma: no cover
@@ -354,6 +359,39 @@ class QvarnAPI:
             except qvarn.NoSuchResource as e:
                 return no_such_resource_response(str(e))
             return ok_response(obj)
+        return wrapper
+
+    def put_listener_callback(self, listeners):  # pragma: no cover
+        def wrapper(content_type, body, **kwargs):
+            if content_type != 'application/json':
+                raise NotJson(content_type)
+
+            if 'type' not in body:
+                body['type'] = 'listener'
+
+            listener_id = kwargs['id']
+
+            if 'id' not in body:
+                body['id'] = listener_id
+
+            try:
+                self._validator.validate_resource_update(
+                    body, listeners.get_type())
+            except qvarn.ValidationError as e:
+                qvarn.log.log('error', msg_text=str(e), body=body)
+                return bad_request_response(str(e))
+
+            try:
+                result_body = listeners.put(body)
+            except qvarn.WrongRevision as e:
+                return conflict_response(str(e))
+            except qvarn.NoSuchResource as e:
+                # We intentionally say bad request, instead of not found.
+                # This is to be compatible with old Qvarn. This may get
+                # changed later.
+                return bad_request_response(str(e))
+
+            return ok_response(result_body)
         return wrapper
 
     def get_notifications_list_callback(self):  # pragma: no cover
@@ -487,6 +525,7 @@ class QvarnAPI:
                 # changed later.
                 return bad_request_response(str(e))
 
+            self.notify(result_body['id'], result_body['revision'], 'updated')
             return ok_response(result_body)
         return wrapper
 
