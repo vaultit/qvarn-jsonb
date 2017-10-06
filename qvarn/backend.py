@@ -111,7 +111,16 @@ subject.from_spec({
                         'subfield': '',
                     },
                 },
+                'blob': {
+                    'prototype': {
+                        'body': 'blob',
+                        'content-type': '',
+                    },
+                },
             },
+            'files': [
+                'blob',
+            ],
         },
     ],
 })
