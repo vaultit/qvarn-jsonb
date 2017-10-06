@@ -226,7 +226,7 @@ class QvarnAPI:
         }
         return ok_response(version)
 
-    def resource_routes(self, path, rt):
+    def resource_routes(self, path, rt):  # pragma: no cover
         coll = qvarn.CollectionAPI()
         coll.set_object_store(self._store)
         coll.set_resource_type(rt)
@@ -268,12 +268,15 @@ class QvarnAPI:
         files = rt.get_files()
         for subpath in rt.get_subpaths():
             if subpath not in files:
-                routes.extend(
-                    self.get_subresource_routes(id_path, coll, subpath))
+                more = self.get_subresource_routes(id_path, coll, subpath)
+            else:
+                more = self.get_file_routes(id_path, coll, subpath)
+            routes.extend(more)
 
         return routes + self._get_notification_routes(coll, path, id_path)
 
-    def get_subresource_routes(self, id_path, coll, subpath):
+    def get_subresource_routes(
+            self, id_path, coll, subpath):  # pragma: no cover
         return [
             {
                 'method': 'GET',
@@ -284,6 +287,20 @@ class QvarnAPI:
                 'method': 'PUT',
                 'path': '{}/{}'.format(id_path, subpath),
                 'callback': self.put_subpath_callback(coll, subpath),
+            },
+        ]
+
+    def get_file_routes(self, id_path, objcoll, subpath):  # pragma: no cover
+        return [
+            {
+                'method': 'GET',
+                'path': '{}/{}'.format(id_path, subpath),
+                'callback': self.get_file_callback(objcoll, subpath),
+            },
+            {
+                'method': 'PUT',
+                'path': '{}/{}'.format(id_path, subpath),
+                'callback': self.put_file_callback(objcoll, subpath),
             },
         ]
 
@@ -629,6 +646,40 @@ class QvarnAPI:
             return ok_response(result_body)
         return wrapper
 
+    def put_file_callback(self, objcoll, subpath):  # pragma: no cover
+        def wrapper(content_type, body, **kwargs):
+            obj_id = kwargs['id']
+
+            # FIXME: add header getting to apifw
+            import bottle
+            revision = bottle.request.get_header('Revision')
+
+            obj = objcoll.get(obj_id)
+            if obj['revision'] != revision:
+                qvarn.log.log(
+                    'error',
+                    msg_text='Client gave wrong revision',
+                    revision_from_client=revision,
+                    current_revision=obj['revision'])
+                return conflict_response('Bad revision {}'.format(revision))
+
+            sub_obj = objcoll.get_subresource(obj_id, subpath)
+            sub_obj['content_type'] = content_type
+            new_sub = objcoll.put_subresource(
+                sub_obj, subpath=subpath, obj_id=obj_id, revision=revision)
+
+            try:
+                self._store.remove_blob(subpath=subpath, obj_id=obj_id)
+                self._store.create_blob(body, subpath=subpath, obj_id=obj_id)
+            except qvarn.NoSuchObject as e:
+                return no_such_resource_response(str(e))
+
+            headers = {
+                'Revision': new_sub['revision'],
+            }
+            return ok_response('', headers)
+        return wrapper
+
     def get_resource_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
             try:
@@ -645,6 +696,22 @@ class QvarnAPI:
             except qvarn.NoSuchResource as e:
                 return no_such_resource_response(str(e))
             return ok_response(obj)
+        return wrapper
+
+    def get_file_callback(self, coll, subpath):  # pragma: no cover
+        def wrapper(content_type, body, **kwargs):
+            obj_id = kwargs['id']
+            try:
+                obj = coll.get(obj_id)
+                sub_obj = coll.get_subresource(obj_id, subpath)
+                blob = self._store.get_blob(obj_id=obj_id, subpath=subpath)
+            except (qvarn.NoSuchResource, qvarn.NoSuchObject) as e:
+                return no_such_resource_response(str(e))
+            headers = {
+                'Content-Type': sub_obj['content_type'],
+                'Revision': obj['revision'],
+            }
+            return ok_response(blob, headers)
         return wrapper
 
     def get_resource_list_callback(self, coll):  # pragma: no cover
