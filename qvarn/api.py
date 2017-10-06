@@ -690,10 +690,13 @@ def response(status, body, headers):  # pragma: no cover
     )
 
 
-def ok_response(body):  # pragma: no cover
-    headers = {
-        'Content-Type': 'application/json',
-    }
+def ok_response(body, headers=None):  # pragma: no cover
+    if headers is None:
+        headers = {}
+    if 'Content-Type' not in headers:
+        headers.update({
+            'Content-Type': 'application/json',
+        })
     return response(apifw.HTTP_OK, body, headers)
 
 
