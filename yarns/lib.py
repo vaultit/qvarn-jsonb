@@ -36,6 +36,24 @@ datadir = os.environ['DATADIR']
 vars = Variables(datadir)
 
 
+def hexdigit(c):
+    return ord(c) - ord('0')
+
+
+def unescape(s):
+    t = ''
+    while s:
+        if s.startswith('\\x') and len(s) >= 4:
+            a = hexdigit(s[2])
+            b = hexdigit(s[3])
+            t += chr(a * 16 + b)
+            s = s[4:]
+        else:
+            t += s[0]
+            s = s[1:]
+    return t
+
+
 def add_postgres_config(config):
     pg = os.environ.get('QVARN_POSTGRES')
     if pg:
@@ -48,7 +66,7 @@ def add_postgres_config(config):
 def get(url, headers=None):
     print('get: url={} headers={}'.format(url, headers))
     r = requests.get(url, headers=headers)
-    return r.status_code, dict(r.headers), r.text
+    return r.status_code, dict(r.headers), r.content
 
 
 def post(url, headers=None, body=None):
