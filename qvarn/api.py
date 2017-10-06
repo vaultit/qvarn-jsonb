@@ -265,21 +265,27 @@ class QvarnAPI:
             },
         ]
 
+        files = rt.get_files()
         for subpath in rt.get_subpaths():
-            routes.extend([
-                {
-                    'method': 'GET',
-                    'path': '{}/{}'.format(id_path, subpath),
-                    'callback': self.get_subpath_callback(coll, subpath),
-                },
-                {
-                    'method': 'PUT',
-                    'path': '{}/{}'.format(id_path, subpath),
-                    'callback': self.put_subpath_callback(coll, subpath),
-                },
-            ])
+            if subpath not in files:
+                routes.extend(
+                    self.get_subresource_routes(id_path, coll, subpath))
 
         return routes + self._get_notification_routes(coll, path, id_path)
+
+    def get_subresource_routes(self, id_path, coll, subpath):
+        return [
+            {
+                'method': 'GET',
+                'path': '{}/{}'.format(id_path, subpath),
+                'callback': self.get_subpath_callback(coll, subpath),
+            },
+            {
+                'method': 'PUT',
+                'path': '{}/{}'.format(id_path, subpath),
+                'callback': self.put_subpath_callback(coll, subpath),
+            },
+        ]
 
     def _get_notification_routes(self, coll, path, id_path):
         rt = self.get_listener_resource_type()
