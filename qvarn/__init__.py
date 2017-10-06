@@ -50,6 +50,8 @@ from .objstore import (
     UnknownKey,
     WrongKeyType,
     KeyValueError,
+    NoSuchObject,
+    BlobKeyCollision,
     flatten_object,
 )
 
