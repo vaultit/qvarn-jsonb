@@ -405,6 +405,10 @@ class QvarnAPI:
         return wrapper
 
     def get_notifications_list_callback(self):  # pragma: no cover
+        def timestamp(pair):
+            _, obj = pair
+            return obj['timestamp']
+
         def wrapper(content_type, body, **kwargs):
             rid = kwargs['id']
             cond = qvarn.All(
@@ -412,15 +416,16 @@ class QvarnAPI:
                 qvarn.Equal('listener_id', rid)
             )
             pairs = self._store.find_objects(cond)
+            ordered = sorted(pairs, key=timestamp)
             qvarn.log.log(
                 'trace', msg_text='Found notifications',
-                notifications=pairs)
+                notifications=ordered)
             body = {
                 'resources': [
                     {
                         'id': keys['obj_id']
                     }
-                    for keys, _ in pairs
+                    for keys, _ in ordered
                 ]
             }
             return ok_response(body)
@@ -524,7 +529,11 @@ class QvarnAPI:
         return False
 
     def get_current_timestamp(self):  # pragma: no cover
-        return time.strftime('%Y-%m-%dT%H:%M:%S')
+        t = time.time()
+        tm = time.gmtime(t)
+        ss = t - int(t)
+        secs = '%f' % ss
+        return time.strftime('%Y-%m-%dT%H:%M:%S', tm) + secs[1:]
 
     def get_post_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
