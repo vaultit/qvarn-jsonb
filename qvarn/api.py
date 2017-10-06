@@ -465,7 +465,12 @@ class QvarnAPI:
                 qvarn.Equal('id', notification_id),
             )
             for keys, _ in self._store.find_objects(cond):
-                self._store.remove_objects(**keys)
+                values = {
+                    key: keys[key]
+                    for key in keys
+                    if isinstance(keys[key], str)
+                }
+                self._store.remove_objects(**values)
             return ok_response({})
         return wrapper
 
