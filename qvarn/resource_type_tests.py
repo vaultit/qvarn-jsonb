@@ -66,7 +66,16 @@ class ResourceTypeTests(unittest.TestCase):
                                 'subbar': '',
                             },
                         },
+                        'blob': {
+                            'prototype': {
+                                'blob': 'blob',
+                                'content-type': '',
+                            },
+                        },
                     },
+                    'files': [
+                        'blob',
+                    ],
                 },
             ],
         }
@@ -84,15 +93,25 @@ class ResourceTypeTests(unittest.TestCase):
         self.assertEqual(
             rt.get_latest_prototype(), spec['versions'][-1]['prototype'])
         self.assertEqual(rt.as_dict(), spec)
+        subpaths = spec['versions'][-1]['subpaths']
         self.assertEqual(
             rt.get_subpaths(),
             {
-                'subfoo':
-                spec['versions'][-1]['subpaths']['subfoo']['prototype'],
-            })
+                'subfoo': subpaths['subfoo']['prototype'],
+                'blob': subpaths['blob']['prototype'],
+            },
+        )
         self.assertEqual(
             rt.get_subprototype('subfoo'),
             spec['versions'][-1]['subpaths']['subfoo']['prototype']
+        )
+        self.assertEqual(rt.get_files(), ['blob'])
+        self.assertEqual(
+            rt.get_subprototype('blob'),
+            {
+                'blob': 'blob',
+                'content-type': '',
+            }
         )
 
 
