@@ -187,9 +187,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
 
     _table = '_objects'
     _auxtable = '_aux'
-    _strtable = '_strings'
-    _inttable = '_ints'
-    _booltable = '_bools'
+    _blobtable = '_blobs'
 
     def __init__(self, sql):
         self._sql = sql
@@ -208,8 +206,11 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         # Create main table for objects.
         self._create_table(self._table, self._keys, '_obj', dict)
 
-        # Create helper tables for fields at all depths.
+        # Create helper table for fields at all depths. Needed by searches.
         self._create_table(self._auxtable, self._keys, '_field', dict)
+
+        # Create helper table for blobs.
+        self._create_table(self._blobtable, self._keys, '_blob', bytes)
 
     def _create_table(self, name, col_dict, col_name, col_type):
         columns = dict(col_dict)
@@ -305,14 +306,44 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         obj = row.pop('_obj')
         return keys, obj
 
-    def create_blob(self, blob, subpath=None, **keys):
-        raise NotImplementedError()
+    def create_blob(self, blob, **keys):
+        qvarn.log.log('trace', msg_text='Creating blob', keys=keys)
 
-    def get_blob(self, subpath=None, **keys):
-        raise NotImplementedError()
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+        if not self.get_objects(**keys):
+            raise NoSuchObject(keys)
 
-    def remove_blob(self, blob, subpath=None, **keys):
-        raise NotImplementedError()
+        with self._sql.transaction() as t:
+            column_names = list(keys.keys()) + ['_blob']
+            query = t.insert_object(self._blobtable, *column_names)
+
+            values = dict(keys)
+            values['_blob'] = blob
+
+            t.execute(query, values)
+
+    def get_blob(self, **keys):
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+
+        column_names = list(keys.keys())
+
+        with self._sql.transaction() as t:
+            query = t.select_objects(self._blobtable, '_blob', *column_names)
+            blobs = [bytes(row['_blob']) for row in t.execute(query, keys)]
+            if len(blobs) == 0:
+                raise NoSuchObject(keys)
+            return blobs
+
+    def remove_blob(self, **keys):
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+
+        column_names = list(keys.keys())
+        with self._sql.transaction() as t:
+            query = t.remove_objects(self._blobtable, *column_names)
+            t.execute(query, keys)
 
 
 class KeyCollision(Exception):

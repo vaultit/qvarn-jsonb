@@ -66,9 +66,7 @@ class Transaction:
         self._conn = None
 
     def execute(self, query, values):
-        qvarn.log.log(
-            'trace', msg_text='executing SQL query', query=query,
-            values=values)
+        qvarn.log.log('trace', msg_text='executing SQL query', query=query)
         c = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         c.execute(query, values)
         return c
@@ -92,6 +90,7 @@ class Transaction:
             (int, 'BIGINT'),
             (bool, 'BOOL'),
             (dict, 'JSONB'),
+            (bytes, 'BYTEA'),
         ]
         for t, n in types:
             if col_type == t:
