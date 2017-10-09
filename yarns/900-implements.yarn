@@ -98,6 +98,32 @@ Start a Qvarn running in the background.
     vars['status_code'], vars['headers'], vars['body'] = put(
         vars['url'] + path, headers=headers, body=body)
 
+    IMPLEMENTS WHEN client requests PUT (/[a-z0-9/${}]+) with token, revision (\S+), content-type (\S+), and empty body
+    path = expand_vars(get_next_match(), vars)
+    revision = expand_vars(get_next_match(), vars)
+    ctype = expand_vars(get_next_match(), vars)
+    body = ''
+    headers = {
+        'Authorization': 'Bearer {}'.format(vars['token']),
+        'Revision': revision,
+        'Content-Type': ctype,
+    }
+    vars['status_code'], vars['headers'], vars['body'] = put(
+        vars['url'] + path, headers=headers, body=body)
+
+    IMPLEMENTS WHEN client requests PUT (/[a-z0-9/${}]+) with token, revision (\S+), content-type (\S+), and body "(.+)"
+    path = expand_vars(get_next_match(), vars)
+    revision = expand_vars(get_next_match(), vars)
+    ctype = expand_vars(get_next_match(), vars)
+    body = unescape(expand_vars(get_next_match(), vars))
+    headers = {
+        'Authorization': 'Bearer {}'.format(vars['token']),
+        'Revision': revision,
+        'Content-Type': ctype,
+    }
+    vars['status_code'], vars['headers'], vars['body'] = put(
+        vars['url'] + path, headers=headers, body=body)
+
     IMPLEMENTS WHEN client requests DELETE (/.+) with token
     path = get_next_match()
     path = expand_vars(path, vars)
@@ -136,6 +162,11 @@ Start a Qvarn running in the background.
     value = expand_vars(get_next_match(), vars)
     assertEqual(vars['headers'].get(header), value)
 
+    IMPLEMENTS THEN remember HTTP (\S+) header as (.+)
+    header = get_next_match()
+    name = get_next_match()
+    vars[name] = vars['headers'].get(header)
+
     IMPLEMENTS THEN resource id is (\S+)
     import json
     name = get_next_match()
@@ -149,6 +180,16 @@ Start a Qvarn running in the background.
     body = json.loads(vars['body'])
     vars[name] = body['revision']
 
+    IMPLEMENTS THEN revisions (\S+) and (\S+) are different
+    rev1 = get_next_match()
+    rev2 = get_next_match()
+    assertNotEqual(vars[rev1], vars[rev2])
+
+    IMPLEMENTS THEN revisions (\S+) and (\S+) match
+    rev1 = get_next_match()
+    rev2 = get_next_match()
+    assertEqual(vars[rev1], vars[rev2])
+
     IMPLEMENTS THEN JSON body matches (.+)
     import json
     wanted = get_next_match()
@@ -160,6 +201,11 @@ Start a Qvarn running in the background.
     print 'actual ', repr(actual)
     print 'wanted3', repr(wanted)
     assertTrue(values_match(wanted, actual))
+
+    IMPLEMENTS THEN body is "(.+)"
+    wanted = unescape(expand_vars(get_next_match(), vars))
+    body = vars['body']
+    assertTrue(values_match(wanted, body))
 
     IMPLEMENTS THEN search result contains (.+)
     import json

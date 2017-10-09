@@ -68,6 +68,12 @@ class ObjectStoreInterface:  # pragma: no cover
             if key not in known_keys:
                 raise UnknownKey(key)
 
+    def check_value_types(self, **keys):
+        known_keys = self.get_known_keys()
+        for key in keys:
+            if type(keys[key]) is not known_keys[key]:
+                raise KeyValueError(key, keys[key])
+
     def create_object(self, obj, auxtable=True, **keys):
         raise NotImplementedError()
 
@@ -80,11 +86,21 @@ class ObjectStoreInterface:  # pragma: no cover
     def find_objects(self, cond):
         raise NotImplementedError()
 
+    def create_blob(self, blob, subpath=None, **keys):
+        raise NotImplementedError()
+
+    def get_blob(self, subpath=None, **keys):
+        raise NotImplementedError()
+
+    def remove_blob(self, blob, subpath=None, **keys):
+        raise NotImplementedError()
+
 
 class MemoryObjectStore(ObjectStoreInterface):
 
     def __init__(self):
         self._objs = []
+        self._blobs = []
         self._known_keys = {}
 
     def get_known_keys(self):
@@ -97,17 +113,56 @@ class MemoryObjectStore(ObjectStoreInterface):
         self._known_keys = keys
 
     def create_object(self, obj, auxtable=True, **keys):
-        self.check_all_keys_are_allowed(**keys)
         qvarn.log.log(
             'trace', msg_text='Creating object', object=repr(obj), keys=keys)
-        for key in keys:
-            if type(keys[key]) is not self._known_keys[key]:
-                raise KeyValueError(key, keys[key])
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+        self._check_unique_object(**keys)
+        self._objs.append((obj, keys))
 
+    def _check_unique_object(self, **keys):
         for _, k in self._objs:
             if self._keys_match(k, keys):
                 raise KeyCollision(k)
-        self._objs.append((obj, keys))
+
+    def create_blob(self, blob, **keys):
+        qvarn.log.log('trace', msg_text='Creating blob', keys=keys)
+        subpath = keys.pop('subpath')
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+        self._check_unique_blob(subpath, **keys)
+        if not self.get_objects(**keys):
+            raise NoSuchObject(keys)
+        self._blobs.append((blob, subpath, keys))
+
+    def _check_unique_blob(self, subpath, **keys):
+        for _, s, k in self._blobs:
+            if self._keys_match(k, keys) and s == subpath:
+                raise BlobKeyCollision(subpath, k)
+
+    def get_blob(self, **keys):
+        subpath = keys.pop('subpath')
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+        blobs = [
+            b
+            for b, s, k in self._blobs
+            if self._keys_match(k, keys) and s == subpath
+        ]
+        assert len(blobs) <= 1
+        if not blobs:
+            raise NoSuchObject(keys)
+        return blobs[0]
+
+    def remove_blob(self, **keys):
+        subpath = keys.pop('subpath')
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+        self._blobs = [
+            b
+            for b, s, k in self._blobs
+            if not self._keys_match(k, keys) or s != subpath
+        ]
 
     def remove_objects(self, **keys):
         self.check_all_keys_are_allowed(**keys)
@@ -132,9 +187,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
 
     _table = '_objects'
     _auxtable = '_aux'
-    _strtable = '_strings'
-    _inttable = '_ints'
-    _booltable = '_bools'
+    _blobtable = '_blobs'
 
     def __init__(self, sql):
         self._sql = sql
@@ -153,8 +206,11 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         # Create main table for objects.
         self._create_table(self._table, self._keys, '_obj', dict)
 
-        # Create helper tables for fields at all depths.
+        # Create helper table for fields at all depths. Needed by searches.
         self._create_table(self._auxtable, self._keys, '_field', dict)
+
+        # Create helper table for blobs.
+        self._create_table(self._blobtable, self._keys, '_blob', bytes)
 
     def _create_table(self, name, col_dict, col_name, col_type):
         columns = dict(col_dict)
@@ -250,11 +306,57 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         obj = row.pop('_obj')
         return keys, obj
 
+    def create_blob(self, blob, **keys):
+        qvarn.log.log('trace', msg_text='Creating blob', keys=keys)
+
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+        if not self.get_objects(**keys):
+            raise NoSuchObject(keys)
+
+        with self._sql.transaction() as t:
+            column_names = list(keys.keys()) + ['_blob']
+            query = t.insert_object(self._blobtable, *column_names)
+
+            values = dict(keys)
+            values['_blob'] = blob
+
+            t.execute(query, values)
+
+    def get_blob(self, **keys):
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+
+        column_names = list(keys.keys())
+
+        with self._sql.transaction() as t:
+            query = t.select_objects(self._blobtable, '_blob', *column_names)
+            blobs = [bytes(row['_blob']) for row in t.execute(query, keys)]
+            if len(blobs) == 0:
+                raise NoSuchObject(keys)
+            return blobs
+
+    def remove_blob(self, **keys):
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+
+        column_names = list(keys.keys())
+        with self._sql.transaction() as t:
+            query = t.remove_objects(self._blobtable, *column_names)
+            t.execute(query, keys)
+
 
 class KeyCollision(Exception):
 
     def __init__(self, keys):
         super().__init__('Cannot add object with same keys: %r' % keys)
+
+
+class BlobKeyCollision(Exception):
+
+    def __init__(self, subpath, keys):
+        super().__init__(
+            'Cannot add blob with same keys: subpath=%s %r' % (subpath, keys))
 
 
 class UnknownKey(Exception):
@@ -275,6 +377,12 @@ class KeyValueError(Exception):
 
     def __init__(self, key, value):
         super().__init__('Key %r value %r has the wrong type' % (key, value))
+
+
+class NoSuchObject(Exception):
+
+    def __init__(self, keys):
+        super().__init__('No object/blob with keys {}'.format(keys))
 
 
 def flatten_object(obj):

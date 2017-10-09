@@ -28,6 +28,8 @@ class ObjectStoreTests(unittest.TestCase):
         self.obj2 = {
             'name': 'this is my other object',
         }
+        self.blob1 = 'my first blob'
+        self.blob2 = 'my other blob'
 
     def create_store(self, **keys):
         store = qvarn.MemoryObjectStore()
@@ -122,6 +124,40 @@ class ObjectStoreTests(unittest.TestCase):
             objs,
             [({'key': '1st'}, self.obj1)]
         )
+
+    def test_has_no_blob_initially(self):
+        store = self.create_store(key=str)
+        store.create_object(self.obj1, key='1st')
+        with self.assertRaises(qvarn.NoSuchObject):
+            store.get_blob(key='1st', subpath='blob')
+
+    def test_add_blob_to_nonexistent_parent_fails(self):
+        store = self.create_store(key=str)
+        store.create_object(self.obj1, key='1st')
+        with self.assertRaises(qvarn.NoSuchObject):
+            store.create_blob(self.blob1, key='2nd', subpath='blob')
+
+    def test_adds_blob(self):
+        store = self.create_store(key=str)
+        store.create_object(self.obj1, key='1st')
+        store.create_blob(self.blob1, key='1st', subpath='blob')
+        blob = store.get_blob(key='1st', subpath='blob')
+        self.assertEqual(blob, self.blob1)
+
+    def test_add_blob_twice_fails(self):
+        store = self.create_store(key=str)
+        store.create_object(self.obj1, key='1st')
+        store.create_blob(self.blob1, key='1st', subpath='blob')
+        with self.assertRaises(qvarn.BlobKeyCollision):
+            store.create_blob(self.blob1, key='1st', subpath='blob')
+
+    def test_removes_blob(self):
+        store = self.create_store(key=str)
+        store.create_object(self.obj1, key='1st')
+        store.create_blob(self.blob1, key='1st', subpath='blob')
+        store.remove_blob(key='1st', subpath='blob')
+        with self.assertRaises(qvarn.NoSuchObject):
+            store.get_blob(key='1st', subpath='blob')
 
 
 class FlattenObjectsTests(unittest.TestCase):
