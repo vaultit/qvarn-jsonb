@@ -6,11 +6,9 @@ This file has release notes for Qvarn (the JSONB version).
 Version 0.85+git, not yet released
 ----------------------------------
 
-* Lars Wirzenius added support for notifications and blobs to the API.
-
-Version 0.85, released 2017-09-27
-----------------------------------
-
+* All old API tests (`test-api`) pass. Qvarn (JSONB) is functionally
+  complete now, and API compatible with the old Qvarn. It may not be
+  performant enough yet.
 
 Version 0.84, released 2017-09-27
 -----------------------------------------------------------------------------
