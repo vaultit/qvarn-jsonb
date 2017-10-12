@@ -34,11 +34,7 @@ class QvarnAPI:
 
     def add_resource_type(self, rt):
         path = rt.get_path()
-        cond1 = qvarn.Equal('path', path)
-        cond2 = qvarn.Equal('type', 'resource_type')
-        cond = qvarn.All(cond1, cond2)
-        results = self._store.find_objects(cond)
-        objs = [obj for _, obj in results]
+        objs = self._get_resource_type_given_path(path)
         if not objs:
             obj = {
                 'id': rt.get_type(),
@@ -50,12 +46,7 @@ class QvarnAPI:
                 obj, obj_id=obj['id'], subpath='', auxtable=True)
 
     def get_resource_type(self, path):
-        cond1 = qvarn.Equal('path', path)
-        cond2 = qvarn.Equal('type', 'resource_type')
-        cond = qvarn.All(cond1, cond2)
-        results = self._store.find_objects(cond)
-        objs = [obj for _, obj in results]
-        qvarn.log.log('debug', objs=objs)
+        objs = self._get_resource_type_given_path(path)
         if len(objs) == 0:
             qvarn.log.log(
                 'error',
@@ -73,32 +64,33 @@ class QvarnAPI:
         rt.from_spec(objs[0]['spec'])
         return rt
 
-    def get_listener_resource_type(self):
-        cond1 = qvarn.Equal('id', 'listener')
-        cond2 = qvarn.Equal('type', 'resource_type')
-        cond = qvarn.All(cond1, cond2)
+    def _get_resource_type_given_path(self, path):
+        cond = qvarn.All(
+            qvarn.Equal('path', path),
+            qvarn.Equal('type', 'resource_type'),
+        )
         results = self._store.find_objects(cond)
-        objs = [obj for _, obj in results]
-        qvarn.log.log('debug', objs=objs)
-        if len(objs) == 0:  # pragma: no cover
-            raise qvarn.NoSuchResourceType('listener')
-        elif len(objs) > 1:  # pragma: no cover
-            raise qvarn.TooManyResourceTypes('listener')
-        rt = qvarn.ResourceType()
-        rt.from_spec(objs[0]['spec'])
-        return rt
+        return [obj for _, obj in results]
+
+    def get_listener_resource_type(self):
+        return self._get_resource_type_given_type('listener')
 
     def get_notification_resource_type(self):  # pragma: no cover
-        cond1 = qvarn.Equal('id', 'notification')
-        cond2 = qvarn.Equal('type', 'resource_type')
-        cond = qvarn.All(cond1, cond2)
+        return self._get_resource_type_given_type('notification')
+
+    def _get_resource_type_given_type(self, type_name):
+        cond = qvarn.All(
+            qvarn.Equal('id', type_name),
+            qvarn.Equal('type', 'resource_type'),
+        )
         results = self._store.find_objects(cond)
         objs = [obj for _, obj in results]
-        qvarn.log.log('debug', objs=objs)
+
         if len(objs) == 0:  # pragma: no cover
-            raise qvarn.NoSuchResourceType('listener')
+            raise qvarn.NoSuchResourceType(type_name)
         elif len(objs) > 1:  # pragma: no cover
-            raise qvarn.TooManyResourceTypes('listener')
+            raise qvarn.TooManyResourceTypes(type_name)
+
         rt = qvarn.ResourceType()
         rt.from_spec(objs[0]['spec'])
         return rt
