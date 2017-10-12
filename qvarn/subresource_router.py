@@ -21,7 +21,6 @@ class SubresourceRouter(qvarn.Router):
 
     def __init__(self):
         super().__init__()
-        self._store = None
         self._parent_coll = None
         self._subpath = None
 
@@ -30,9 +29,6 @@ class SubresourceRouter(qvarn.Router):
 
     def set_parent_collection(self, parent_coll):
         self._parent_coll = parent_coll
-
-    def set_object_store(self, store):
-        self._store = store
 
     def get_routes(self):
         rt = self._parent_coll.get_type()
@@ -58,7 +54,7 @@ class SubresourceRouter(qvarn.Router):
             return qvarn.no_such_resource_response(str(e))
         return qvarn.ok_response(obj)
 
-    def put_subpath_callback(self, content_type, body, *args, **kwargs):
+    def _put_subresource(self, content_type, body, *args, **kwargs):
         if content_type != 'application/json':
             raise qvarn.NotJson(content_type)
 
