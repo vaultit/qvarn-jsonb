@@ -96,6 +96,7 @@ from .responses import (
 )
 
 from .router import Router
+from .file_router import FileRouter
 from .version_router import VersionRouter
 from .timestamp import get_current_timestamp
 
