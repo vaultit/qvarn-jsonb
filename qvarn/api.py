@@ -14,66 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import io
-
-import yaml
-
 import qvarn
-
-
-resource_type_spec_yaml = '''
-type: resource_type
-path: /resource_types
-versions:
-
-- version: v0
-  prototype:
-    type: ""
-    id: ""
-    revision: ""
-    name: ""
-    yaml: ""
-'''
-
-listener_spec = {
-    'type': 'listener',
-    'path': '/listeners',
-    'versions': [
-        {
-            'version': 'v0',
-            'prototype': {
-                'id': '',
-                'type': '',
-                'revision': '',
-                'notify_of_new': False,
-                'listen_on_all': False,
-                'listen_on': [''],
-            },
-            'subpaths': {},
-        },
-    ],
-}
-
-notification_spec = {
-    'type': 'notification',
-    'path': '/notifications',
-    'versions': [
-        {
-            'version': 'v0',
-            'prototype': {
-                'id': '',
-                'type': '',
-                'revision': '',
-                'listener_id': '',
-                'resource_id': '',
-                'resource_revision': '',
-                'resource_change': '',
-                'timestamp': '',
-            },
-            'subpaths': {},
-        },
-    ],
-}
 
 
 class QvarnAPI:
@@ -90,21 +31,6 @@ class QvarnAPI:
     def set_object_store(self, store):
         self._store = store
         self._store.create_store(obj_id=str, subpath=str)
-        self.set_up_resource_types()
-
-    def set_up_resource_types(self):
-        f = io.StringIO(resource_type_spec_yaml)
-        spec = yaml.safe_load(f)
-        rt = qvarn.ResourceType()
-        rt.from_spec(spec)
-        self._rt_coll = qvarn.CollectionAPI()
-        self._rt_coll.set_object_store(self._store)
-        self._rt_coll.set_resource_type(rt)
-
-        for spec in [listener_spec, notification_spec]:
-            rt2 = qvarn.ResourceType()
-            rt2.from_spec(spec)
-            self.add_resource_type(rt2)
 
     def add_resource_type(self, rt):
         path = rt.get_path()
