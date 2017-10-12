@@ -16,7 +16,6 @@
 
 import io
 import os
-import time
 
 import yaml
 
@@ -504,7 +503,7 @@ class QvarnAPI:
             'resource_id': rid,
             'resource_revision': rrev,
             'resource_change': change,
-            'timestamp': self.get_current_timestamp(),
+            'timestamp': qvarn.get_current_timestamp(),
         }
         for listener in self.find_listeners(rid, change):
             obj['listener_id'] = listener['id']
@@ -528,13 +527,6 @@ class QvarnAPI:
         if rid in obj.get('listen_on', []):
             return True
         return False
-
-    def get_current_timestamp(self):  # pragma: no cover
-        t = time.time()
-        tm = time.gmtime(t)
-        ss = t - int(t)
-        secs = '%f' % ss
-        return time.strftime('%Y-%m-%dT%H:%M:%S', tm) + secs[1:]
 
     def get_post_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):

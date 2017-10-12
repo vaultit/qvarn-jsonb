@@ -97,5 +97,6 @@ from .responses import (
 
 from .router import Router
 from .version_router import VersionRouter
+from .timestamp import get_current_timestamp
 
 from .api import QvarnAPI, NoSuchResourceType
