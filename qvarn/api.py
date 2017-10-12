@@ -20,7 +20,6 @@ import time
 
 import yaml
 
-import apifw
 import qvarn
 
 
@@ -224,7 +223,7 @@ class QvarnAPI:
                 'version': qvarn.__version__,
             },
         }
-        return ok_response(version)
+        return qvarn.ok_response(version)
 
     def resource_routes(self, path, rt):  # pragma: no cover
         coll = qvarn.CollectionAPI()
@@ -364,7 +363,7 @@ class QvarnAPI:
                     rt.get_type(), body, rt.get_latest_prototype())
             except qvarn.ValidationError as e:
                 qvarn.log.log('error', msg_text=str(e), body=body)
-                return bad_request_response(str(e))
+                return qvarn.bad_request_response(str(e))
 
             if 'type' not in body:
                 body['type'] = 'listener'
@@ -376,13 +375,13 @@ class QvarnAPI:
             location = '{}{}/listeners/{}'.format(
                 self._baseurl, coll.get_type().get_path(),
                 result_body['id'])
-            return created_response(result_body, location)
+            return qvarn.created_response(result_body, location)
         return wrapper
 
     def get_listener_list_callback(self, listeners):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
             body = listeners.list()
-            return ok_response(body)
+            return qvarn.ok_response(body)
         return wrapper
 
     def get_listener_callback(self, coll, listeners):  # pragma: no cover
@@ -390,8 +389,8 @@ class QvarnAPI:
             try:
                 obj = listeners.get(kwargs['id'])
             except qvarn.NoSuchResource as e:
-                return no_such_resource_response(str(e))
-            return ok_response(obj)
+                return qvarn.no_such_resource_response(str(e))
+            return qvarn.ok_response(obj)
         return wrapper
 
     def put_listener_callback(self, listeners):  # pragma: no cover
@@ -412,19 +411,19 @@ class QvarnAPI:
                     body, listeners.get_type())
             except qvarn.ValidationError as e:
                 qvarn.log.log('error', msg_text=str(e), body=body)
-                return bad_request_response(str(e))
+                return qvarn.bad_request_response(str(e))
 
             try:
                 result_body = listeners.put(body)
             except qvarn.WrongRevision as e:
-                return conflict_response(str(e))
+                return qvarn.conflict_response(str(e))
             except qvarn.NoSuchResource as e:
                 # We intentionally say bad request, instead of not found.
                 # This is to be compatible with old Qvarn. This may get
                 # changed later.
-                return bad_request_response(str(e))
+                return qvarn.bad_request_response(str(e))
 
-            return ok_response(result_body)
+            return qvarn.ok_response(result_body)
         return wrapper
 
     def get_notifications_list_callback(self):  # pragma: no cover
@@ -451,7 +450,7 @@ class QvarnAPI:
                     for keys, _ in ordered
                 ]
             }
-            return ok_response(body)
+            return qvarn.ok_response(body)
         return wrapper
 
     def get_notification_callback(self):  # pragma: no cover
@@ -468,10 +467,10 @@ class QvarnAPI:
                 'trace', msg_text='Found notifications',
                 notifications=pairs)
             if len(pairs) == 0:
-                return no_such_resource_response(notification_id)
+                return qvarn.no_such_resource_response(notification_id)
             if len(pairs) > 1:
                 raise TooManyResources(notification_id)
-            return ok_response(pairs[0][1])
+            return qvarn.ok_response(pairs[0][1])
         return wrapper
 
     def delete_listener_callback(self, listeners):  # pragma: no cover
@@ -480,7 +479,7 @@ class QvarnAPI:
             listeners.delete(listener_id)
             for obj_id in self.find_notifications(listener_id):
                 self._store.remove_objects(obj_id=obj_id)
-            return ok_response({})
+            return qvarn.ok_response({})
         return wrapper
 
     def delete_notification_callback(self):  # pragma: no cover
@@ -499,7 +498,7 @@ class QvarnAPI:
                     if isinstance(keys[key], str)
                 }
                 self._store.remove_objects(**values)
-            return ok_response({})
+            return qvarn.ok_response({})
         return wrapper
 
     def find_notifications(self, listener_id):  # pragma: no cover
@@ -568,7 +567,7 @@ class QvarnAPI:
                 self._validator.validate_new_resource(body, coll.get_type())
             except qvarn.ValidationError as e:
                 qvarn.log.log('error', msg_text=str(e), body=body)
-                return bad_request_response(str(e))
+                return qvarn.bad_request_response(str(e))
             result_body = coll.post(body)
             qvarn.log.log(
                 'debug', msg_text='POST a new resource, result',
@@ -576,7 +575,7 @@ class QvarnAPI:
             location = '{}{}/{}'.format(
                 self._baseurl, coll.get_type().get_path(), result_body['id'])
             self.notify(result_body['id'], result_body['revision'], 'created')
-            return created_response(result_body, location)
+            return qvarn.created_response(result_body, location)
         return wrapper
 
     def get_put_callback(self, coll):  # pragma: no cover
@@ -595,7 +594,7 @@ class QvarnAPI:
                     body, coll.get_type())
             except qvarn.ValidationError as e:
                 qvarn.log.log('error', msg_text=str(e), body=body)
-                return bad_request_response(str(e))
+                return qvarn.bad_request_response(str(e))
 
             obj_id = kwargs['id']
             # FIXME: the following test should be enabled once we
@@ -606,16 +605,16 @@ class QvarnAPI:
             try:
                 result_body = coll.put(body)
             except qvarn.WrongRevision as e:
-                return conflict_response(str(e))
+                return qvarn.conflict_response(str(e))
             except qvarn.NoSuchResource as e:
                 # We intentionally say bad request, instead of not found.
                 # This is to be compatible with old Qvarn. This may get
                 # changed later.
-                return bad_request_response(str(e))
+                return qvarn.bad_request_response(str(e))
 
             self.notify(
                 result_body['id'], result_body['revision'], 'updated')
-            return ok_response(result_body)
+            return qvarn.ok_response(result_body)
         return wrapper
 
     def put_subpath_callback(self, coll, subpath):  # pragma: no cover
@@ -625,7 +624,7 @@ class QvarnAPI:
 
             obj_id = kwargs['id']
             if 'revision' not in body:
-                return bad_request_response('must have revision')
+                return qvarn.bad_request_response('must have revision')
             revision = body.pop('revision')
 
             rt = coll.get_type()
@@ -633,17 +632,17 @@ class QvarnAPI:
                 self._validator.validate_subresource(subpath, rt, body)
             except qvarn.ValidationError as e:
                 qvarn.log.log('error', msg_text=str(e), body=body)
-                return bad_request_response(str(e))
+                return qvarn.bad_request_response(str(e))
 
             try:
                 result_body = coll.put_subresource(
                     body, subpath=subpath, obj_id=obj_id, revision=revision)
             except qvarn.WrongRevision as e:
-                return conflict_response(str(e))
+                return qvarn.conflict_response(str(e))
             except qvarn.NoSuchResource as e:
-                return no_such_resource_response(str(e))
+                return qvarn.no_such_resource_response(str(e))
 
-            return ok_response(result_body)
+            return qvarn.ok_response(result_body)
         return wrapper
 
     def put_file_callback(self, objcoll, subpath):  # pragma: no cover
@@ -661,7 +660,8 @@ class QvarnAPI:
                     msg_text='Client gave wrong revision',
                     revision_from_client=revision,
                     current_revision=obj['revision'])
-                return conflict_response('Bad revision {}'.format(revision))
+                return qvarn.conflict_response(
+                    'Bad revision {}'.format(revision))
 
             sub_obj = objcoll.get_subresource(obj_id, subpath)
             sub_obj['content_type'] = content_type
@@ -672,12 +672,12 @@ class QvarnAPI:
                 self._store.remove_blob(subpath=subpath, obj_id=obj_id)
                 self._store.create_blob(body, subpath=subpath, obj_id=obj_id)
             except qvarn.NoSuchObject as e:
-                return no_such_resource_response(str(e))
+                return qvarn.no_such_resource_response(str(e))
 
             headers = {
                 'Revision': new_sub['revision'],
             }
-            return ok_response('', headers)
+            return qvarn.ok_response('', headers)
         return wrapper
 
     def get_resource_callback(self, coll):  # pragma: no cover
@@ -685,8 +685,8 @@ class QvarnAPI:
             try:
                 obj = coll.get(kwargs['id'])
             except qvarn.NoSuchResource as e:
-                return no_such_resource_response(str(e))
-            return ok_response(obj)
+                return qvarn.no_such_resource_response(str(e))
+            return qvarn.ok_response(obj)
         return wrapper
 
     def get_subpath_callback(self, coll, subpath):  # pragma: no cover
@@ -694,8 +694,8 @@ class QvarnAPI:
             try:
                 obj = coll.get_subresource(kwargs['id'], subpath)
             except qvarn.NoSuchResource as e:
-                return no_such_resource_response(str(e))
-            return ok_response(obj)
+                return qvarn.no_such_resource_response(str(e))
+            return qvarn.ok_response(obj)
         return wrapper
 
     def get_file_callback(self, coll, subpath):  # pragma: no cover
@@ -706,18 +706,18 @@ class QvarnAPI:
                 sub_obj = coll.get_subresource(obj_id, subpath)
                 blob = self._store.get_blob(obj_id=obj_id, subpath=subpath)
             except (qvarn.NoSuchResource, qvarn.NoSuchObject) as e:
-                return no_such_resource_response(str(e))
+                return qvarn.no_such_resource_response(str(e))
             headers = {
                 'Content-Type': sub_obj['content_type'],
                 'Revision': obj['revision'],
             }
-            return ok_response(blob, headers)
+            return qvarn.ok_response(blob, headers)
         return wrapper
 
     def get_resource_list_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
             body = coll.list()
-            return ok_response(body)
+            return qvarn.ok_response(body)
         return wrapper
 
     def get_search_callback(self, coll):  # pragma: no cover
@@ -727,15 +727,15 @@ class QvarnAPI:
             try:
                 result = coll.search(search_criteria)
             except qvarn.UnknownSearchField as e:
-                return unknown_search_field_response(e)
+                return qvarn.unknown_search_field_response(e)
             except qvarn.NeedSortOperator:
-                return need_sort_response()
+                return qvarn.need_sort_response()
             except qvarn.SearchParserError as e:
-                return search_parser_error_response(e)
+                return qvarn.search_parser_error_response(e)
             body = {
                 'resources': result,
             }
-            return ok_response(body)
+            return qvarn.ok_response(body)
         return wrapper
 
     def delete_resource_callback(self, coll):  # pragma: no cover
@@ -743,88 +743,8 @@ class QvarnAPI:
             obj_id = kwargs['id']
             coll.delete(obj_id)
             self.notify(obj_id, None, 'deleted')
-            return ok_response({})
+            return qvarn.ok_response({})
         return wrapper
-
-
-def response(status, body, headers):  # pragma: no cover
-    return apifw.Response(
-        {
-            'status': status,
-            'body': body,
-            'headers': headers,
-        }
-    )
-
-
-def ok_response(body, headers=None):  # pragma: no cover
-    if headers is None:
-        headers = {}
-    if 'Content-Type' not in headers:
-        headers.update({
-            'Content-Type': 'application/json',
-        })
-    return response(apifw.HTTP_OK, body, headers)
-
-
-def no_such_resource_response(msg):  # pragma: no cover
-    return response(apifw.HTTP_NOT_FOUND, msg, {})
-
-
-def created_response(body, location):  # pragma: no cover
-    headers = {
-        'Content-Type': 'application/json',
-        'Location': location,
-    }
-    return response(apifw.HTTP_CREATED, body, headers)
-
-
-def bad_request_response(body):  # pragma: no cover
-    headers = {
-        'Content-Type': 'text/plain',
-    }
-    return response(apifw.HTTP_BAD_REQUEST, body, headers)
-
-
-def need_sort_response():  # pragma: no cover
-    headers = {
-        'Content-Type': 'application/json',
-    }
-    body = {
-        'message': 'LIMIT and OFFSET can only be used with together SORT.',
-        'error_code': 'LimitWithoutSortError',
-    }
-    return response(apifw.HTTP_BAD_REQUEST, body, headers)
-
-
-def search_parser_error_response(e):  # pragma: no cover
-    headers = {
-        'Content-Type': 'application/json',
-    }
-    body = {
-        'message': 'Could not parse search condition',
-        'error_code': 'BadSearchCondition',
-    }
-    return response(apifw.HTTP_BAD_REQUEST, body, headers)
-
-
-def unknown_search_field_response(e):  # pragma: no cover
-    headers = {
-        'Content-Type': 'application/json',
-    }
-    body = {
-        'field': e.field,
-        'message': 'Resource does not contain given field',
-        'error_code': 'FieldNotInResource',
-    }
-    return response(apifw.HTTP_BAD_REQUEST, body, headers)
-
-
-def conflict_response(body):  # pragma: no cover
-    headers = {
-        'Content-Type': 'text/plain',
-    }
-    return response(apifw.HTTP_CONFLICT, body, headers)
 
 
 class NoSuchResourceType(Exception):  # pragma: no cover

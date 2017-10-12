@@ -2,6 +2,7 @@ setup.py
 qvarn/__init__.py
 qvarn/backend.py
 qvarn/logging.py
+qvarn/responses.py
 qvarn/sql.py
 qvarn/version.py
 yarns/lib.py
