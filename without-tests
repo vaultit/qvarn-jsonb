@@ -5,6 +5,7 @@ qvarn/backend.py
 qvarn/file_router.py
 qvarn/logging.py
 qvarn/notification_router.py
+qvarn/resource_router.py
 qvarn/responses.py
 qvarn/router.py
 qvarn/sql.py

@@ -15,7 +15,6 @@
 
 
 import io
-import os
 
 import yaml
 
@@ -201,39 +200,10 @@ class QvarnAPI:
         coll.set_object_store(self._store)
         coll.set_resource_type(rt)
 
-        id_path = os.path.join(path, '<id>')
-        routes = [
-            {
-                'method': 'POST',
-                'path': path,
-                'callback': self.get_post_callback(coll),
-            },
-            {
-                'method': 'PUT',
-                'path': id_path,
-                'callback': self.get_put_callback(coll),
-            },
-            {
-                'method': 'GET',
-                'path': path,
-                'callback': self.get_resource_list_callback(coll),
-            },
-            {
-                'method': 'GET',
-                'path': id_path,
-                'callback': self.get_resource_callback(coll),
-            },
-            {
-                'method': 'GET',
-                'path': path + '/search/<search_criteria:path>',
-                'callback': self.get_search_callback(coll),
-            },
-            {
-                'method': 'DELETE',
-                'path': id_path,
-                'callback': self.delete_resource_callback(coll),
-            },
-        ]
+        router = qvarn.ResourceRouter()
+        router.set_collection(coll)
+        router.set_notifier(self.notify)
+        routes = router.get_routes()
 
         files = rt.get_files()
         for subpath in rt.get_subpaths():
@@ -250,15 +220,14 @@ class QvarnAPI:
                 more = file_router.get_routes()
             routes.extend(more)
 
-        return routes + self._get_notification_routes(coll, path, id_path)
-
-    def _get_notification_routes(self, coll, path, id_path):
         listener_rt = self.get_listener_resource_type()
         notif_router = qvarn.NotificationRouter()
         notif_router.set_baseurl(self._baseurl)
         notif_router.set_parent_collection(coll)
         notif_router.set_object_store(self._store, listener_rt)
-        return notif_router.get_routes()
+        routes.extend(notif_router.get_routes())
+
+        return routes
 
     def notify(self, rid, rrev, change):  # pragma: no cover
         rt = self.get_notification_resource_type()
@@ -294,104 +263,3 @@ class QvarnAPI:
         if rid in obj.get('listen_on', []):
             return True
         return False
-
-    def get_post_callback(self, coll):  # pragma: no cover
-        def wrapper(content_type, body, **kwargs):
-            if content_type != 'application/json':
-                raise qvarn.NotJson(content_type)
-            if 'type' not in body:
-                body['type'] = coll.get_type_name()
-            try:
-                self._validator.validate_new_resource(body, coll.get_type())
-            except qvarn.ValidationError as e:
-                qvarn.log.log('error', msg_text=str(e), body=body)
-                return qvarn.bad_request_response(str(e))
-            result_body = coll.post(body)
-            qvarn.log.log(
-                'debug', msg_text='POST a new resource, result',
-                body=result_body)
-            location = '{}{}/{}'.format(
-                self._baseurl, coll.get_type().get_path(), result_body['id'])
-            self.notify(result_body['id'], result_body['revision'], 'created')
-            return qvarn.created_response(result_body, location)
-        return wrapper
-
-    def get_put_callback(self, coll):  # pragma: no cover
-        def wrapper(content_type, body, **kwargs):
-            if content_type != 'application/json':
-                raise qvarn.NotJson(content_type)
-
-            if 'type' not in body:
-                body['type'] = coll.get_type_name()
-
-            if 'id' not in body:
-                body['id'] = kwargs['id']
-
-            try:
-                self._validator.validate_resource_update(
-                    body, coll.get_type())
-            except qvarn.ValidationError as e:
-                qvarn.log.log('error', msg_text=str(e), body=body)
-                return qvarn.bad_request_response(str(e))
-
-            obj_id = kwargs['id']
-            # FIXME: the following test should be enabled once we
-            # no longer need test-api.
-            if False and body['id'] != obj_id:
-                raise qvarn.IdMismatch(body['id'], obj_id)
-
-            try:
-                result_body = coll.put(body)
-            except qvarn.WrongRevision as e:
-                return qvarn.conflict_response(str(e))
-            except qvarn.NoSuchResource as e:
-                # We intentionally say bad request, instead of not found.
-                # This is to be compatible with old Qvarn. This may get
-                # changed later.
-                return qvarn.bad_request_response(str(e))
-
-            self.notify(
-                result_body['id'], result_body['revision'], 'updated')
-            return qvarn.ok_response(result_body)
-        return wrapper
-
-    def get_resource_callback(self, coll):  # pragma: no cover
-        def wrapper(content_type, body, **kwargs):
-            try:
-                obj = coll.get(kwargs['id'])
-            except qvarn.NoSuchResource as e:
-                return qvarn.no_such_resource_response(str(e))
-            return qvarn.ok_response(obj)
-        return wrapper
-
-    def get_resource_list_callback(self, coll):  # pragma: no cover
-        def wrapper(content_type, body, **kwargs):
-            body = coll.list()
-            return qvarn.ok_response(body)
-        return wrapper
-
-    def get_search_callback(self, coll):  # pragma: no cover
-        def wrapper(content_type, body, **kwargs):
-            path = kwargs['raw_uri_path']
-            search_criteria = path.split('/search/', 1)[1]
-            try:
-                result = coll.search(search_criteria)
-            except qvarn.UnknownSearchField as e:
-                return qvarn.unknown_search_field_response(e)
-            except qvarn.NeedSortOperator:
-                return qvarn.need_sort_response()
-            except qvarn.SearchParserError as e:
-                return qvarn.search_parser_error_response(e)
-            body = {
-                'resources': result,
-            }
-            return qvarn.ok_response(body)
-        return wrapper
-
-    def delete_resource_callback(self, coll):  # pragma: no cover
-        def wrapper(content_type, body, **kwargs):
-            obj_id = kwargs['id']
-            coll.delete(obj_id)
-            self.notify(obj_id, None, 'deleted')
-            return qvarn.ok_response({})
-        return wrapper
