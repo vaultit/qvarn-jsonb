@@ -245,7 +245,10 @@ class QvarnAPI:
         files = rt.get_files()
         for subpath in rt.get_subpaths():
             if subpath not in files:
-                more = self.get_subresource_routes(id_path, coll, subpath)
+                sub_router = qvarn.SubresourceRouter()
+                sub_router.set_subpath(subpath)
+                sub_router.set_parent_collection(coll)
+                more = sub_router.get_routes()
             else:
                 file_router = qvarn.FileRouter()
                 file_router.set_subpath(subpath)
@@ -255,21 +258,6 @@ class QvarnAPI:
             routes.extend(more)
 
         return routes + self._get_notification_routes(coll, path, id_path)
-
-    def get_subresource_routes(
-            self, id_path, coll, subpath):  # pragma: no cover
-        return [
-            {
-                'method': 'GET',
-                'path': '{}/{}'.format(id_path, subpath),
-                'callback': self.get_subpath_callback(coll, subpath),
-            },
-            {
-                'method': 'PUT',
-                'path': '{}/{}'.format(id_path, subpath),
-                'callback': self.put_subpath_callback(coll, subpath),
-            },
-        ]
 
     def _get_notification_routes(self, coll, path, id_path):
         rt = self.get_listener_resource_type()
@@ -578,47 +566,10 @@ class QvarnAPI:
             return qvarn.ok_response(result_body)
         return wrapper
 
-    def put_subpath_callback(self, coll, subpath):  # pragma: no cover
-        def wrapper(content_type, body, **kwargs):
-            if content_type != 'application/json':
-                raise qvarn.NotJson(content_type)
-
-            obj_id = kwargs['id']
-            if 'revision' not in body:
-                return qvarn.bad_request_response('must have revision')
-            revision = body.pop('revision')
-
-            rt = coll.get_type()
-            try:
-                self._validator.validate_subresource(subpath, rt, body)
-            except qvarn.ValidationError as e:
-                qvarn.log.log('error', msg_text=str(e), body=body)
-                return qvarn.bad_request_response(str(e))
-
-            try:
-                result_body = coll.put_subresource(
-                    body, subpath=subpath, obj_id=obj_id, revision=revision)
-            except qvarn.WrongRevision as e:
-                return qvarn.conflict_response(str(e))
-            except qvarn.NoSuchResource as e:
-                return qvarn.no_such_resource_response(str(e))
-
-            return qvarn.ok_response(result_body)
-        return wrapper
-
     def get_resource_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
             try:
                 obj = coll.get(kwargs['id'])
-            except qvarn.NoSuchResource as e:
-                return qvarn.no_such_resource_response(str(e))
-            return qvarn.ok_response(obj)
-        return wrapper
-
-    def get_subpath_callback(self, coll, subpath):  # pragma: no cover
-        def wrapper(content_type, body, **kwargs):
-            try:
-                obj = coll.get_subresource(kwargs['id'], subpath)
             except qvarn.NoSuchResource as e:
                 return qvarn.no_such_resource_response(str(e))
             return qvarn.ok_response(obj)
