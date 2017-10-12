@@ -193,14 +193,7 @@ class QvarnAPI:
             return []
 
         routes = self.resource_routes(path, rt)
-        loggable_routes = [
-            {
-                key: repr(r[key])
-                for key in r
-            }
-            for r in routes
-        ]
-        qvarn.log.log('info', msg_text='Add routes', routes=loggable_routes)
+        qvarn.log.log('info', msg_text='Found missing routes', routes=routes)
         return routes
 
     def resource_routes(self, path, rt):  # pragma: no cover
