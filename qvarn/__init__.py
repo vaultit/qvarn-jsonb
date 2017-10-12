@@ -95,4 +95,7 @@ from .responses import (
     unknown_search_field_response,
 )
 
+from .router import Router
+from .version_router import VersionRouter
+
 from .api import QvarnAPI, NoSuchResourceType

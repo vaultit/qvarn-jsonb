@@ -3,6 +3,8 @@ qvarn/__init__.py
 qvarn/backend.py
 qvarn/logging.py
 qvarn/responses.py
+qvarn/router.py
 qvarn/sql.py
 qvarn/version.py
+qvarn/version_router.py
 yarns/lib.py

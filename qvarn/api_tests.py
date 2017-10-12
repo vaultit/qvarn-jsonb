@@ -26,17 +26,6 @@ class QvarnAPITests(unittest.TestCase):
         api = qvarn.QvarnAPI()
         self.assertNotEqual(api.find_missing_route('/version'), [])
 
-    def test_version_returns_sensible_data(self):
-        api = qvarn.QvarnAPI()
-        r = api.version(None, None)
-        v = r['body']
-        self.assertTrue(isinstance(v, dict))
-        self.assertTrue('api' in v)
-        self.assertTrue('version' in v['api'])
-        self.assertTrue('implementation' in v)
-        self.assertTrue('name' in v['implementation'])
-        self.assertTrue('version' in v['implementation'])
-
     def test_returns_no_routes_for_unknown_resource_type(self):
         store = qvarn.MemoryObjectStore()
         api = qvarn.QvarnAPI()

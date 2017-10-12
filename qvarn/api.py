@@ -184,7 +184,8 @@ class QvarnAPI:
 
         if path == '/version':
             qvarn.log.log('info', msg_text='Add /version route')
-            return self.version_route()
+            v = qvarn.VersionRouter()
+            return v.get_routes()
 
         try:
             rt = self.get_resource_type(path)
@@ -202,28 +203,6 @@ class QvarnAPI:
         ]
         qvarn.log.log('info', msg_text='Add routes', routes=loggable_routes)
         return routes
-
-    def version_route(self):
-        return [
-            {
-                'method': 'GET',
-                'path': '/version',
-                'callback': self.version,
-                'needs-authorization': False,
-            },
-        ]
-
-    def version(self, content_type, body, **kwargs):
-        version = {
-            'api': {
-                'version': qvarn.__version__,
-            },
-            'implementation': {
-                'name': 'Qvarn',
-                'version': qvarn.__version__,
-            },
-        }
-        return qvarn.ok_response(version)
 
     def resource_routes(self, path, rt):  # pragma: no cover
         coll = qvarn.CollectionAPI()
