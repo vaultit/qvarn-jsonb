@@ -136,14 +136,14 @@ class QvarnAPI:
                 'error',
                 msg_text='There is no resource type for path',
                 path=path)
-            raise NoSuchResourceType(path)
+            raise qvarn.NoSuchResourceType(path)
         elif len(objs) > 1:  # pragma: no cover
             qvarn.log.log(
                 'error',
                 msg_text='There are more than one resource types for path',
                 path=path,
                 objs=objs)
-            raise TooManyResourceTypes(path)
+            raise qvarn.TooManyResourceTypes(path)
         rt = qvarn.ResourceType()
         rt.from_spec(objs[0]['spec'])
         return rt
@@ -156,9 +156,9 @@ class QvarnAPI:
         objs = [obj for _, obj in results]
         qvarn.log.log('debug', objs=objs)
         if len(objs) == 0:  # pragma: no cover
-            raise NoSuchResourceType('listener')
+            raise qvarn.NoSuchResourceType('listener')
         elif len(objs) > 1:  # pragma: no cover
-            raise TooManyResourceTypes('listener')
+            raise qvarn.TooManyResourceTypes('listener')
         rt = qvarn.ResourceType()
         rt.from_spec(objs[0]['spec'])
         return rt
@@ -171,9 +171,9 @@ class QvarnAPI:
         objs = [obj for _, obj in results]
         qvarn.log.log('debug', objs=objs)
         if len(objs) == 0:  # pragma: no cover
-            raise NoSuchResourceType('listener')
+            raise qvarn.NoSuchResourceType('listener')
         elif len(objs) > 1:  # pragma: no cover
-            raise TooManyResourceTypes('listener')
+            raise qvarn.TooManyResourceTypes('listener')
         rt = qvarn.ResourceType()
         rt.from_spec(objs[0]['spec'])
         return rt
@@ -188,7 +188,7 @@ class QvarnAPI:
 
         try:
             rt = self.get_resource_type(path)
-        except NoSuchResourceType:
+        except qvarn.NoSuchResourceType:
             qvarn.log.log('warning', msg_text='No such route', path=path)
             return []
 
@@ -323,7 +323,7 @@ class QvarnAPI:
     def get_post_listener_callback(self, coll, listeners):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
             if content_type != 'application/json':
-                raise NotJson(content_type)
+                raise qvarn.NotJson(content_type)
 
             rt = listeners.get_type()
             try:
@@ -364,7 +364,7 @@ class QvarnAPI:
     def put_listener_callback(self, listeners):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
             if content_type != 'application/json':
-                raise NotJson(content_type)
+                raise qvarn.NotJson(content_type)
 
             if 'type' not in body:
                 body['type'] = 'listener'
@@ -437,7 +437,7 @@ class QvarnAPI:
             if len(pairs) == 0:
                 return qvarn.no_such_resource_response(notification_id)
             if len(pairs) > 1:
-                raise TooManyResources(notification_id)
+                raise qvarn.TooManyResources(notification_id)
             return qvarn.ok_response(pairs[0][1])
         return wrapper
 
@@ -521,7 +521,7 @@ class QvarnAPI:
     def get_post_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
             if content_type != 'application/json':
-                raise NotJson(content_type)
+                raise qvarn.NotJson(content_type)
             if 'type' not in body:
                 body['type'] = coll.get_type_name()
             try:
@@ -542,7 +542,7 @@ class QvarnAPI:
     def get_put_callback(self, coll):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
             if content_type != 'application/json':
-                raise NotJson(content_type)
+                raise qvarn.NotJson(content_type)
 
             if 'type' not in body:
                 body['type'] = coll.get_type_name()
@@ -561,7 +561,7 @@ class QvarnAPI:
             # FIXME: the following test should be enabled once we
             # no longer need test-api.
             if False and body['id'] != obj_id:
-                raise IdMismatch(body['id'], obj_id)
+                raise qvarn.IdMismatch(body['id'], obj_id)
 
             try:
                 result_body = coll.put(body)
@@ -581,7 +581,7 @@ class QvarnAPI:
     def put_subpath_callback(self, coll, subpath):  # pragma: no cover
         def wrapper(content_type, body, **kwargs):
             if content_type != 'application/json':
-                raise NotJson(content_type)
+                raise qvarn.NotJson(content_type)
 
             obj_id = kwargs['id']
             if 'revision' not in body:
@@ -655,34 +655,3 @@ class QvarnAPI:
             self.notify(obj_id, None, 'deleted')
             return qvarn.ok_response({})
         return wrapper
-
-
-class NoSuchResourceType(Exception):  # pragma: no cover
-
-    def __init__(self, path):
-        super().__init__('No resource type for path {}'.format(path))
-
-
-class TooManyResourceTypes(Exception):  # pragma: no cover
-
-    def __init__(self, path):
-        super().__init__('Too many resource types for path {}'.format(path))
-
-
-class TooManyResources(Exception):  # pragma: no cover
-
-    def __init__(self, resource_id):
-        super().__init__('Too many resources with id {}'.format(resource_id))
-
-
-class NotJson(Exception):  # pragma: no cover
-
-    def __init__(self, ct):
-        super().__init__('Was expecting application/json, not {}'.format(ct))
-
-
-class IdMismatch(Exception):  # pragma: no cover
-
-    def __init__(self, obj_id, id_from_path):
-        super().__init__(
-            'Resource has id {} but path says {}'.format(obj_id, id_from_path))
