@@ -105,6 +105,7 @@ from .api_errors import (
 
 from .router import Router
 from .file_router import FileRouter
+from .notification_router import NotificationRouter
 from .subresource_router import SubresourceRouter
 from .version_router import VersionRouter
 from .timestamp import get_current_timestamp
