@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import os
 import unittest
 
 
@@ -25,17 +26,6 @@ class QvarnAPITests(unittest.TestCase):
     def test_returns_routes_for_version_path(self):
         api = qvarn.QvarnAPI()
         self.assertNotEqual(api.find_missing_route('/version'), [])
-
-    def test_version_returns_sensible_data(self):
-        api = qvarn.QvarnAPI()
-        r = api.version(None, None)
-        v = r['body']
-        self.assertTrue(isinstance(v, dict))
-        self.assertTrue('api' in v)
-        self.assertTrue('version' in v['api'])
-        self.assertTrue('implementation' in v)
-        self.assertTrue('name' in v['implementation'])
-        self.assertTrue('version' in v['implementation'])
 
     def test_returns_no_routes_for_unknown_resource_type(self):
         store = qvarn.MemoryObjectStore()
@@ -73,6 +63,13 @@ class QvarnAPITests(unittest.TestCase):
         api = qvarn.QvarnAPI()
         api.set_object_store(store)
         api.add_resource_type(rt)
+
+        dirname = os.path.dirname(qvarn.__file__)
+        dirname = os.path.join(dirname, '../resource_type')
+        resource_types = qvarn.load_resource_types(dirname)
+        for rt in resource_types:
+            api.add_resource_type(rt)
+
         self.assertNotEqual(api.find_missing_route('/subjects'), [])
 
     def test_get_resource_type_raises_error_for_unknown_path(self):

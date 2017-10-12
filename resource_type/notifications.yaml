@@ -1,0 +1,13 @@
+type: notification
+path: /notifications
+versions:
+  - version: v0
+    prototype:
+      id: ""
+      type: ""
+      revision: ""
+      listener_id: ""
+      resource_id: ""
+      resource_revision: ""
+      resource_change: ""
+      timestamp: ""

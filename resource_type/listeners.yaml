@@ -1,0 +1,11 @@
+type: listener
+path: /listeners
+versions:
+  - version: v0
+    prototype:
+      id: ""
+      type: ""
+      revision: ""
+      notify_of_new: false
+      listen_on_all: false
+      listen_on: [""]
