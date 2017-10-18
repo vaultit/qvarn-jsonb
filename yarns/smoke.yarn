@@ -1,11 +1,28 @@
 ---
-title: qvarn2 integration tests
+title: qvarn-jsonb integration tests
+author: Lars Wirzenius / QvarnLabs Ab
+date: work in progress
 ...
 
 
 # Introduction
 
 This is an integration test suite for the Qvarn HTTP API.
+
+## History and background
+
+Qvarn started as an internal project in 2015 at Suomen Tilaajavastuu
+(https://www.tilaajavastuu.fi/en/), a company that provides various
+reproting services to the Finnish construction industry. Later that
+year the Swedish Construction Federation
+(https://www.sverigesbyggindustrier.se/english) adopted Qvarn as a
+platform for ID06 identity card services in Sweden. From the start, a
+goal for Qvarn has been to make it easy to comply with the EU General
+Data Protection Regulation.
+
+In 2016 Qvarn spun off to its own company, QvarnLabs Ab, which
+provides consulting, development, and support services around Qvarn.
+
 
 # Version checking
 
