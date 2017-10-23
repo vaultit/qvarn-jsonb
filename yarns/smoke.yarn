@@ -449,6 +449,96 @@ Notification can be deleted.
 
     FINALLY qvarn is stopped
 
+# Listeners for one resource type only
+
+This scenario tests for a problem found in the first public release of
+Qvarn (JSONB): all listeners would be reported for all resource types,
+intead of only the one they were created for.
+
+    SCENARIO notifications only for the right type
+
+    GIVEN a running qvarn instance
+
+    WHEN client gets an authorization token with scope
+    ... "uapi_persons_post
+    ...  uapi_persons_listeners_post
+    ...  uapi_persons_listeners_get
+    ...  uapi_persons_listeners_id_notifications_get
+    ...  uapi_persons_listeners_id_notifications_id_get
+    ...  uapi_orgs_post
+    ...  uapi_orgs_listeners_post
+    ...  uapi_orgs_listeners_get
+    ...  uapi_orgs_listeners_id_notifications_get
+    ...  uapi_orgs_listeners_id_notifications_id_get
+    ... "
+
+Make sure there are no listeners yet.
+
+    WHEN client requests GET /orgs/listeners using token
+    THEN JSON body matches { "resources": [] }
+
+    WHEN client requests GET /persons/listeners using token
+    THEN JSON body matches { "resources": [] }
+
+Create a listeners for orgs.
+
+    WHEN client requests POST /orgs/listeners with token and body
+    ... {
+    ...     "notify_of_new": true
+    ... }
+    THEN resource id is ORGLISTENER
+
+    WHEN client requests GET /orgs/listeners using token
+    THEN JSON body matches { "resources": [{ "id": "${ORGLISTENER}" }]}
+
+    WHEN client requests GET /persons/listeners using token
+    THEN JSON body matches { "resources": [] }
+
+Create a listener for persons.
+
+    WHEN client requests POST /persons/listeners with token and body
+    ... {
+    ...     "notify_of_new": true
+    ... }
+    THEN resource id is PERSONLISTENER
+
+    WHEN client requests GET /orgs/listeners using token
+    THEN JSON body matches { "resources": [{ "id": "${ORGLISTENER}" }]}
+
+    WHEN client requests GET /persons/listeners using token
+    THEN JSON body matches { "resources": [{ "id": "${PERSONLISTENER}"}]}
+
+Create a person, make sure only the correct notifications are created.
+
+    WHEN client requests POST /persons with token and body
+    ... {
+    ...     "names": [{ "full_name": "James Bond" }]
+    ... }
+    THEN resource id is PERSONID
+
+    WHEN client requests 
+    ... GET /orgs/listeners/${ORGLISTENER}/notifications
+    ... using token
+    THEN JSON body matches { "resources": [] }
+
+    WHEN client requests
+    ... GET /persons/listeners/${PERSONLISTENER}/notifications
+    ... using token
+    THEN search result at index 0 has id MSGID
+
+    WHEN client requests
+    ... GET /persons/listeners/${PERSONLISTENER}/notifications/${MSGID}
+    ... using token
+    THEN JSON body matches
+    ... {
+    ...     "id": "${MSGID}",
+    ...     "type": "notification",
+    ...     "resource_id": "${PERSONID}",
+    ...     "resource_change": "created"
+    ... }
+
+    FINALLY qvarn is stopped
+
 # Use subresources
 
 Subresources are additional resources that are attached to a resource,
