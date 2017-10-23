@@ -106,6 +106,12 @@ class NotificationRouter(qvarn.Router):
         if 'type' not in body:
             body['type'] = 'listener'
 
+        rtype = self._parent_coll.get_type_name()
+        if body.get('listen_on_type', rtype) != rtype:
+            return qvarn.bad_request_response(
+                'listen_on_type does not have value {}'.format(rtype))
+        body['listen_on_type'] = rtype
+
         result_body = self._listener_coll.post(body)
         location = self._get_new_resource_location(result_body)
         qvarn.log.log(
@@ -119,7 +125,19 @@ class NotificationRouter(qvarn.Router):
             resource['id'])
 
     def _get_listener_list(self, content_type, body, *args, **kwargs):
-        body = self._listener_coll.list()
+        rtype = self._parent_coll.get_type_name()
+        listener_list = self._listener_coll.list()['resources']
+        listener_ids = [listener['id'] for listener in listener_list]
+        listeners = [self._listener_coll.get(lid) for lid in listener_ids]
+        qvarn.log.log('trace', msg_text='xxx', listeners=listeners)
+        correct_ids = [
+            {"id": listener['id']}
+            for listener in listeners
+            if listener['listen_on_type'] == rtype
+        ]
+        body = {
+            'resources': correct_ids,
+        }
         return qvarn.ok_response(body)
 
     def _get_a_listener(self, *args, **kwargs):

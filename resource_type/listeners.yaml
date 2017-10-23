@@ -6,6 +6,7 @@ versions:
       id: ""
       type: ""
       revision: ""
+      listen_on_type: ""
       notify_of_new: false
       listen_on_all: false
       listen_on: [""]
