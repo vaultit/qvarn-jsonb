@@ -6,6 +6,12 @@ This file has release notes for Qvarn (the JSONB version).
 Version 0.86+git, not yet released
 ----------------------------------
 
+Bug fixes:
+
+* Listeners for all resource types were listed for all resource types.
+  Thus, `GET /foos/listners` would list listeners also for `bar`
+  resources, not just `foo`. This has been fixed. Bug reported by
+  Kaius, fixed by Lars.
 
 Version 0.86, released 2017-10-10
 ----------------------------------
