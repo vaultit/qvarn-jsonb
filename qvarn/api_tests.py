@@ -63,6 +63,7 @@ class QvarnAPITests(unittest.TestCase):
         api = qvarn.QvarnAPI()
         api.set_object_store(store)
         api.add_resource_type(rt)
+        api.set_base_url('https://qvarn.example.com')
 
         dirname = os.path.dirname(qvarn.__file__)
         dirname = os.path.join(dirname, '../resource_type')

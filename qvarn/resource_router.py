@@ -35,6 +35,8 @@ class ResourceRouter(qvarn.Router):
         self._notify = notify
 
     def get_routes(self):
+        assert self._baseurl is not None
+
         rt = self._coll.get_type()
         path = rt.get_path()
         id_path = '{}/<id>'.format(path)

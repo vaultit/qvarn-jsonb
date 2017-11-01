@@ -119,6 +119,7 @@ class QvarnAPI:
         coll.set_resource_type(rt)
 
         router = qvarn.ResourceRouter()
+        router.set_baseurl(self._baseurl)
         router.set_collection(coll)
         router.set_notifier(self.notify)
         routes = router.get_routes()
