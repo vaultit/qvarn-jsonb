@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import copy
 import os
 import unittest
 
@@ -131,3 +132,45 @@ class QvarnAPITests(unittest.TestCase):
         api.set_object_store(store)
         api.add_resource_type(rt)
         self.assertEqual(api.add_resource_type(rt), None)
+
+    def test_updating_resource_type_with_new_version_works(self):
+        spec1 = {
+            'type': 'subject',
+            'path': '/subjects',
+            'versions': [
+                {
+                    'version': 'v0',
+                    'prototype': {
+                        'id': '',
+                        'revision': '',
+                        'name': '',
+                    },
+                },
+            ],
+        }
+
+        spec2 = copy.deepcopy(spec1)
+        spec2['versions'].append({
+            'version': 'v1',
+            'prototype': {
+                'id': '',
+                'revision': '',
+                'name': '',
+                'newfield': '',
+            },
+        })
+
+        store = qvarn.MemoryObjectStore()
+        api = qvarn.QvarnAPI()
+        api.set_object_store(store)
+
+        rt1 = qvarn.ResourceType()
+        rt1.from_spec(spec1)
+        api.add_resource_type(rt1)
+
+        rt2 = qvarn.ResourceType()
+        rt2.from_spec(spec2)
+        api.add_resource_type(rt2)
+
+        rt = api.get_resource_type(spec1['path'])
+        self.assertEqual(rt.as_dict(), spec2)

@@ -34,16 +34,19 @@ class QvarnAPI:
 
     def add_resource_type(self, rt):
         path = rt.get_path()
-        objs = self._get_resource_type_given_path(path)
-        if not objs:
-            obj = {
-                'id': rt.get_type(),
-                'type': 'resource_type',
-                'path': path,
-                'spec': rt.as_dict(),
-            }
-            self._store.create_object(
-                obj, obj_id=obj['id'], subpath='', auxtable=True)
+        keys = {
+            'obj_id': rt.get_type(),
+            'subpath': '',
+        }
+        self._store.remove_objects(**keys)
+
+        obj = {
+            'id': rt.get_type(),
+            'type': 'resource_type',
+            'path': path,
+            'spec': rt.as_dict(),
+        }
+        self._store.create_object(obj, **keys, auxtable=True)
 
     def get_resource_type(self, path):
         objs = self._get_resource_type_given_path(path)

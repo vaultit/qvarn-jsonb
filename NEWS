@@ -18,6 +18,10 @@ Bug fixes:
   such as a string and an integer, Qvarn would crash. This is now
   fixed.
 
+* Saulius Žemaitaitis reported that updating a resource type
+  specification YAML file and restarting Qvarn wouldn't make the new
+  version of the resource type availables. Fixed now.
+
 Version 0.86, released 2017-10-10
 ----------------------------------
 
