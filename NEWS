@@ -13,6 +13,11 @@ Bug fixes:
   resources, not just `foo`. This has been fixed. Bug reported by
   Kaius, fixed by Lars.
 
+* Mantas reported that if a resource type or resource had two fields
+  with the same type but values that were not possible to compare,
+  such as a string and an integer, Qvarn would crash. This is now
+  fixed.
+
 Version 0.86, released 2017-10-10
 ----------------------------------
 

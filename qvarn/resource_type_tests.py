@@ -59,6 +59,7 @@ class ResourceTypeTests(unittest.TestCase):
                     'prototype': {
                         'foo': '',
                         'bar': '',
+                        'version': 0,  # test for bug
                     },
                     'subpaths': {
                         'subfoo': {

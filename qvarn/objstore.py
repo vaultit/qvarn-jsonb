@@ -386,7 +386,18 @@ class NoSuchObject(Exception):
 
 
 def flatten_object(obj):
-    return list(sorted(set(_flatten(obj))))
+    # We sort only by the name, not the object in each pair in the
+    # list. Otherwise, if there are two fields with the same name but
+    # incompatible value types this will break. However, to guarantee
+    # that objects always result in the same flattened representation,
+    # we also compare the second field. For this, we convert the
+    # second value to a string with repr. This allows the second
+    # fields to be compared regardless of type.
+
+    pairs = _flatten(obj)
+    unique_pairs = set(pairs)
+    sorted_pairs = sorted(unique_pairs, key=repr)
+    return list(sorted_pairs)
 
 
 def _flatten(obj, obj_key=None):
