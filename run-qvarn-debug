@@ -180,7 +180,6 @@ database:
 EOF
 export QVARN_CONFIG="$tmp/qvarn.yaml"
 
-export PYTHONPATH=/home/liw/apifw
 gunicorn3 --bind 127.0.0.1:12765 -p "$tmp/pid" -w1 --log-file g.log \
           --log-level debug \
           qvarn.backend:app
