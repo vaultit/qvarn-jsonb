@@ -52,7 +52,7 @@ class QvarnAPI:
             'path': path,
             'spec': rt.as_dict(),
         }
-        self._store.create_object(obj, **keys, auxtable=True)
+        self._store.create_object(obj, auxtable=True, **keys)
 
     def get_resource_type(self, path):
         objs = self._get_resource_type_given_path(path)
