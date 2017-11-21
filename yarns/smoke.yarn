@@ -602,7 +602,8 @@ JSON.
     GIVEN a running qvarn instance
 
     WHEN client gets an authorization token with scope
-    ... "uapi_subjects_post uapi_subjects_blob_put uapi_subjects_blog_get"
+    ... "uapi_subjects_post uapi_subjects_id_put
+    ... uapi_subjects_id_blob_put uapi_subjects_id_blob_get"
 
 Create a subject.
 
