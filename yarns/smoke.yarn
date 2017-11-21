@@ -555,7 +555,7 @@ don't need to be created specially.
     GIVEN a running qvarn instance
 
     WHEN client gets an authorization token with scope
-    ... "uapi_subjects_post uapi_subjects_sub_put uapi_subjects_sub_get"
+    ... "uapi_subjects_post uapi_subjects_id_sub_put uapi_subjects_id_sub_get"
 
     WHEN client requests POST /subjects with token and body
     ... { "type": "subject", "names": [ { "full_name": "Alfred" } ] }
