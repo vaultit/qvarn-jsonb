@@ -1,0 +1,40 @@
+---
+title: qvarn-jsonb integration tests
+author: Lars Wirzenius / QvarnLabs Ab
+date: work in progress
+...
+
+
+# Qvarn data migration to another instance
+
+`qvarn-copy` is a tool for copying data from one Qvarn instance to
+another, using the API. This chapter has a test scenario for it.
+
+    SCENARIO qvarn-copy copies data correctly
+
+    GIVEN a running source Qvarn instance
+    AND a running target Qvarn instance
+
+    WHEN user creates a person listener in source Qvarn for all changes
+    THEN listener has id LID
+    AND listener has revision LREV
+
+    WHEN user creates person in source Qvarn
+    THEN resource id is ID
+    AND revision is REV
+    AND there is a notification for person listener LID 
+    ... notification id NID in source Qvarn
+
+    WHEN user runs qvarn-copy
+    
+    THEN person ID in source and target Qvarns are identical
+    AND person listener LID in source and target Qvarns are identical
+    AND notification NID in person listener LID
+    ... in source and target Qvarns are identical
+
+    WHEN user runs qvarn-dump on source Qvarn
+    AND user runs qvarn-dump on target Qvarn
+    THEN source and target dumps are bitwise identical
+
+    FINALLY source Qvarn is stopped
+    AND target Qvarn is stopped

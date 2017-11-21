@@ -38,6 +38,10 @@ datadir = os.environ['DATADIR']
 vars = Variables(datadir)
 
 
+def srcpath(path):
+    return os.path.join(srcdir, path)
+
+
 def hexdigit(c):
     return ord(c) - ord('0')
 
@@ -102,6 +106,40 @@ def create_token(privkey, iss, aud, scopes):
         scopes,
     ]
     return cliapp.runcmd(argv)
+
+
+def create_token_for_qvarn(qvarn_vars, scopes):
+    if qvarn_vars.get('token') is None:
+        privkey = qvarn_vars['privkey']
+        iss = qvarn_vars['issuer']
+        aud = qvarn_vars['audience']
+        qvarn_vars['token'] = create_token(privkey, iss, aud, scopes)
+
+
+def post_to_qvarn(qvarn_vars, path, body):
+    url = qvarn_vars['url']
+    headers = {
+        'Authorization': 'Bearer {}'.format(qvarn_vars['token']),
+        'Content-Type': 'application/json',
+    }
+
+    return post(url + path, headers=headers, body=json.dumps(body))
+
+def get_from_qvarn(qvarn_vars, path):
+    url = qvarn_vars['url']
+    headers = {
+        'Authorization': 'Bearer {}'.format(qvarn_vars['token'])
+    }
+    vars['status_code'], vars['headers'], vars['body'] = get(url + path, headers)
+    print('body:', repr(vars['body']))
+    return json.loads(vars['body'])
+
+def delete_from_qvarn(qvarn_vars, path):
+    url = qvarn_vars['url']
+    headers = {
+        'Authorization': 'Bearer {}'.format(qvarn_vars['token'])
+    }
+    vars['status_code'], vars['headers'], vars['body'] = delete(url + path, headers)
 
 
 def cat(filename):
@@ -226,3 +264,26 @@ def stop_qvarn(name):
         pid_text = cat(filename)
         pid = int(pid_text)
         os.kill(pid, signal.SIGTERM)
+
+
+def dump_qvarn(qvarn_vars, filename, names):
+    argv = [
+        srcpath('qvarn-dump'),
+        '--token', qvarn_vars['token'],
+        '--api', qvarn_vars['url'],
+        '--output', filename,
+        '--log', filename + '.log',
+    ] + names
+    cliapp.runcmd(argv)
+
+
+def qvarn_copy(source, target, names):
+    argv = [
+        srcpath('qvarn-copy'),
+        '--source-token', source['token'],
+        '--target-token', target['token'],
+        '--source', source['url'],
+        '--target', target['url'],
+        '--log', 'copy.log',
+    ] + names
+    cliapp.runcmd(argv)
