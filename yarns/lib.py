@@ -17,7 +17,9 @@
 import json
 import os
 import re
+import signal
 import tempfile
+import time
 
 
 import cliapp
@@ -106,6 +108,11 @@ def cat(filename):
     return open(filename).read()
 
 
+def write(filename, data):
+    with open(filename, 'w') as f:
+        f.write(data)
+
+
 def write_temp(data):
     fd, filename = tempfile.mkstemp(dir=datadir)
     os.write(fd, data)
@@ -155,3 +162,67 @@ def values_match(wanted, actual):
             return False
 
     return True
+
+
+def start_qvarn(name):
+    privkey, pubkey = create_token_signing_key_pair()
+    write('key', privkey)
+
+    port = cliapp.runcmd([os.path.join(srcdir, 'randport' )]).strip()
+
+    vars[name] = {
+        'issuer': 'issuer',
+        'audience': 'audience',
+        'api.log': 'qvarn-{}.log'.format(name),
+        'gunicorn3.log': 'gunicorn3-{}.log'.format(name),
+        'pid-file': '{}.pid'.format(name),
+        'port': port,
+        'url': 'http://127.0.0.1:{}'.format(port),
+        'privkey': privkey,
+        'pubkey': pubkey,
+    }
+
+    config = {
+        'log': [
+            {
+                'filename': vars[name]['api.log'],
+            },
+        ],
+        'baseurl': vars[name]['url'],
+        'token-issuer': vars[name]['issuer'],
+        'token-audience': vars[name]['audience'],
+        'token-public-key': pubkey,
+        'resource-type-dir': os.path.join(srcdir, 'resource_type'),
+    }
+    config = add_postgres_config(config)
+    config_filename = os.path.join(datadir, 'qvarn-{}.yaml'.format(name))
+
+    env = dict(os.environ)
+    env['QVARN_CONFIG'] = config_filename
+    write(config_filename, yaml.safe_dump(config))
+
+    argv = [
+        'gunicorn3',
+        '--daemon',
+        '--bind', '127.0.0.1:{}'.format(vars[name]['port']),
+        '-p', vars[name]['pid-file'],
+        'qvarn.backend:app',
+    ]
+    cliapp.runcmd(argv, env=env, stdout=None, stderr=None)
+
+    wait_for_file(vars[name]['pid-file'], 2.0)
+
+
+def wait_for_file(filename, timeout):
+    until = time.time() + timeout
+    while time.time() < until and not os.path.exists(filename):
+        time.sleep(0.01)
+    assert os.path.exists(filename)
+
+
+def stop_qvarn(name):
+    if vars[name]:
+        filename = vars[name]['pid-file']
+        pid_text = cat(filename)
+        pid = int(pid_text)
+        os.kill(pid, signal.SIGTERM)

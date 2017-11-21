@@ -7,65 +7,20 @@ This chapter shows the scenario step implementations.
 Start a Qvarn running in the background.
 
     IMPLEMENTS GIVEN a running qvarn instance
-    import os, time, cliapp, yaml, yarnutils
-    privkey, pubkey = create_token_signing_key_pair()
-    print repr(privkey)
-    print repr(pubkey)
-    assert privkey
-    assert pubkey
-    open('key', 'w').write(privkey)
-    vars['aud'] = 'http://api.test.example.com'
-    vars['iss'] = 'qvarn.yarn'
-    vars['privkey'] = privkey
-    vars['pubkey'] = pubkey
-    vars['api.log'] = 'qvarn.log'
-    vars['gunicorn3.log'] = 'gunicorn3.log'
-    vars['pid-file'] = 'pid'
-    vars['port'] = cliapp.runcmd([os.path.join(srcdir, 'randport' )]).strip()
-    vars['url'] = 'http://127.0.0.1:{}'.format(vars['port'])
-    vars['API_URL'] = vars['url']
-    config = {
-        'log': [
-            {
-                'filename': vars['api.log'],
-            },
-        ],
-        'baseurl': vars['url'],
-        'token-issuer': vars['iss'],
-        'token-audience': vars['aud'],
-        'token-public-key': vars['pubkey'],
-        'resource-type-dir': os.path.join(srcdir, 'resource_type'),
-    }
-    config = add_postgres_config(config)
-    env = dict(os.environ)
-    env['QVARN_CONFIG'] = os.path.join(datadir, 'qvarn.yaml')
-    yaml.safe_dump(config, open(env['QVARN_CONFIG'], 'w'))
-    argv = [
-        'gunicorn3',
-        '--daemon',
-        '--bind', '127.0.0.1:{}'.format(vars['port']),
-        '-p', vars['pid-file'],
-        'qvarn.backend:app',
-    ]
-    cliapp.runcmd(argv, env=env, stdout=None, stderr=None)
-    until = time.time() + 2.0
-    while time.time() < until and not os.path.exists(vars['pid-file']):
-        time.sleep(0.01)
-    assert os.path.exists(vars['pid-file'])
+    start_qvarn('default')
 
 ## Stop a Qvarn we started
 
     IMPLEMENTS FINALLY qvarn is stopped
-    import os, signal, yarnutils
-    pid = int(cat(vars['pid-file']))
-    os.kill(pid, signal.SIGTERM)
+    stop_qvarn('default')
 
 ## API requests of various kinds
 
     IMPLEMENTS WHEN client requests GET (/.+) without token
     path = get_next_match()
     path = expand_vars(path, vars)
-    vars['status_code'], vars['headers'], vars['body'] = get(vars['url'] + path)
+    vars['status_code'], vars['headers'], vars['body'] = get(
+        vars['default']['url'] + path)
 
     IMPLEMENTS WHEN client requests GET (/.+) using token
     path = get_next_match()
@@ -74,7 +29,7 @@ Start a Qvarn running in the background.
         'Authorization': 'Bearer {}'.format(vars['token']),
     }
     vars['status_code'], vars['headers'], vars['body'] = get(
-        vars['url'] + path, headers)
+        vars['default']['url'] + path, headers)
 
     IMPLEMENTS WHEN client requests POST (/.+) with token and body (.+)
     path = get_next_match()
@@ -84,7 +39,7 @@ Start a Qvarn running in the background.
         'Content-Type': 'application/json',
     }
     vars['status_code'], vars['headers'], vars['body'] = post(
-        vars['url'] + path, headers=headers, body=body)
+        vars['default']['url'] + path, headers=headers, body=body)
 
     IMPLEMENTS WHEN client requests PUT (/.+) with token and body (.+)
     path = get_next_match()
@@ -96,7 +51,7 @@ Start a Qvarn running in the background.
         'Content-Type': 'application/json',
     }
     vars['status_code'], vars['headers'], vars['body'] = put(
-        vars['url'] + path, headers=headers, body=body)
+        vars['default']['url'] + path, headers=headers, body=body)
 
     IMPLEMENTS WHEN client requests PUT (/[a-z0-9/${}]+) with token, revision (\S+), content-type (\S+), and empty body
     path = expand_vars(get_next_match(), vars)
@@ -109,7 +64,7 @@ Start a Qvarn running in the background.
         'Content-Type': ctype,
     }
     vars['status_code'], vars['headers'], vars['body'] = put(
-        vars['url'] + path, headers=headers, body=body)
+        vars['default']['url'] + path, headers=headers, body=body)
 
     IMPLEMENTS WHEN client requests PUT (/[a-z0-9/${}]+) with token, revision (\S+), content-type (\S+), and body "(.+)"
     path = expand_vars(get_next_match(), vars)
@@ -122,7 +77,7 @@ Start a Qvarn running in the background.
         'Content-Type': ctype,
     }
     vars['status_code'], vars['headers'], vars['body'] = put(
-        vars['url'] + path, headers=headers, body=body)
+        vars['default']['url'] + path, headers=headers, body=body)
 
     IMPLEMENTS WHEN client requests DELETE (/.+) with token
     path = get_next_match()
@@ -131,7 +86,7 @@ Start a Qvarn running in the background.
         'Authorization': 'Bearer {}'.format(vars['token']),
     }
     vars['status_code'], vars['headers'], vars['body'] = delete(
-        vars['url'] + path, headers=headers)
+        vars['default']['url'] + path, headers=headers)
 
     IMPLEMENTS WHEN client uploads a fake jpg
     assert 0
@@ -140,9 +95,12 @@ Start a Qvarn running in the background.
 
     IMPLEMENTS WHEN client gets an authorization token with scope "(.+)"
     scopes = get_next_match()
-    print 'privkey', repr(vars['privkey'])
-    assert vars['privkey']
-    vars['token'] = create_token(vars['privkey'], vars['iss'], vars['aud'], scopes)
+    privkey = vars['default']['privkey']
+    iss = vars['default']['issuer']
+    aud = vars['default']['audience']
+    print 'privkey', repr(privkey)
+    assert privkey
+    vars['token'] = create_token(privkey, iss, aud, scopes)
 
 ## UUID creation
 
@@ -159,6 +117,7 @@ Start a Qvarn running in the background.
 
     IMPLEMENTS THEN HTTP (\S+) header is (.+)
     header = get_next_match()
+    vars['API_URL'] = vars['default']['url']
     value = expand_vars(get_next_match(), vars)
     assertEqual(vars['headers'].get(header), value)
 
