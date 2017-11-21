@@ -703,6 +703,7 @@ Updating parent doesn't affect the blob.
 
     WHEN client gets an authorization token with scope 
     ... "uapi_subjects_post uapi_subjects_search_id_get
+    ...  uapi_subjects_id_sub_put
     ...  uapi_subjects_id_delete"
 
     WHEN client requests POST /subjects with token and body
