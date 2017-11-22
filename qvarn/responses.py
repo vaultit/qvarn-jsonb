@@ -56,6 +56,13 @@ def bad_request_response(body):
     return response(apifw.HTTP_BAD_REQUEST, body, headers)
 
 
+def forbidden_request_response(body):
+    headers = {
+        'Content-Type': 'text/plain',
+    }
+    return response(apifw.HTTP_FORBIDDEN, body, headers)
+
+
 def need_sort_response():
     headers = {
         'Content-Type': 'application/json',

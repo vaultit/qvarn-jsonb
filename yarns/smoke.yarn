@@ -64,6 +64,12 @@ provides consulting, development, and support services around Qvarn.
 
     WHEN client requests POST /subjects with token and body
     ... {
+    ...     "non-existent": []
+    ... }
+    THEN HTTP status code is 400 Bad client
+
+    WHEN client requests POST /subjects with token and body
+    ... {
     ...     "type": "subject",
     ...     "names": [
     ...         { "full_name": "Jason Bourne" }

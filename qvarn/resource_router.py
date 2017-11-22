@@ -21,9 +21,13 @@ class ResourceRouter(qvarn.Router):
 
     def __init__(self):
         super().__init__()
+        self._api = None
         self._coll = None
         self._baseurl = None
         self._notify = None
+
+    def set_api(self, api):
+        self._api = api
 
     def set_baseurl(self, baseurl):
         self._baseurl = baseurl
@@ -81,14 +85,23 @@ class ResourceRouter(qvarn.Router):
         if 'type' not in body:
             body['type'] = self._coll.get_type_name()
 
+        id_allowed = self._api.is_id_allowed(kwargs.get('claims', {}))
+
         validator = qvarn.Validator()
         try:
-            validator.validate_new_resource(body, self._coll.get_type())
+            if id_allowed:
+                validator.validate_new_resource_with_id(
+                    body, self._coll.get_type())
+            else:
+                validator.validate_new_resource(body, self._coll.get_type())
+        except (qvarn.HasId, qvarn.HasRevision) as e:
+            qvarn.log.log('error', msg_text=str(e), body=body)
+            return qvarn.bad_request_response(str(e))
         except qvarn.ValidationError as e:
             qvarn.log.log('error', msg_text=str(e), body=body)
             return qvarn.bad_request_response(str(e))
 
-        result_body = self._coll.post(body)
+        result_body = self._coll.post_with_id(body)
         qvarn.log.log(
             'debug', msg_text='POST a new resource, result',
             body=result_body)

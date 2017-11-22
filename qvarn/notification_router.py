@@ -21,10 +21,14 @@ class NotificationRouter(qvarn.Router):
 
     def __init__(self):
         super().__init__()
+        self._api = None
         self._baseurl = None
         self._store = None
         self._parent_coll = None
         self._listener_coll = None
+
+    def set_api(self, api):
+        self._api = api
 
     def set_baseurl(self, baseurl):
         self._baseurl = baseurl
@@ -74,6 +78,11 @@ class NotificationRouter(qvarn.Router):
                 'callback': self._delete_listener,
             },
             {
+                'method': 'POST',
+                'path': notifications_path,
+                'callback': self._create_a_notification,
+            },
+            {
                 'method': 'GET',
                 'path': notifications_path,
                 'callback': self._get_notifications_list,
@@ -112,7 +121,11 @@ class NotificationRouter(qvarn.Router):
                 'listen_on_type does not have value {}'.format(rtype))
         body['listen_on_type'] = rtype
 
-        result_body = self._listener_coll.post(body)
+        id_allowed = self._api.is_id_allowed(kwargs.get('claims', {}))
+        if id_allowed:
+            result_body = self._listener_coll.post_with_id(body)
+        else:
+            result_body = self._listener_coll.post(body)
         location = self._get_new_resource_location(result_body)
         qvarn.log.log(
             'debug', msg_text='POST a new listener, result',
@@ -235,6 +248,21 @@ class NotificationRouter(qvarn.Router):
         if len(pairs) > 1:
             raise qvarn.TooManyResources(notification_id)
         return qvarn.ok_response(pairs[0][1])
+
+    def _create_a_notification(self, content_type, body, *args, **kwargs):
+        claims = kwargs['claims']
+        is_allowed = self._api.is_id_allowed(claims)
+
+        if not is_allowed:
+            return qvarn.forbidden_request_resonse('Not for you')
+
+        notif = dict(body)
+        assert 'id' in notif
+        assert 'listener_id' in notif
+        assert 'revision' in notif
+        self._api.create_notification(notif)
+
+        return qvarn.created_response(notif, '')
 
     def _delete_notification(self, *args, **kwargs):
         listener_id = kwargs['listener_id']

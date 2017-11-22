@@ -122,6 +122,7 @@ class QvarnAPI:
         coll.set_resource_type(rt)
 
         router = qvarn.ResourceRouter()
+        router.set_api(self)
         router.set_baseurl(self._baseurl)
         router.set_collection(coll)
         router.set_notifier(self.notify)
@@ -144,12 +145,17 @@ class QvarnAPI:
 
         listener_rt = self.get_listener_resource_type()
         notif_router = qvarn.NotificationRouter()
+        notif_router.set_api(self)
         notif_router.set_baseurl(self._baseurl)
         notif_router.set_parent_collection(coll)
         notif_router.set_object_store(self._store, listener_rt)
         routes.extend(notif_router.get_routes())
 
         return routes
+
+    def is_id_allowed(self, claims):
+        scopes = claims.get('scope', '').split()
+        return 'uapi_set_meta_fields' in scopes
 
     def notify(self, rid, rrev, change):  # pragma: no cover
         rt = self.get_notification_resource_type()
@@ -165,10 +171,17 @@ class QvarnAPI:
         }
         for listener in self.find_listeners(rid, change):
             obj['listener_id'] = listener['id']
-            qvarn.log.log(
-                'info', msg_text='Notify listener of change',
-                notification=obj)
-            notifs.post(obj)
+            self.create_notification(obj)
+
+    def create_notification(self, notif):  # pragma: no cover
+        qvarn.log.log(
+            'info', msg_text='Create notification',
+            notification=notif)
+        rt = self.get_notification_resource_type()
+        notifs = qvarn.CollectionAPI()
+        notifs.set_object_store(self._store)
+        notifs.set_resource_type(rt)
+        notifs.post_with_id(notif)
 
     def find_listeners(self, rid, change):  # pragma: no cover
         cond = qvarn.Equal('type', 'listener')

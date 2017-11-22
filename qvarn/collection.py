@@ -48,10 +48,23 @@ class CollectionAPI:
     def post(self, obj):
         v = qvarn.Validator()
         v.validate_new_resource(obj, self.get_type())
+        return self._post_helper(obj)
+
+    def post_with_id(self, obj):  # pragma: no cover
+        v = qvarn.Validator()
+        v.validate_new_resource_with_id(obj, self.get_type())
+        return self._post_helper(obj)
+
+    def _post_helper(self, obj):
+        meta_fields = {
+            'id': self._invent_id(obj['type']),
+            'revision': self._invent_id('revision'),
+        }
 
         new_obj = self._new_object(self._proto, obj)
-        new_obj['id'] = self._invent_id(obj['type'])
-        new_obj['revision'] = self._invent_id('revision')
+        for key in meta_fields:
+            if not new_obj.get(key):
+                new_obj[key] = meta_fields[key]
         self._create_object(new_obj, obj_id=new_obj['id'], subpath='')
 
         rt = self.get_type()
