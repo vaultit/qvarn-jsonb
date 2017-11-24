@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+# Copyright 2017  Lars Wirzenius
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+import logging
+import os
+import sys
+
+
+import cliapp
+import ttystatus
+
+
+import qvarn
+import qvarnutils
+
+
+logging.captureWarnings(True)
+
+
+class QvarnCopy(cliapp.Application):
+
+    def add_settings(self):
+        self.settings.string(
+            ['secrets'],
+            'get API client id and secret from FILE',
+            metavar='FILE',
+            default=os.path.expanduser('~/.config/qvarn/createtoken.conf'))
+
+        self.settings.string(
+            ['source-token'],
+            'use TOKEN as the access token for the source Qvarn',
+            metavar='TOKEN')
+
+        self.settings.string(
+            ['target-token'],
+            'use TOKEN as the access token for the target Qvarn',
+            metavar='TOKEN')
+
+        self.settings.string(
+            ['source'],
+            'use URL as the base URL for the source Qvarn',
+            metavar='URL')
+
+        self.settings.string(
+            ['target'],
+            'use URL as the base URL for the target Qvarn',
+            metavar='URL')
+
+        self.settings.integer(
+            ['max'],
+            'use at most N resources of each type',
+            metavar='N')
+
+    def process_args(self, type_names):
+        max_count = self.settings['max'] or None
+
+        src = qvarnutils.create_api(
+            self.settings['source'], self.settings['secrets'],
+            self.settings['source-token'])
+
+        tgt = qvarnutils.create_api(
+            self.settings['target'], self.settings['secrets'],
+            self.settings['target-token'])
+
+        ts = self.get_ttystatus()
+
+        ts['currently'] = 'Finding resources'
+        ts.flush()
+
+        rpaths = self.find_all(
+            src, self.settings['source-token'], type_names)
+        rpaths = rpaths[:max_count]
+        ts['rids'] = len(rpaths)
+        with qvarnutils.Stopwatch('copy all resources'):
+            self.copy_everything(ts, src, tgt, rpaths)
+
+        ts['currently'] = 'All done'
+        ts.flush()
+        ts.finish()
+
+    def find_all(self, api, token, type_names):
+        rpaths = []
+        for type_name in type_names:
+            rt = qvarnutils.get_rt(type_name)
+            self.refresh_token(api, rt, 'source-token')
+            rpaths.extend(api.get_resource_paths(rt))
+        return rpaths
+
+    def copy_everything(self, ts, src, tgt, rpaths):
+        prev_type = None
+        for rpath in rpaths:
+            ts['currently'] = 'Copying {}'.format(rpath['src_path'])
+            ts['rid'] += 1
+
+            if rpath['type'] != prev_type:
+                rt = qvarnutils.get_rt(rpath['type'])
+                self.refresh_token(src, rt, 'source-token')
+                self.refresh_token(tgt, rt, 'target-token')
+                prev_type = rpath['type']
+
+            try:
+                self.copy_one(src, tgt, rpath)
+            except KeyboardInterrupt:
+                raise
+            except BaseException as e:
+                logging.warning(e)
+
+    def copy_one(self, src, tgt, rpath):
+        with qvarnutils.Stopwatch('GET {}'.format(rpath['src_path'])):
+            resp = self.get_thing(src, rpath['src_path'])
+        if resp:
+            ct = resp.headers['Content-Type']
+            obj = resp.json()
+            rev = obj['revision']
+            with qvarnutils.Stopwatch('POST {}'.format(rpath['src_path'])):
+                body = resp.content
+                self.post_thing(tgt, rpath['tgt_path'], body, ct)
+
+            for subpath in rpath['subpaths']:
+                with qvarnutils.Stopwatch('GET {}'.format(subpath)):
+                    resp = self.get_thing(src, subpath)
+                if resp:
+                    sub_ct = resp.headers['Content-Type']
+                    with qvarnutils.Stopwatch('PUT {}'.format(subpath)):
+                        self.put_thing(tgt, subpath, resp.content, sub_ct, rev)
+
+    def get_thing(self, api, path):
+        try:
+            return api.GET(api.get_token(), path)
+        except qvarnutils.Error as e:
+            logging.error(str(e))
+            sys.exit(1)
+
+    def post_thing(self, tgt, path, body, content_type):
+        try:
+            tgt.POST(tgt.get_token(), path, body, content_type, None)
+        except qvarnutils.Error as e:
+            # Resource is already there, or other error. Ignore.
+            logging.warning(str(e))
+            sys.exit(1)
+
+    def put_thing(self, tgt, path, body, content_type, rev):
+        try:
+            tgt.PUT(tgt.get_token(), path, body, content_type, rev)
+        except qvarnutils.Error as e:
+            # Resource is already there, or other error. Ignore.
+            logging.warning(str(e))
+
+    def refresh_token(self, api, rt, setting_name):
+        if not self.settings[setting_name]:
+            api.fresh_token(rt)
+
+    def get_ttystatus(self):
+        ts = ttystatus.TerminalStatus(period=1)
+        ts['rpaths'] = []
+        ts['rids'] = 0
+        ts['rid'] = 0
+        ts.format(
+            'Currently: %String(currently)\n'
+            'Known resources: %Integer(rids)\n'
+            'Resource: %Integer(rid)/%Integer(rids) %PercentDone(rid,rids) '
+            '%ProgressBar(rid,rids)\n'
+            'Elapsed %ElapsedTime()\n'
+            'Remaining %RemainingTime(rid,rids)'
+        )
+        ts.start_new_line()
+        ts.add(ttystatus.Literal('Current speed '))
+        ts.add(ttystatus.Speed('rid', duration=10))
+        return ts
+
+
+QvarnCopy(version=qvarn.__version__).run()
