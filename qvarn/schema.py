@@ -14,9 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import qvarn
-
-
 def schema(r):
     stack = []
     push(stack, [], r)
@@ -57,8 +54,6 @@ def dict_schema(stack, name, r):
 
 
 def list_schema(stack, name, r):
-    qvarn.log.log(
-        'trace', msg_text='list_schema', stack=stack, name=name, len_r=len(r))
     if len(r) > 0:
         yield name, list, type(r[0])
         if isinstance(r[0], dict):

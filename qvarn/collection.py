@@ -77,8 +77,6 @@ class CollectionAPI:
 
     def _create_object(self, obj, **keys):
         assert set(keys.keys()) == set(self.object_keys.keys())
-        qvarn.log.log(
-            'debug', msg_text='Collection._create_object', obj=obj, keys=keys)
         self._store.create_object(obj, **keys)
 
     def _new_object(self, proto, obj):
@@ -98,8 +96,6 @@ class CollectionAPI:
             'obj_id': obj_id,
             'subpath': subpath,
         }
-        qvarn.log.log(
-            'debug', msg_text='CollectionAPI._get_object', keys=keys)
         objs = self._store.get_objects(**keys)
         assert len(objs) <= 1
         if objs:

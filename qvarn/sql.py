@@ -127,9 +127,6 @@ class Transaction:
         )
         if conditions:
             query += ' WHERE {}'.format(' AND '.join(conditions))
-        qvarn.log.log(
-            'debug', msg_text='PostgresAdapater.select_objects',
-            query=query, keys=keys, conditions=conditions)
         return query
 
     def select_objects_on_cond(self, table_name, cond, *keys):

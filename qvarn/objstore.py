@@ -199,9 +199,6 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
     def create_store(self, **keys):
         self.check_keys_have_str_type(**keys)
         self._keys = dict(keys)
-        qvarn.log.log(
-            'info', msg_text='PostgresObjectStore.create_store',
-            keys=repr(keys))
 
         # Create main table for objects.
         self._create_table(self._table, self._keys, '_obj', dict)
@@ -220,9 +217,6 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             t.execute(query, {})
 
     def create_object(self, obj, auxtable=True, **keys):
-        qvarn.log.log(
-            'info', msg_text='PostgresObjectStore.create_object',
-            obj=obj, keys=keys)
         with self._sql.transaction() as t:
             self._remove_objects_in_transaction(t, **keys)
             self._insert_into_object_table(t, self._table, obj, **keys)
@@ -247,9 +241,6 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             t.execute(query, keys)
 
     def remove_objects(self, **keys):
-        qvarn.log.log(
-            'info', msg_text='PostgresObjectStore.remove_objects',
-            keys=keys)
         with self._sql.transaction() as t:
             query = t.remove_objects(self._table, *keys.keys())
             t.execute(query, keys)
@@ -258,34 +249,21 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             t.execute(query, keys)
 
     def _remove_objects_in_transaction(self, t, **keys):
-        qvarn.log.log(
-            'info',
-            msg_text='PostgresObjectStore._remove_objects_in_transaction',
-            keys=keys)
         query = t.remove_objects(self._table, *keys.keys())
         t.execute(query, keys)
         query = t.remove_objects(self._auxtable, *keys.keys())
         t.execute(query, keys)
 
     def get_objects(self, **keys):
-        qvarn.log.log(
-            'info', msg_text='PostgresObjectStore.get_objects',
-            keys=keys)
         with self._sql.transaction() as t:
             return self._get_objects_in_transaction(t, **keys)
 
     def _get_objects_in_transaction(self, t, **keys):
         query = t.select_objects(self._table, '_obj', *keys.keys())
-        qvarn.log.log(
-            'debug', msg_text='PostgresObjectStore.get_objects',
-            query=query, keys=keys)
         cursor = t.execute(query, keys)
         return [row['_obj'] for row in t.get_rows(cursor)]
 
     def find_objects(self, cond):
-        qvarn.log.log(
-            'info', msg_text='PostgresObjectStore.find_objects',
-            cond=repr(cond))
         with self._sql.transaction() as t:
             rows = self._find_helper(t, cond)
             return [
@@ -307,8 +285,6 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         return keys, obj
 
     def create_blob(self, blob, **keys):
-        qvarn.log.log('trace', msg_text='Creating blob', keys=keys)
-
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         if not self.get_objects(**keys):
