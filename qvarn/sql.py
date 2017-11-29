@@ -6,11 +6,12 @@
 '''Communicate with a PostgreSQL server.'''
 
 
+import time
+
 import psycopg2
 import psycopg2.pool
 import psycopg2.extras
 import psycopg2.extensions
-
 import slog
 
 import qvarn
@@ -47,8 +48,12 @@ class Transaction:
     def __init__(self, sql):
         self._sql = sql
         self._conn = None
+        self._started = None
+        self._queries = None
 
     def __enter__(self):
+        self._started = time.time()
+        self._queries = []
         self._conn = self._sql.get_conn()
         return self
 
@@ -65,10 +70,24 @@ class Transaction:
         self._sql.put_conn(self._conn)
         self._conn = None
 
+        ended = time.time()
+        duration = 1000.0 * (ended - self._started)
+        qvarn.log.log(
+            'sql', msg_text='SQL transaction', ms=duration,
+            queries=self._queries)
+        self._started = None
+        self._queries = []
+
     def execute(self, query, values):
-        qvarn.log.log('trace', msg_text='executing SQL query', query=query)
+        started = time.time()
         c = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         c.execute(query, values)
+        duration = 1000.0 * (time.time() - started)
+        self._queries.append({
+            'query': query,
+            'values': values,
+            'ms': duration,
+        })
         return c
 
     def get_rows(self, cursor):
