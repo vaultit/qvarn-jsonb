@@ -3,7 +3,7 @@ qvarn/__init__.py
 qvarn/api_errors.py
 qvarn/backend.py
 qvarn/file_router.py
-qvarn/logging.py
+qvarn/log_setup.py
 qvarn/notification_router.py
 qvarn/resource_router.py
 qvarn/responses.py

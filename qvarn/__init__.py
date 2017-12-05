@@ -15,7 +15,7 @@
 
 
 from .version import __version__, __version_info__
-from .logging import log, setup_logging
+from .log_setup import log, setup_logging
 from .idgen import ResourceIdGenerator
 from .schema import schema
 from .resource_type import (
