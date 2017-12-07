@@ -1,0 +1,4 @@
+qvarn-copy usr/bin
+qvarn-dump usr/bin
+qvarn-stats usr/bin
+debian/tmp/usr/lib/python3*/dist-packages/qvarnutils* usr/lib/python3/dist-packages

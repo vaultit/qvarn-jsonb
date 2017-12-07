@@ -29,5 +29,5 @@ setup(
     description='backend service for JSON and binary data storage',
     author='Lars Wirzenius',
     author_email='liw@qvarnlabs.com',
-    packages=['qvarn'],
+    packages=['qvarn', 'qvarnutils'],
 )
