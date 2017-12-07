@@ -24,6 +24,7 @@ class QvarnAPI:
         self._validator = qvarn.Validator()
         self._baseurl = None
         self._rt_coll = None
+        self._notifs = None
 
     def set_base_url(self, baseurl):  # pragma: no cover
         self._baseurl = baseurl
@@ -158,10 +159,6 @@ class QvarnAPI:
         return 'uapi_set_meta_fields' in scopes
 
     def notify(self, rid, rrev, change):  # pragma: no cover
-        rt = self.get_notification_resource_type()
-        notifs = qvarn.CollectionAPI()
-        notifs.set_object_store(self._store)
-        notifs.set_resource_type(rt)
         obj = {
             'type': 'notification',
             'resource_id': rid,
@@ -177,11 +174,16 @@ class QvarnAPI:
         qvarn.log.log(
             'info', msg_text='Create notification',
             notification=notif)
-        rt = self.get_notification_resource_type()
-        notifs = qvarn.CollectionAPI()
-        notifs.set_object_store(self._store)
-        notifs.set_resource_type(rt)
+        notifs = self._create_notifs_collection()
         notifs.post_with_id(notif)
+
+    def _create_notifs_collection(self):  # pragma: no cover
+        if self._notifs is None:
+            rt = self.get_notification_resource_type()
+            self._notifs = qvarn.CollectionAPI()
+            self._notifs.set_object_store(self._store)
+            self._notifs.set_resource_type(rt)
+        return self._notifs
 
     def find_listeners(self, rid, change):  # pragma: no cover
         cond = qvarn.Equal('type', 'listener')
