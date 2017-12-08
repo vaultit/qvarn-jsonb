@@ -10,6 +10,7 @@ qvarn/responses.py
 qvarn/router.py
 qvarn/sql.py
 qvarn/subresource_router.py
+qvarn/stopwatch.py
 qvarn/timestamp.py
 qvarn/version.py
 qvarn/version_router.py

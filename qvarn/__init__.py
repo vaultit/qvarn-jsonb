@@ -16,6 +16,7 @@
 
 from .version import __version__, __version_info__
 from .log_setup import log, setup_logging
+from .stopwatch import Stopwatch, stopwatch
 from .idgen import ResourceIdGenerator
 from .schema import schema
 from .resource_type import (

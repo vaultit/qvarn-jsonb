@@ -60,7 +60,9 @@ class Transaction:
     def __exit__(self, exc_type, exc_val, exc_tb):
         try:
             if exc_type is None:
+                t = time.time()
                 self._conn.commit()
+                commit_ms = time.time() - t
             else:  # pragma: no cover
                 self._conn.rollback()
         except BaseException:  # pragma: no cover
@@ -74,7 +76,7 @@ class Transaction:
         duration = 1000.0 * (ended - self._started)
         qvarn.log.log(
             'sql', msg_text='SQL transaction', ms=duration,
-            queries=self._queries)
+            commit_ms=commit_ms, queries=self._queries)
         self._started = None
         self._queries = []
 
