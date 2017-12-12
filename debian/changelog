@@ -1,9 +1,8 @@
-qvarn (0.86+git-1) UNRELEASED; urgency=medium
+qvarn-jsonb (0.86+git-1) UNRELEASED; urgency=medium
 
   * New upstream version.
   * Add depenency on python3-yaml.
-  * Split into multiple binary packages. Source package is now called
-    qvarn.
+  * Split into multiple binary packages.
 
  -- Lars Wirzenius <liw@liw.fi>  Tue, 10 Oct 2017 11:58:51 +0300
 

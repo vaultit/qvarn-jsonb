@@ -1,4 +1,4 @@
-Source: qvarn
+Source: qvarn-jsonb
 Maintainer: QvarnLabs <info@qvarnlabs.com>
 Uploaders: Lars Wirzenius <liw@qvarnlabs.com>
 Section: web
