@@ -48,24 +48,39 @@ class CollectionAPI:
     def post(self, obj):
         v = qvarn.Validator()
         v.validate_new_resource(obj, self.get_type())
+        return self._post_helper(obj)
+
+    def post_with_id(self, obj):  # pragma: no cover
+        v = qvarn.Validator()
+        v.validate_new_resource_with_id(obj, self.get_type())
+        result = self._post_helper(obj)
+        return result
+
+    def _post_helper(self, obj):
+        meta_fields = {
+            'id': self._invent_id(obj['type']),
+            'revision': self._invent_id('revision'),
+        }
 
         new_obj = self._new_object(self._proto, obj)
-        new_obj['id'] = self._invent_id(obj['type'])
-        new_obj['revision'] = self._invent_id('revision')
-        self._create_object(new_obj, obj_id=new_obj['id'], subpath='')
+        with qvarn.Stopwatch('post helper: create object in db'):
+            for key in meta_fields:
+                if not new_obj.get(key):
+                    new_obj[key] = meta_fields[key]
+            self._create_object(new_obj, obj_id=new_obj['id'], subpath='')
 
-        rt = self.get_type()
-        subprotos = rt.get_subpaths()
-        for subpath, subproto in subprotos.items():
-            empty = self._new_object(subproto, {})
-            self._create_object(empty, obj_id=new_obj['id'], subpath=subpath)
+        with qvarn.Stopwatch('post helper: create subpaths in db'):
+            rt = self.get_type()
+            subprotos = rt.get_subpaths()
+            for subpath, subproto in subprotos.items():
+                empty = self._new_object(subproto, {})
+                self._create_object(
+                    empty, obj_id=new_obj['id'], subpath=subpath)
 
         return new_obj
 
     def _create_object(self, obj, **keys):
         assert set(keys.keys()) == set(self.object_keys.keys())
-        qvarn.log.log(
-            'debug', msg_text='Collection._create_object', obj=obj, keys=keys)
         self._store.create_object(obj, **keys)
 
     def _new_object(self, proto, obj):
@@ -85,8 +100,6 @@ class CollectionAPI:
             'obj_id': obj_id,
             'subpath': subpath,
         }
-        qvarn.log.log(
-            'debug', msg_text='CollectionAPI._get_object', keys=keys)
         objs = self._store.get_objects(**keys)
         assert len(objs) <= 1
         if objs:

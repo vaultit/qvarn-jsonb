@@ -1,4 +1,4 @@
-Source: qvarn-jsonb
+Source: qvarn
 Maintainer: QvarnLabs <info@qvarnlabs.com>
 Uploaders: Lars Wirzenius <liw@qvarnlabs.com>
 Section: web
@@ -15,8 +15,32 @@ X-Python3-Version: >= 3.5
 Package: qvarn-jsonb
 Architecture: all
 Depends: ${python3:Depends}, ${misc:Depends},
- python3 (>= 3.5)
+ python3 (>= 3.5),  qvarn-common
 Description: web service backend for structured data storage
  This is a backend service for storing structured (JSON) and some
  associated binary data using a REST-ful HTTP API and OpenID Connect
  authentication.
+
+Package: qvarn-utils
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends},
+ python3 (>= 3.5), python3-yaml, qvarn-common, python3-cliapp,
+ python3-ttystatus
+Description: utilities for use with a Qvarn server
+ This package contains utilities qvarn-stats, qvarn-dump, and qvarn-copy,
+ which are command line utilities that use the Qvarn server API to do
+ various useful things.
+ .
+ See qvarn-jsonb for the server package.
+
+
+Package: qvarn-common
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends},
+ python3 (>= 3.5), python3-yaml, python3-requests
+Description: common files for Qvarn server, clients
+ This package contains common files between the Qvarn server and command
+ line utilities.
+ .
+ See qvarn-jsonb for the server package, and qvarn-utils for the
+ utilities.

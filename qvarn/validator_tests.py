@@ -101,6 +101,10 @@ class ValidatorTests(unittest.TestCase):
             self.validator.validate_new_resource(
                 self.resource, self.resource_type)
 
+    def test_accpets_new_resource_with_id(self):
+        self.validator.validate_new_resource_with_id(
+            self.resource, self.resource_type)
+
     def test_rejects_resource_with_revision(self):
         del self.resource['id']
         with self.assertRaises(qvarn.HasRevision):

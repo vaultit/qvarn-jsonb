@@ -1,0 +1,176 @@
+---
+title: qvarn-jsonb integration tests
+author: Lars Wirzenius / QvarnLabs Ab
+date: work in progress
+...
+
+
+# Qvarn data migration to another instance
+
+`qvarn-copy` is a tool for copying data from one Qvarn instance to
+another, using the API. This chapter has a test scenario for it.
+
+    SCENARIO qvarn-copy copies data correctly
+
+    GIVEN a running source Qvarn instance
+    AND a running target Qvarn instance
+
+    WHEN user creates a person listener in source Qvarn for all changes
+    THEN listener has id LID
+    AND listener has revision LREV
+
+    WHEN user creates person in source Qvarn
+    THEN resource id is ID
+    AND revision is REV
+    AND there is a notification for person listener LID 
+    ... notification id NID in source Qvarn
+
+    WHEN user runs qvarn-copy
+    
+    THEN person ID in source and target Qvarns are identical
+    AND person listener LID in source and target Qvarns are identical
+    AND notification NID in person listener LID
+    ... in source and target Qvarns are identical
+
+    WHEN user runs qvarn-dump on source Qvarn
+    AND user runs qvarn-dump on target Qvarn
+    THEN source and target dumps are bitwise identical
+
+    FINALLY source Qvarn is stopped
+    AND target Qvarn is stopped
+
+
+# Client sets resource id, revision when creating it
+
+For data migration, we need to allow an API client to set the `id` and
+`revision` of a resource, so that a copy can retain those. This
+functionality is enabled with special scopes.
+
+    SCENARIO client set resoure id, revision
+
+    GIVEN a running Qvarn instance
+
+    WHEN client gets an authorization token with scope
+    ... "uapi_subjects_post"
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "id": "CAFEF00D",
+    ...     "names": [
+    ...         {
+    ...             "full_name": "Esmerelda Weatherwax"
+    ...         }
+    ...     ]
+    ... }
+    THEN HTTP status code is 400 Forbidden
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "revision": "CAFEF00D",
+    ...     "names": [
+    ...         {
+    ...             "full_name": "Esmerelda Weatherwax"
+    ...         }
+    ...     ]
+    ... }
+    THEN HTTP status code is 400 Forbidden
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "id": "CAFEF00D",
+    ...     "revision": "CAFEF00D",
+    ...     "names": [
+    ...         {
+    ...             "full_name": "Esmerelda Weatherwax"
+    ...         }
+    ...     ]
+    ... }
+    THEN HTTP status code is 400 Forbidden
+
+    WHEN client gets an authorization token with scope
+    ... "uapi_subjects_post
+    ...  uapi_subjects_id_get
+    ...  uapi_subjects_listeners_post
+    ...  uapi_subjects_listeners_id_notifications_post
+    ...  uapi_subjects_listeners_id_notifications_id_get
+    ...  uapi_set_meta_fields"
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "id": "CAFEF00D",
+    ...     "revision": "CAFEF00D",
+    ...     "names": [
+    ...         {
+    ...             "full_name": "Esmerelda Weatherwax"
+    ...         }
+    ...     ]
+    ... }
+    THEN HTTP status code is 201 Created
+    
+    WHEN client requests GET /subjects/CAFEF00D using token
+    THEN JSON body matches
+    ... {
+    ...     "type": "subject",
+    ...     "id": "CAFEF00D",
+    ...     "revision": "CAFEF00D",
+    ...     "names": [
+    ...         {
+    ...             "full_name": "Esmerelda Weatherwax"
+    ...         }
+    ...     ]
+    ... }
+
+    WHEN client requests POST /subjects/listeners with token and body
+    ... {
+    ...     "id": "F00DCAFE",
+    ...     "revision": "F00DCAFE",
+    ...     "notify_of_new": false
+    ... }
+    THEN HTTP status code is 201 Created
+    AND JSON body matches
+    ... {
+    ...     "id": "F00DCAFE",
+    ...     "revision": "F00DCAFE",
+    ...     "notify_of_new": false
+    ... }
+
+    WHEN client requests
+    ... POST /subjects/listeners/F00DCAFE/notifications
+    ... with token and body
+    ... {
+    ...     "type": "notification",
+    ...     "id": "qwer",
+    ...     "listener_id": "F00DCAFE",
+    ...     "revision": "456",
+    ...     "resource_id": "890",
+    ...     "resource_revision": "cafe",
+    ...     "resource_change": "created",
+    ...     "timestamp": "just now"
+    ... }
+    THEN HTTP status code is 201 Created
+    AND JSON body matches
+    ... {
+    ...     "type": "notification",
+    ...     "id": "qwer",
+    ...     "listener_id": "F00DCAFE",
+    ...     "revision": "456",
+    ...     "resource_id": "890",
+    ...     "resource_revision": "cafe",
+    ...     "resource_change": "created",
+    ...     "timestamp": "just now"
+    ... }
+    WHEN client requests
+    ... GET /subjects/listeners/F00DCAFE/notifications/qwer
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "type": "notification",
+    ...     "id": "qwer",
+    ...     "listener_id": "F00DCAFE",
+    ...     "revision": "456",
+    ...     "resource_id": "890",
+    ...     "resource_revision": "cafe",
+    ...     "resource_change": "created",
+    ...     "timestamp": "just now"
+    ... }

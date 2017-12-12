@@ -199,30 +199,51 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
     def create_store(self, **keys):
         self.check_keys_have_str_type(**keys)
         self._keys = dict(keys)
-        qvarn.log.log(
-            'info', msg_text='PostgresObjectStore.create_store',
-            keys=repr(keys))
 
         # Create main table for objects.
-        self._create_table(self._table, self._keys, '_obj', dict)
+        self._create_table(self._table, self._keys, '_obj', dict, index=True)
 
         # Create helper table for fields at all depths. Needed by searches.
-        self._create_table(self._auxtable, self._keys, '_field', dict)
+        self._create_table(
+            self._auxtable, self._keys, '_field', dict, jsonb_index=True)
 
         # Create helper table for blobs.
         self._create_table(self._blobtable, self._keys, '_blob', bytes)
 
-    def _create_table(self, name, col_dict, col_name, col_type):
+    def _create_table(
+            self, name, col_dict, col_name, col_type, index=False,
+            jsonb_index=False):
         columns = dict(col_dict)
         columns[col_name] = col_type
         with self._sql.transaction() as t:
             query = t.create_table(name, **columns)
             t.execute(query, {})
 
+            for index_col in col_dict:
+                index_name = self._index_name(name, index_col, '')
+                query = t.create_index(name, index_name, index_col)
+                t.execute(query, {})
+
+            if index:
+                index_name = self._index_name(name, col_name, '')
+                query = t.create_index(name, index_name, col_name)
+                t.execute(query, {})
+            elif jsonb_index:
+                index_name = self._index_name(name, col_name, 'name')
+                query = t.create_jsonb_index(
+                    name, index_name, col_name, 'name')
+                t.execute(query, {})
+
+                index_name = self._index_name(name, col_name, 'value')
+                query = t.create_jsonb_index(
+                    name, index_name, col_name, 'value')
+                t.execute(query, {})
+
+    def _index_name(self, table_name, column_name, field_name):
+        name = '_'.join([table_name, column_name, field_name])
+        return '{}_idx'.format(name)
+
     def create_object(self, obj, auxtable=True, **keys):
-        qvarn.log.log(
-            'info', msg_text='PostgresObjectStore.create_object',
-            obj=obj, keys=keys)
         with self._sql.transaction() as t:
             self._remove_objects_in_transaction(t, **keys)
             self._insert_into_object_table(t, self._table, obj, **keys)
@@ -247,9 +268,6 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             t.execute(query, keys)
 
     def remove_objects(self, **keys):
-        qvarn.log.log(
-            'info', msg_text='PostgresObjectStore.remove_objects',
-            keys=keys)
         with self._sql.transaction() as t:
             query = t.remove_objects(self._table, *keys.keys())
             t.execute(query, keys)
@@ -258,34 +276,21 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             t.execute(query, keys)
 
     def _remove_objects_in_transaction(self, t, **keys):
-        qvarn.log.log(
-            'info',
-            msg_text='PostgresObjectStore._remove_objects_in_transaction',
-            keys=keys)
         query = t.remove_objects(self._table, *keys.keys())
         t.execute(query, keys)
         query = t.remove_objects(self._auxtable, *keys.keys())
         t.execute(query, keys)
 
     def get_objects(self, **keys):
-        qvarn.log.log(
-            'info', msg_text='PostgresObjectStore.get_objects',
-            keys=keys)
         with self._sql.transaction() as t:
             return self._get_objects_in_transaction(t, **keys)
 
     def _get_objects_in_transaction(self, t, **keys):
         query = t.select_objects(self._table, '_obj', *keys.keys())
-        qvarn.log.log(
-            'debug', msg_text='PostgresObjectStore.get_objects',
-            query=query, keys=keys)
         cursor = t.execute(query, keys)
         return [row['_obj'] for row in t.get_rows(cursor)]
 
     def find_objects(self, cond):
-        qvarn.log.log(
-            'info', msg_text='PostgresObjectStore.find_objects',
-            cond=repr(cond))
         with self._sql.transaction() as t:
             rows = self._find_helper(t, cond)
             return [
@@ -307,8 +312,6 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         return keys, obj
 
     def create_blob(self, blob, **keys):
-        qvarn.log.log('trace', msg_text='Creating blob', keys=keys)
-
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         if not self.get_objects(**keys):

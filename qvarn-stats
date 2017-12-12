@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+# Copyright 2017  Lars Wirzenius
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+import configparser
+import logging
+import os
+import time
+
+
+import cliapp
+import requests
+
+
+import qvarn
+import qvarnutils
+
+
+logging.captureWarnings(True)
+
+
+class QvarnStats(cliapp.Application):
+
+    def add_settings(self):
+        self.settings.string(
+            ['secrets'],
+            'get API client id and secret from FILE',
+            metavar='FILE',
+            default=os.path.expanduser('~/.config/qvarn/createtoken.conf'))
+
+        self.settings.string(
+            ['api'],
+            'use URL as the base URL for Qvarn')
+
+        self.settings.boolean(
+            ['totals'],
+            'add up counts and display totals')
+
+    def process_args(self, type_names):
+        api = self.new_api(self.settings['api'])
+
+        totals = {}
+
+        for type_name in type_names:
+            restype = qvarnutils.get_rt(type_name)
+            api.fresh_token(restype)
+            path = restype['path']
+            self.stats(api, path, totals)
+            listeners = self.stats(api, '{}/listeners'.format(path), totals)
+            for r in listeners:
+                self.stats(
+                    api,
+                    '{}/listeners/{}/notifications'.format(path, r['id']),
+                    totals)
+
+        if self.settings['totals']:
+            n = sum(totals[path] for path in totals)
+            self.output.write('\n{} total\n'.format(n))
+
+    def stats(self, api, path, totals):
+        resp = api.GET(api.get_token(), path)
+        assert resp.ok
+        obj = resp.json()
+        resources = obj['resources']
+        self.output.write('{} {}\n'.format(len(resources), path))
+        totals[path] = len(resources)
+        return resources
+
+    def new_api(self, api_url):
+        api = qvarnutils.QvarnAPI()
+        api.set_api_url(api_url)
+        api.lookup_credentials(self.settings['secrets'])
+        return api
+
+
+class QvarnAPI:
+
+    def __init__(self):
+        self._api_url = None
+        self._client_id = None
+        self._client_secret = None
+        self._token = None
+        self._token_exp = None
+        self._token_rt = None
+
+    def set_api_url(self, api_url):
+        self._api_url = api_url
+
+    def reset_token(self, rt):
+        self._token = None
+        self._token_rt = rt
+
+    def get_token(self):
+        if not self._token or time.time() > self._token_exp:
+            assert self._token_rt is not None
+            self._token = self._get_new_token(self._token_rt)
+            self._token_exp = time.time() + 1800
+        return self._token
+
+    def _get_new_token(self, rt):
+        auth = (self._client_id, self._client_secret)
+
+        data = {
+            u'grant_type': u'client_credentials',
+            u'scope': default_scopes(rt),
+        }
+
+        r = self.request('POST', '/auth/token', auth=auth, data=data)
+        obj = r.json()
+        return obj[u'access_token']
+
+    def lookup_credentials(self, filename):
+        cp = configparser.ConfigParser()
+        cp.read(filename)
+        self._client_id = cp[self._api_url]['client_id']
+        self._client_secret = cp[self._api_url]['client_secret']
+
+    def GET(self, token, path):
+        return self.request('GET', path, token=token)
+
+    def request(self, method, path, token=None, headers=None,
+                auth=None, data=None):
+
+        funcs = {
+            'POST': requests.post,
+            'PUT': requests.put,
+            'GET': requests.get,
+            'DELETE': requests.delete,
+        }
+
+        url = '{}{}'.format(self._api_url, path)
+
+        if token:
+            headers = dict(headers or {})
+            headers['Authorization'] = 'Bearer {}'.format(token)
+
+        response = funcs[method](
+            url,
+            headers=headers,
+            auth=auth,
+            data=data,
+            verify=False)
+
+        if not response.ok:
+            raise Error(
+                method, self._api_url, path, response.status_code,
+                response.text)
+
+        return response
+
+
+class Error(cliapp.AppException):
+
+    def __init__(self, method, api_url, path, status, body):
+        super().__init__(
+            'Error {status}: {method} {url}{path}\n\n{body}'.format(
+                status=status, method=method, url=api_url, path=path,
+                body=body))
+
+
+def default_scopes(rt):
+    templates = [
+        'uapi_{}_get',
+        'uapi_{}_id_get',
+        'uapi_{}_listeners_get',
+        'uapi_{}_listeners_id_get',
+        'uapi_{}_listeners_id_notifications_get',
+        'uapi_{}_listeners_id_notifications_id_get',
+    ]
+
+    scopes = [
+        t.format(rt['type'])
+        for t in templates
+    ] + [
+        'uapi_{}_id_{}_get'.format(rt['type'], subtype)
+        for subtype in rt['subpaths']
+    ]
+
+    logging.info('Scopes: %s', scopes)
+    return ' '.join(scopes)
+
+
+QvarnStats(version=qvarn.__version__).run()

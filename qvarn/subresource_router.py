@@ -31,18 +31,22 @@ class SubresourceRouter(qvarn.Router):
         self._parent_coll = parent_coll
 
     def get_routes(self):
+
+        def S(callback, msg, **kwargs):
+            return qvarn.stopwatch(callback, msg, **kwargs)
+
         rt = self._parent_coll.get_type()
         path = '{}/<id>/{}'.format(rt.get_path(), self._subpath)
         return [
             {
                 'method': 'GET',
                 'path': path,
-                'callback': self._get_subresource,
+                'callback': S(self._get_subresource, 'GET subresource'),
             },
             {
                 'method': 'PUT',
                 'path': path,
-                'callback': self._put_subresource,
+                'callback': S(self._put_subresource, 'PUT subresource'),
             },
         ]
 
@@ -73,7 +77,8 @@ class SubresourceRouter(qvarn.Router):
 
         try:
             result_body = self._parent_coll.put_subresource(
-                body, subpath=self._subpath, obj_id=obj_id, revision=revision)
+                body, subpath=self._subpath, obj_id=obj_id,
+                revision=revision)
         except qvarn.WrongRevision as e:
             return qvarn.conflict_response(str(e))
         except qvarn.NoSuchResource as e:

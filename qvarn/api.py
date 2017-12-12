@@ -24,6 +24,7 @@ class QvarnAPI:
         self._validator = qvarn.Validator()
         self._baseurl = None
         self._rt_coll = None
+        self._notifs = None
 
     def set_base_url(self, baseurl):  # pragma: no cover
         self._baseurl = baseurl
@@ -122,6 +123,7 @@ class QvarnAPI:
         coll.set_resource_type(rt)
 
         router = qvarn.ResourceRouter()
+        router.set_api(self)
         router.set_baseurl(self._baseurl)
         router.set_collection(coll)
         router.set_notifier(self.notify)
@@ -144,6 +146,7 @@ class QvarnAPI:
 
         listener_rt = self.get_listener_resource_type()
         notif_router = qvarn.NotificationRouter()
+        notif_router.set_api(self)
         notif_router.set_baseurl(self._baseurl)
         notif_router.set_parent_collection(coll)
         notif_router.set_object_store(self._store, listener_rt)
@@ -151,11 +154,11 @@ class QvarnAPI:
 
         return routes
 
+    def is_id_allowed(self, claims):
+        scopes = claims.get('scope', '').split()
+        return 'uapi_set_meta_fields' in scopes
+
     def notify(self, rid, rrev, change):  # pragma: no cover
-        rt = self.get_notification_resource_type()
-        notifs = qvarn.CollectionAPI()
-        notifs.set_object_store(self._store)
-        notifs.set_resource_type(rt)
         obj = {
             'type': 'notification',
             'resource_id': rid,
@@ -165,10 +168,22 @@ class QvarnAPI:
         }
         for listener in self.find_listeners(rid, change):
             obj['listener_id'] = listener['id']
-            qvarn.log.log(
-                'info', msg_text='Notify listener of change',
-                notification=obj)
-            notifs.post(obj)
+            self.create_notification(obj)
+
+    def create_notification(self, notif):  # pragma: no cover
+        qvarn.log.log(
+            'info', msg_text='Create notification',
+            notification=notif)
+        notifs = self._create_notifs_collection()
+        notifs.post_with_id(notif)
+
+    def _create_notifs_collection(self):  # pragma: no cover
+        if self._notifs is None:
+            rt = self.get_notification_resource_type()
+            self._notifs = qvarn.CollectionAPI()
+            self._notifs.set_object_store(self._store)
+            self._notifs.set_resource_type(rt)
+        return self._notifs
 
     def find_listeners(self, rid, change):  # pragma: no cover
         cond = qvarn.Equal('type', 'listener')

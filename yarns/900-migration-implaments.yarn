@@ -1,0 +1,109 @@
+# Step implementations for data migration
+
+This chapter shows the scenario step implementations for the
+`qvarn-copy` test scenario.
+
+    IMPLEMENTS GIVEN a running source Qvarn instance
+    start_qvarn('source')
+
+    IMPLEMENTS GIVEN a running target Qvarn instance
+    start_qvarn('target')
+
+    IMPLEMENTS FINALLY source Qvarn is stopped
+    stop_qvarn('source')
+
+    IMPLEMENTS FINALLY target Qvarn is stopped
+    stop_qvarn('target')
+
+    IMPLEMENTS WHEN user creates a person listener in source Qvarn for all changes
+    vars['scopes'] = ' '.join([
+        'uapi_persons_get',
+        'uapi_persons_post',
+        'uapi_persons_id_get',
+        'uapi_persons_id_delete',
+        'uapi_persons_listeners_get',
+        'uapi_persons_listeners_post',
+        'uapi_persons_listeners_id_get',
+        'uapi_persons_listeners_id_notifications_get',
+        'uapi_persons_listeners_id_notifications_post',
+        'uapi_persons_listeners_id_notifications_id_get',
+        'uapi_set_meta_fields',
+    ])
+    create_token_for_qvarn(vars['source'], vars['scopes'])
+    create_token_for_qvarn(vars['target'], vars['scopes'])
+    listener = {
+        'type': 'listener',
+        'notify_of_new': True,
+    }
+    vars['status_code'], vars['headers'], vars['body'] = post_to_qvarn(
+        vars['source'], '/persons/listeners', listener)
+
+    IMPLEMENTS THEN listener has id (\S+)
+    name = get_next_match()
+    print('name', repr(name))
+    body = vars['body']
+    print('body', repr(body))
+    body = json.loads(body)
+    vars[name] = body['id']
+
+    IMPLEMENTS THEN listener has revision (\S+)
+    name = get_next_match()
+    body = json.loads(vars['body'])
+    vars[name] = body['revision']
+
+    IMPLEMENTS WHEN user creates person in source Qvarn
+    person = {
+        'names': ['James Bond'],
+    }
+    vars['status_code'], vars['headers'], vars['body'] = post_to_qvarn(
+        vars['source'], '/persons', person)
+    vars['ID'] = json.loads(vars['body'])['id']
+
+    IMPLEMENTS THEN there is a notification for person listener LID notification id NID in source Qvarn
+    body = get_from_qvarn(vars['source'], '/persons/listeners/{}/notifications'.format(vars['LID']))
+    vars['NID'] = body['resources'][0]['id']
+
+    IMPLEMENTS WHEN user runs qvarn-copy
+    qvarn_copy(vars['source'], vars['target'], ['person'])
+    dump_qvarn(vars['source'], 'source.dump0', ['person'])
+    dump_qvarn(vars['target'], 'target.dump0', ['person'])
+
+    IMPLEMENTS THEN person ID in source and target Qvarns are identical
+    src = get_from_qvarn(vars['source'], '/persons/{}'.format(vars['ID']))
+    tgt = get_from_qvarn(vars['target'], '/persons/{}'.format(vars['ID']))
+    assertEqual(src, tgt)
+
+    IMPLEMENTS THEN person listener LID in source and target Qvarns are identical
+    path = '/persons/listeners/{}'.format(vars['LID'])
+    src = get_from_qvarn(vars['source'], path)
+    tgt = get_from_qvarn(vars['target'], path)
+    assertEqual(src, tgt)
+
+    IMPLEMENTS THEN notification NID in person listener LID in source and target Qvarns are identical
+    path = '/persons/listeners/{}/notifications/{}'.format(vars['LID'], vars['NID'])
+    src = get_from_qvarn(vars['source'], path)
+    tgt = get_from_qvarn(vars['target'], path)
+    assertEqual(src, tgt)
+
+    IMPLEMENTS WHEN user runs qvarn-dump on source Qvarn
+    dump_qvarn(vars['source'], 'source.dump', ['person'])
+
+    IMPLEMENTS WHEN user runs qvarn-dump on target Qvarn
+    dump_qvarn(vars['target'], 'target.dump', ['person'])
+
+    IMPLEMENTS THEN source and target dumps are bitwise identical
+    cliapp.runcmd(['cmp', 'source.dump', 'target.dump'])
+
+    IMPLEMENTS WHEN user deletes person ID from source Qvarn
+    path = '/persons/{}'.format(vars['ID'])
+    delete_from_qvarn(vars['source'], path)
+
+    IMPLEMENTS THEN target Qvarn does not have person ID
+    path = '/persons/{}'.format(vars['ID'])
+    qvarn_vars = vars['target']
+    url = qvarn_vars['url']
+    headers = {
+        'Authorization': 'Bearer {}'.format(qvarn_vars['token'])
+    }
+    vars['status_code'], vars['headers'], vars['body'] = get(url + path, headers)
+    assertEqual(vars['status_code'], 404)

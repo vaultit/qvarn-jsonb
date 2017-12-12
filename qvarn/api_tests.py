@@ -24,6 +24,16 @@ import qvarn
 
 class QvarnAPITests(unittest.TestCase):
 
+    def test_does_not_allow_ids_normally(self):
+        api = qvarn.QvarnAPI()
+        claims = {'scope': 'uapi_version_get'}
+        self.assertFalse(api.is_id_allowed(claims))
+
+    def test_does_allow_ids_with_right_scope(self):
+        api = qvarn.QvarnAPI()
+        claims = {'scope': 'uapi_set_meta_fields'}
+        self.assertTrue(api.is_id_allowed(claims))
+
     def test_returns_routes_for_version_path(self):
         api = qvarn.QvarnAPI()
         self.assertNotEqual(api.find_missing_route('/version'), [])

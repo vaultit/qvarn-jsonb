@@ -49,11 +49,16 @@ cleandb="$2"
 
 debian_version="$(dpkg-parsechangelog | sed -n '/^Version: /s///p')"
 upstream_version="$(echo "$debian_version" | sed 's/-.*//')"
-package="qvarn-jsonb"
+srcpkg="qvarn"
+packages="
+qvarn-jsonb_${debian_version}_all.deb
+qvarn-common_${debian_version}_all.deb
+qvarn-utils_${debian_version}_all.deb
+"
 
 rm -f ../qvarn*_*
 
-git archive HEAD | xz > "../${package}_${upstream_version}.orig.tar.xz"
+git archive HEAD | xz > "../${srcpkg}_${upstream_version}.orig.tar.xz"
 
 if [ -f "/etc/debian_version" ]; then
   debuild -us -uc
@@ -61,11 +66,11 @@ else
   debuild -d -us -uc
 fi
 
-deb="${package}_${debian_version}_all.deb"
-scp "../$deb" "$host:"
+(cd .. && scp $packages "$host:")
 
 ssh "$host" sudo systemctl stop qvarn || true
-ssh "$host" sudo dpkg -i "$deb"
+ssh "$host" sudo apt install python3-cliapp python3-ttystatus
+ssh "$host" sudo dpkg -i $packages
 if [ "$cleandb" = true ]
 then
     ssh "$host" sudo -u postgres dropdb qvarn || true

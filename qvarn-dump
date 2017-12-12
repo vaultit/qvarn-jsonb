@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+# Copyright 2017  Lars Wirzenius
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+import base64
+import json
+import logging
+import os
+import sys
+
+
+import cliapp
+import ttystatus
+
+
+import qvarn
+import qvarnutils
+
+
+logging.captureWarnings(True)
+
+
+class QvarnDump(cliapp.Application):
+
+    def add_settings(self):
+        self.settings.string(
+            ['secrets'],
+            'get API client id and secret from FILE',
+            metavar='FILE',
+            default=os.path.expanduser('~/.config/qvarn/createtoken.conf'))
+
+        self.settings.string(
+            ['token'],
+            'use TOKEN as the access token',
+            metavar='TOKEN')
+
+        self.settings.string(
+            ['api'],
+            'use URL as the base URL for the Qvarn',
+            metavar='URL')
+
+        self.settings.integer(
+            ['max'],
+            'use at most N resources of each type',
+            metavar='N')
+
+    def process_args(self, type_names):
+        max_count = self.settings['max'] or None
+
+        api = qvarnutils.create_api(
+            self.settings['api'],
+            self.settings['secrets'],
+            self.settings['token'])
+
+        ts = self.get_ttystatus()
+        ts['currently'] = 'Finding resouces'
+        ts.flush()
+
+        rpaths = self.find_all(type_names, api)
+        rpaths = rpaths[:max_count]
+        ts['rids'] = len(rpaths)
+        self.dump_all(ts, api, rpaths)
+
+        ts['currently'] = 'All done'
+        ts.flush()
+        ts.finish()
+
+    def find_all(self, type_names, api):
+        rpaths = []
+        for type_name in type_names:
+            rt = qvarnutils.get_rt(type_name)
+            if not self.settings['token']:
+                api.fresh_token(rt)
+            rpaths.extend(api.get_resource_paths(rt))
+        return rpaths
+
+    def dump_all(self, ts, api, rpaths):
+        for rpath in rpaths:
+            ts['currently'] = 'Dumping {}'.format(rpath['src_path'])
+            self.dump(api, rpath['src_path'])
+            ts['rid'] += 1
+
+    def dump(self, api, path):
+        try:
+            resp = api.GET(api.get_token(), path)
+        except qvarnutils.Error as e:
+            logging.error(str(e))
+            sys.exit(1)
+
+        ct = resp.headers['Content-Type']
+        if ct == 'application/json':
+            obj = resp.json()
+            text = json.dumps(obj, indent=4, sort_keys=True)
+            self.output.write('{}\n'.format(text))
+        else:
+            encoded = base64.standard_b64encode(resp.content).decode('ascii')
+            self.output.write('{}:\n{}\n'.format(path, encoded))
+
+    def get_ttystatus(self):
+        ts = ttystatus.TerminalStatus(period=0.1)
+        ts.format(
+            'Currently: %String(currently)\n'
+            'Known resources: %Integer(rids)\n'
+            'Resource: %Integer(rid)/%Integer(rids) %PercentDone(rid,rids) '
+            '%ProgressBar(rid,rids)\n'
+            'Elapsed %ElapsedTime()\n'
+            'Remaining %RemainingTime(rid,rids)'
+        )
+        ts.start_new_line()
+        ts.add(ttystatus.Literal('Current speed '))
+        ts.add(ttystatus.Speed('rid', duration=10))
+        ts['rpaths'] = []
+        ts['rids'] = 0
+        ts['rid'] = 0
+        return ts
+
+
+QvarnDump(version=qvarn.__version__).run()

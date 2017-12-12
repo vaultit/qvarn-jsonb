@@ -17,6 +17,8 @@
 set -eu
 
 default_scopes="
+uapi_set_meta_fields
+
 uapi_persons_get
 uapi_persons_id_get
 uapi_persons_post

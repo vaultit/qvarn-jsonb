@@ -21,9 +21,13 @@ class ResourceRouter(qvarn.Router):
 
     def __init__(self):
         super().__init__()
+        self._api = None
         self._coll = None
         self._baseurl = None
         self._notify = None
+
+    def set_api(self, api):
+        self._api = api
 
     def set_baseurl(self, baseurl):
         self._baseurl = baseurl
@@ -41,36 +45,39 @@ class ResourceRouter(qvarn.Router):
         path = rt.get_path()
         id_path = '{}/<id>'.format(path)
 
+        def S(callback, msg, **kwargs):
+            return qvarn.stopwatch(callback, msg, **kwargs)
+
         return [
             {
                 'method': 'POST',
                 'path': path,
-                'callback': self._create,
+                'callback': S(self._create, 'POST'),
             },
             {
                 'method': 'PUT',
                 'path': id_path,
-                'callback': self._update,
+                'callback': S(self._update, 'PUT'),
             },
             {
                 'method': 'GET',
                 'path': path,
-                'callback': self._list,
+                'callback': S(self._list, 'LIST'),
             },
             {
                 'method': 'GET',
                 'path': id_path,
-                'callback': self._get,
+                'callback': S(self._get, 'GET'),
             },
             {
                 'method': 'GET',
                 'path': path + '/search/<search_criteria:path>',
-                'callback': self._search,
+                'callback': S(self._search, 'SEARCH'),
             },
             {
                 'method': 'DELETE',
                 'path': id_path,
-                'callback': self._delete,
+                'callback': S(self._delete, 'DELETE'),
             },
         ]
 
@@ -81,20 +88,30 @@ class ResourceRouter(qvarn.Router):
         if 'type' not in body:
             body['type'] = self._coll.get_type_name()
 
+        id_allowed = self._api.is_id_allowed(kwargs.get('claims', {}))
+
         validator = qvarn.Validator()
         try:
-            validator.validate_new_resource(body, self._coll.get_type())
+            if id_allowed:
+                validator.validate_new_resource_with_id(
+                    body, self._coll.get_type())
+            else:
+                validator.validate_new_resource(
+                    body, self._coll.get_type())
+        except (qvarn.HasId, qvarn.HasRevision) as e:
+            qvarn.log.log('error', msg_text=str(e), body=body)
+            return qvarn.bad_request_response(str(e))
         except qvarn.ValidationError as e:
             qvarn.log.log('error', msg_text=str(e), body=body)
             return qvarn.bad_request_response(str(e))
 
-        result_body = self._coll.post(body)
-        qvarn.log.log(
-            'debug', msg_text='POST a new resource, result',
-            body=result_body)
+        result_body = self._coll.post_with_id(body)
         location = '{}{}/{}'.format(
-            self._baseurl, self._coll.get_type().get_path(), result_body['id'])
+            self._baseurl, self._coll.get_type().get_path(),
+            result_body['id'])
+
         self._notify(result_body['id'], result_body['revision'], 'created')
+
         return qvarn.created_response(result_body, location)
 
     def _update(self, content_type, body, *args, **kwargs):

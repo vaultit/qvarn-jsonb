@@ -48,6 +48,9 @@ class Validator:
         if 'revision' in resource:
             raise HasRevision()
 
+    def validate_new_resource_with_id(self, resource, resource_type):
+        self._validate(resource, resource_type)
+
     def validate_resource_update(self, resource, resource_type):
         self._validate(resource, resource_type)
         if 'id' not in resource:

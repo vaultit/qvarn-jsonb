@@ -6,11 +6,12 @@
 '''Communicate with a PostgreSQL server.'''
 
 
+import time
+
 import psycopg2
 import psycopg2.pool
 import psycopg2.extras
 import psycopg2.extensions
-
 import slog
 
 import qvarn
@@ -47,15 +48,22 @@ class Transaction:
     def __init__(self, sql):
         self._sql = sql
         self._conn = None
+        self._started = None
+        self._queries = None
 
     def __enter__(self):
+        self._started = time.time()
+        self._queries = []
         self._conn = self._sql.get_conn()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        commit_ms = None
         try:
             if exc_type is None:
+                t = time.time()
                 self._conn.commit()
+                commit_ms = time.time() - t
             else:  # pragma: no cover
                 self._conn.rollback()
         except BaseException:  # pragma: no cover
@@ -65,10 +73,24 @@ class Transaction:
         self._sql.put_conn(self._conn)
         self._conn = None
 
+        ended = time.time()
+        duration = 1000.0 * (ended - self._started)
+        qvarn.log.log(
+            'sql', msg_text='SQL transaction', ms=duration,
+            commit_ms=commit_ms, queries=self._queries)
+        self._started = None
+        self._queries = []
+
     def execute(self, query, values):
-        qvarn.log.log('trace', msg_text='executing SQL query', query=query)
+        started = time.time()
         c = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         c.execute(query, values)
+        duration = 1000.0 * (time.time() - started)
+        self._queries.append({
+            'query': query,
+            'values': values,
+            'ms': duration,
+        })
         return c
 
     def get_rows(self, cursor):
@@ -83,6 +105,17 @@ class Transaction:
         return 'CREATE TABLE IF NOT EXISTS {} ({})'.format(
             self._q(table_name),
             columns)
+
+    def create_index(self, table_name, index_name, column_name):
+        return 'CREATE INDEX IF NOT EXISTS {} ON {} ({})'.format(
+            self._q(index_name), self._q(table_name), self._q(column_name))
+
+    def create_jsonb_index(
+            self, table_name, index_name, column_name, field_name):
+        sql = "CREATE INDEX IF NOT EXISTS {} ON {} (lower({} ->> '{}'))"
+        return sql.format(
+            self._q(index_name), self._q(table_name), self._q(column_name),
+            self._q(field_name))
 
     def _sqltype(self, col_type):
         types = [
@@ -127,9 +160,6 @@ class Transaction:
         )
         if conditions:
             query += ' WHERE {}'.format(' AND '.join(conditions))
-        qvarn.log.log(
-            'debug', msg_text='PostgresAdapater.select_objects',
-            query=query, keys=keys, conditions=conditions)
         return query
 
     def select_objects_on_cond(self, table_name, cond, *keys):

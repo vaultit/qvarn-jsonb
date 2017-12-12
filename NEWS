@@ -6,6 +6,22 @@ This file has release notes for Qvarn (the JSONB version).
 Version 0.86+git, not yet released
 ----------------------------------
 
+New features:
+
+* New utility `qvarn-copy` added. It copies resource between Qvarn
+  instances.
+
+* New utility `qvarn-dump` added. It extracts all resource from a
+  Qvarn instance, in a form that can be diff'd to see a copy is
+  complete.
+
+* New utility `qvarn-stats` added. It counts resources in a Qvarn
+  instance.
+
+* An API client with the `set_meta_fields` scope is allowed to set the
+  `id` and `revision` resources it creates. This is needed for
+  `qvarn-copy`.
+
 Bug fixes:
 
 * Listeners for all resource types were listed for all resource types.
