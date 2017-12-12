@@ -58,6 +58,7 @@ class Transaction:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        commit_ms = None
         try:
             if exc_type is None:
                 t = time.time()

@@ -220,7 +220,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             t.execute(query, {})
 
             for index_col in col_dict:
-                index_name = self._index_name(name, index_col)
+                index_name = self._index_name(name, index_col, '')
                 query = t.create_index(name, index_name, index_col)
                 t.execute(query, {})
 
@@ -240,7 +240,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
                 t.execute(query, {})
 
     def _index_name(self, table_name, column_name, field_name):
-        name = '_'.join(table_name, column_name, field_name)
+        name = '_'.join([table_name, column_name, field_name])
         return '{}_idx'.format(name)
 
     def create_object(self, obj, auxtable=True, **keys):
