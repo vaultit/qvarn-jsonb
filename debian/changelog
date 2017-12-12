@@ -1,10 +1,10 @@
-qvarn-jsonb (0.86+git-1) UNRELEASED; urgency=medium
+qvarn-jsonb (0.87-1) unstable; urgency=medium
 
   * New upstream version.
   * Add depenency on python3-yaml.
   * Split into multiple binary packages.
 
- -- Lars Wirzenius <liw@liw.fi>  Tue, 10 Oct 2017 11:58:51 +0300
+ -- Lars Wirzenius <liw@liw.fi>  Tue, 12 Dec 2017 22:58:23 +0200
 
 qvarn-jsonb (0.86-1) unstable; urgency=medium
 
