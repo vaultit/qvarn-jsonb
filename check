@@ -17,17 +17,35 @@
 
 set -eu
 
+title()
+{
+    printf "\n"
+    echo "$@"
+    n=77
+    for i in $(seq $n)
+    do
+        printf "%s" -
+    done
+    printf '\n'
+}
+
+
 run_yarns()
 {
     yarn yarns/*.yarn \
          -s yarns/lib.py --shell python2 --shell-arg '' --cd-datadir "$@"
 }
 
-python3 -m CoverageTestRunner --ignore-missing-from=without-tests
+title "Unit tests"
+python3 -m CoverageTestRunner --ignore-missing-from=without-tests qvarn qvarnutils
 
-pep8 qvarn
-pylint3 -j0 --rcfile pylint.conf qvarn
+title "Code style"
+pycodestyle qvarn qvarnutils qvarn-copy qvarn-dump qvarn-stats
 
+title "Pylint3"
+pylint3 -j0 --rcfile pylint.conf qvarn qvarnutils qvarn-copy qvarn-dump qvarn-stats
+
+title "Yarns"
 if [ "${QVARN_POSTGRES:-no}" = no ]
 then
     # Run yarns without Postgres. For speed.
