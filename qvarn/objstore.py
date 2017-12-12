@@ -201,20 +201,47 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         self._keys = dict(keys)
 
         # Create main table for objects.
-        self._create_table(self._table, self._keys, '_obj', dict)
+        self._create_table(self._table, self._keys, '_obj', dict, index=True)
 
         # Create helper table for fields at all depths. Needed by searches.
-        self._create_table(self._auxtable, self._keys, '_field', dict)
+        self._create_table(
+            self._auxtable, self._keys, '_field', dict, jsonb_index=True)
 
         # Create helper table for blobs.
         self._create_table(self._blobtable, self._keys, '_blob', bytes)
 
-    def _create_table(self, name, col_dict, col_name, col_type):
+    def _create_table(
+            self, name, col_dict, col_name, col_type, index=False,
+            jsonb_index=False):
         columns = dict(col_dict)
         columns[col_name] = col_type
         with self._sql.transaction() as t:
             query = t.create_table(name, **columns)
             t.execute(query, {})
+
+            for index_col in col_dict:
+                index_name = self._index_name(name, index_col)
+                query = t.create_index(name, index_name, index_col)
+                t.execute(query, {})
+
+            if index:
+                index_name = self._index_name(name, col_name, '')
+                query = t.create_index(name, index_name, col_name)
+                t.execute(query, {})
+            elif jsonb_index:
+                index_name = self._index_name(name, col_name, 'name')
+                query = t.create_jsonb_index(
+                    name, index_name, col_name, 'name')
+                t.execute(query, {})
+
+                index_name = self._index_name(name, col_name, 'value')
+                query = t.create_jsonb_index(
+                    name, index_name, col_name, 'value')
+                t.execute(query, {})
+
+    def _index_name(self, table_name, column_name, field_name):
+        name = '_'.join(table_name, column_name, field_name)
+        return '{}_idx'.format(name)
 
     def create_object(self, obj, auxtable=True, **keys):
         with self._sql.transaction() as t:

@@ -105,6 +105,17 @@ class Transaction:
             self._q(table_name),
             columns)
 
+    def create_index(self, table_name, index_name, column_name):
+        return 'CREATE INDEX IF NOT EXISTS {} ON {} ({})'.format(
+            self._q(index_name), self._q(table_name), self._q(column_name))
+
+    def create_jsonb_index(
+            self, table_name, index_name, column_name, field_name):
+        sql = "CREATE INDEX IF NOT EXISTS {} ON {} (lower({} ->> '{}'))"
+        return sql.format(
+            self._q(index_name), self._q(table_name), self._q(column_name),
+            self._q(field_name))
+
     def _sqltype(self, col_type):
         types = [
             (str, 'TEXT'),
