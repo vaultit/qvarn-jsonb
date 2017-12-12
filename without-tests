@@ -13,4 +13,9 @@ qvarn/subresource_router.py
 qvarn/timestamp.py
 qvarn/version.py
 qvarn/version_router.py
+qvarnutils/__init__.py
+qvarnutils/api.py
+qvarnutils/resource_types.py
+qvarnutils/scopes.py
+qvarnutils/stopwatch.py
 yarns/lib.py
