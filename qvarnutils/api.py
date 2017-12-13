@@ -91,6 +91,9 @@ class QvarnAPI:
         notifs = self.get_notifications(path, rt, listeners)
         return rpaths + listeners + notifs
 
+    def sort_resources(self, resources):
+        return list(sorted(resources, key=lambda r: r['id']))
+
     def get_listeners(self, path, rt):
         listener_path = '{}/listeners'.format(path)
         listener_ids = self.get_list(listener_path)
