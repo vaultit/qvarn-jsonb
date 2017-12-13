@@ -133,11 +133,13 @@ class QvarnAPI:
         for subpath in rt.get_subpaths():
             if subpath not in files:
                 sub_router = qvarn.SubresourceRouter()
+                sub_router.set_api(self)
                 sub_router.set_subpath(subpath)
                 sub_router.set_parent_collection(coll)
                 more = sub_router.get_routes()
             else:
                 file_router = qvarn.FileRouter()
+                file_router.set_api(self)
                 file_router.set_subpath(subpath)
                 file_router.set_object_store(self._store)
                 file_router.set_parent_collection(coll)
