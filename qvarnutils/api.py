@@ -86,9 +86,10 @@ class QvarnAPI:
 
     def get_resource_paths(self, rt):
         path = rt['path']
-        rpaths = self.get_resource_list(path, rt)
-        listeners = self.get_listeners(path, rt)
-        notifs = self.get_notifications(path, rt, listeners)
+        rpaths = self.sort_resources(self.get_resource_list(path, rt))
+        listeners = self.sort_resources(self.get_listeners(path, rt))
+        notifs = self.sort_resources(
+            self.get_notifications(path, rt, listeners))
         return rpaths + listeners + notifs
 
     def sort_resources(self, resources):
