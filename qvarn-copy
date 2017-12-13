@@ -138,7 +138,7 @@ class QvarnCopy(cliapp.Application):
                     sub_ct = resp.headers['Content-Type']
                     with qvarnutils.Stopwatch('PUT {}'.format(subpath)):
                         self.put_thing(tgt, subpath, resp.content, sub_ct, rev)
-                        logging.debug('POSTed %s/%s', rpath['src_path'], subpath)
+                        logging.debug('POSTed %s/%s', subpath)
 
     def get_thing(self, api, path):
         try:
