@@ -84,6 +84,8 @@ class QvarnCopy(cliapp.Application):
         rpaths = self.find_all(
             src, self.settings['source-token'], type_names)
         rpaths = rpaths[:max_count]
+        for rpath in rpaths:
+            logging.debug('rpath: %r', rpath)
         ts['rids'] = len(rpaths)
         with qvarnutils.Stopwatch('copy all resources'):
             self.copy_everything(ts, src, tgt, rpaths)
