@@ -49,7 +49,7 @@ cleandb="$2"
 
 debian_version="$(dpkg-parsechangelog | sed -n '/^Version: /s///p')"
 upstream_version="$(echo "$debian_version" | sed 's/-.*//')"
-srcpkg="qvarn"
+srcpkg="qvarn-jsonb"
 packages="
 qvarn-jsonb_${debian_version}_all.deb
 qvarn-common_${debian_version}_all.deb
