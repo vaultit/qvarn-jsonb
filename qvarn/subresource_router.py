@@ -21,8 +21,12 @@ class SubresourceRouter(qvarn.Router):
 
     def __init__(self):
         super().__init__()
+        self._api = None
         self._parent_coll = None
         self._subpath = None
+
+    def set_api(self, api):
+        self._api = api
 
     def set_subpath(self, subpath):
         self._subpath = subpath
@@ -67,6 +71,8 @@ class SubresourceRouter(qvarn.Router):
             return qvarn.bad_request_response('must have revision')
         revision = body.pop('revision')
 
+        id_allowed = self._api.is_id_allowed(kwargs.get('claims', {}))
+
         rt = self._parent_coll.get_type()
         validator = qvarn.Validator()
         try:
@@ -76,9 +82,14 @@ class SubresourceRouter(qvarn.Router):
             return qvarn.bad_request_response(str(e))
 
         try:
-            result_body = self._parent_coll.put_subresource(
-                body, subpath=self._subpath, obj_id=obj_id,
-                revision=revision)
+            if id_allowed:
+                result_body = self._parent_coll.put_subresource_no_revision(
+                    body, subpath=self._subpath, obj_id=obj_id,
+                    revision=revision)
+            else:
+                result_body = self._parent_coll.put_subresource(
+                    body, subpath=self._subpath, obj_id=obj_id,
+                    revision=revision)
         except qvarn.WrongRevision as e:
             return qvarn.conflict_response(str(e))
         except qvarn.NoSuchResource as e:

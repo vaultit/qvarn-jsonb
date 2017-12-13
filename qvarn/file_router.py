@@ -21,9 +21,13 @@ class FileRouter(qvarn.Router):
 
     def __init__(self):
         super().__init__()
+        self._api = None
         self._store = None
         self._parent_coll = None
         self._subpath = None
+
+    def set_api(self, api):
+        self._api = api
 
     def set_subpath(self, subpath):
         self._subpath = subpath
@@ -71,8 +75,10 @@ class FileRouter(qvarn.Router):
         import bottle
         revision = bottle.request.get_header('Revision')
 
+        id_allowed = self._api.is_id_allowed(kwargs.get('claims', {}))
+
         obj = self._parent_coll.get(obj_id)
-        if obj['revision'] != revision:
+        if not id_allowed and obj['revision'] != revision:
             qvarn.log.log(
                 'error',
                 msg_text='Client gave wrong revision',
@@ -83,8 +89,14 @@ class FileRouter(qvarn.Router):
 
         sub_obj = self._parent_coll.get_subresource(obj_id, self._subpath)
         sub_obj['content_type'] = content_type
-        new_sub = self._parent_coll.put_subresource(
-            sub_obj, subpath=self._subpath, obj_id=obj_id, revision=revision)
+        if id_allowed:
+            new_sub = self._parent_coll.put_subresource_no_revision(
+                sub_obj, subpath=self._subpath, obj_id=obj_id,
+                revision=revision)
+        else:
+            new_sub = self._parent_coll.put_subresource(
+                sub_obj, subpath=self._subpath, obj_id=obj_id,
+                revision=revision)
 
         try:
             self._store.remove_blob(obj_id=obj_id, subpath=self._subpath)
