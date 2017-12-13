@@ -93,7 +93,7 @@ class QvarnAPI:
         return rpaths + listeners + notifs
 
     def sort_resources(self, resources):
-        return list(sorted(resources, key=lambda r: r.get('id', '_')))
+        return list(sorted(resources, key=lambda r: r.get('src_path', '_')))
 
     def get_listeners(self, path, rt):
         listener_path = '{}/listeners'.format(path)
