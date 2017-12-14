@@ -11,3 +11,14 @@ versions:
       resource_revision: ""
       resource_change: ""
       timestamp: ""
+  - version: v1
+    prototype:
+      id: ""
+      type: ""
+      revision: ""
+      listener_id: ""
+      resource_id: ""
+      resource_revision: ""
+      resource_change: ""
+      timestamp: ""
+      last_modified: 0
