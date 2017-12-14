@@ -103,11 +103,24 @@ class QvarnDump(cliapp.Application):
         ct = resp.headers['Content-Type']
         if ct == 'application/json':
             obj = resp.json()
+            obj = self.filter_obj(obj)
             text = json.dumps(obj, indent=4, sort_keys=True)
             self.output.write('{}\n'.format(text))
         else:
             encoded = base64.standard_b64encode(resp.content).decode('ascii')
             self.output.write('{}:\n{}\n'.format(path, encoded))
+
+    def filter_obj(self, obj):
+        banned = {
+            'listener': ['listen_on_type'],
+            'notification': ['timestamp'],
+        }
+        fields = banned.get(obj['type'], [])
+        new = dict(obj)
+        for field in fields:
+            if field in new:
+                del new[field]
+        return new
 
     def get_ttystatus(self):
         ts = ttystatus.TerminalStatus(period=0.1)
