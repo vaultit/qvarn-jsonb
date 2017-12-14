@@ -1,3 +1,9 @@
+qvarn-jsonb (0.88+git-1) UNRELEASED; urgency=medium
+
+  * New upstream version.
+
+ -- Lars Wirzenius <liw@liw.fi>  Thu, 14 Dec 2017 10:03:28 +0200
+
 qvarn-jsonb (0.88-1) unstable; urgency=medium
 
   * New upstream version.
