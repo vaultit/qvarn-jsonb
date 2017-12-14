@@ -84,7 +84,7 @@ class QvarnDump(cliapp.Application):
         for type_name in type_names:
             if rpath['type'] != prev_type:
                 rt = qvarnutils.get_rt(rpath['type'])
-                self.refresh_token(src, rt, 'token')
+                self.refresh_token(api, rt, 'token')
                 prev_type = rpath['type']
             rpaths.extend(api.get_resource_paths(rt))
         return rpaths
@@ -94,7 +94,7 @@ class QvarnDump(cliapp.Application):
         for rpath in rpaths:
             if rpath['type'] != prev_type:
                 rt = qvarnutils.get_rt(rpath['type'])
-                self.refresh_token(src, rt, 'token')
+                self.refresh_token(api, rt, 'token')
                 prev_type = rpath['type']
 
             ts['currently'] = 'Dumping {}'.format(rpath['src_path'])
