@@ -82,10 +82,10 @@ class QvarnDump(cliapp.Application):
         prev_type = None
         rpaths = []
         for type_name in type_names:
-            if rpath['type'] != prev_type:
-                rt = qvarnutils.get_rt(rpath['type'])
+            if type_name != prev_type:
+                rt = qvarnutils.get_rt(type_name)
                 self.refresh_token(api, rt, 'token')
-                prev_type = rpath['type']
+                prev_type = type_name
             rpaths.extend(api.get_resource_paths(rt))
         return rpaths
 
