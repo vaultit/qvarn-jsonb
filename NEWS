@@ -3,7 +3,7 @@ NEWS for Qvarn (JSONB)
 
 This file has release notes for Qvarn (the JSONB version).
 
-Version 0.88+git, not yet released
+Version 0.89, released 2017-12-14
 ----------------------------------
 
 * Some fixes for `qvarn-dump` and the Qvarn backend for making
