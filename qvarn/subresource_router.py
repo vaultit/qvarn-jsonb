@@ -83,13 +83,12 @@ class SubresourceRouter(qvarn.Router):
 
         try:
             if id_allowed:
-                result_body = self._parent_coll.put_subresource_no_revision(
-                    body, subpath=self._subpath, obj_id=obj_id,
-                    revision=revision)
+                func = self._parent_coll.put_subresource_no_new_revision
             else:
-                result_body = self._parent_coll.put_subresource(
-                    body, subpath=self._subpath, obj_id=obj_id,
-                    revision=revision)
+                func = self._parent_coll.put_subresource
+            result_body = func(
+                body, subpath=self._subpath, obj_id=obj_id,
+                revision=revision)
         except qvarn.WrongRevision as e:
             return qvarn.conflict_response(str(e))
         except qvarn.NoSuchResource as e:

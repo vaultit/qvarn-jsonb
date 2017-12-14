@@ -79,19 +79,31 @@ class QvarnDump(cliapp.Application):
         ts.finish()
 
     def find_all(self, type_names, api):
+        prev_type = None
         rpaths = []
         for type_name in type_names:
-            rt = qvarnutils.get_rt(type_name)
-            if not self.settings['token']:
-                api.fresh_token(rt)
+            if type_name != prev_type:
+                rt = qvarnutils.get_rt(type_name)
+                self.refresh_token(api, rt, 'token')
+                prev_type = type_name
             rpaths.extend(api.get_resource_paths(rt))
         return rpaths
 
     def dump_all(self, ts, api, rpaths):
+        prev_type = None
         for rpath in rpaths:
+            if rpath['type'] != prev_type:
+                rt = qvarnutils.get_rt(rpath['type'])
+                self.refresh_token(api, rt, 'token')
+                prev_type = rpath['type']
+
             ts['currently'] = 'Dumping {}'.format(rpath['src_path'])
             self.dump(api, rpath['src_path'])
             ts['rid'] += 1
+
+    def refresh_token(self, api, rt, setting_name):
+        if not self.settings[setting_name]:
+            api.fresh_token(rt)
 
     def dump(self, api, path):
         try:
@@ -103,11 +115,24 @@ class QvarnDump(cliapp.Application):
         ct = resp.headers['Content-Type']
         if ct == 'application/json':
             obj = resp.json()
+            obj = self.filter_obj(obj)
             text = json.dumps(obj, indent=4, sort_keys=True)
             self.output.write('{}\n'.format(text))
         else:
             encoded = base64.standard_b64encode(resp.content).decode('ascii')
             self.output.write('{}:\n{}\n'.format(path, encoded))
+
+    def filter_obj(self, obj):
+        banned = {
+            'listener': ['listen_on_type'],
+            'notification': ['timestamp'],
+        }
+        fields = banned.get(obj['type'], [])
+        new = dict(obj)
+        for field in fields:
+            if field in new:
+                del new[field]
+        return new
 
     def get_ttystatus(self):
         ts = ttystatus.TerminalStatus(period=0.1)
