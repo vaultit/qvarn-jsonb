@@ -88,10 +88,20 @@ class QvarnDump(cliapp.Application):
         return rpaths
 
     def dump_all(self, ts, api, rpaths):
+        prev_type = None
         for rpath in rpaths:
+            if rpath['type'] != prev_type:
+                rt = qvarnutils.get_rt(rpath['type'])
+                self.refresh_token(src, rt, 'token')
+                prev_type = rpath['type']
+
             ts['currently'] = 'Dumping {}'.format(rpath['src_path'])
             self.dump(api, rpath['src_path'])
             ts['rid'] += 1
+
+    def refresh_token(self, api, rt, setting_name):
+        if not self.settings[setting_name]:
+            api.fresh_token(rt)
 
     def dump(self, api, path):
         try:
