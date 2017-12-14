@@ -79,11 +79,13 @@ class QvarnDump(cliapp.Application):
         ts.finish()
 
     def find_all(self, type_names, api):
+        prev_type = None
         rpaths = []
         for type_name in type_names:
-            rt = qvarnutils.get_rt(type_name)
-            if not self.settings['token']:
-                api.fresh_token(rt)
+            if rpath['type'] != prev_type:
+                rt = qvarnutils.get_rt(rpath['type'])
+                self.refresh_token(src, rt, 'token')
+                prev_type = rpath['type']
             rpaths.extend(api.get_resource_paths(rt))
         return rpaths
 
