@@ -54,7 +54,7 @@ def dict_schema(stack, name, r):
 
 
 def list_schema(stack, name, r):
-    if len(r) > 0:
+    if r:
         yield name, list, type(r[0])
         if isinstance(r[0], dict):
             push(stack, name, r[0])

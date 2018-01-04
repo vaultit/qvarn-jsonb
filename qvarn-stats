@@ -49,12 +49,12 @@ class QvarnStats(cliapp.Application):
             ['totals'],
             'add up counts and display totals')
 
-    def process_args(self, type_names):
+    def process_args(self, args):
         api = self.new_api(self.settings['api'])
 
         totals = {}
 
-        for type_name in type_names:
+        for type_name in args:
             restype = qvarnutils.get_rt(type_name)
             api.fresh_token(restype)
             path = restype['path']

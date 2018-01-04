@@ -65,7 +65,7 @@ class QvarnCopy(cliapp.Application):
             'use at most N resources of each type',
             metavar='N')
 
-    def process_args(self, type_names):
+    def process_args(self, args):
         max_count = self.settings['max'] or None
 
         src = qvarnutils.create_api(
@@ -82,7 +82,7 @@ class QvarnCopy(cliapp.Application):
         ts.flush()
 
         rpaths = self.find_all(
-            src, self.settings['source-token'], type_names)
+            src, self.settings['source-token'], args)
         rpaths = rpaths[:max_count]
         for rpath in rpaths:
             logging.debug('rpath: %r', rpath)

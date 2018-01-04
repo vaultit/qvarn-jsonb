@@ -57,7 +57,7 @@ class QvarnDump(cliapp.Application):
             'use at most N resources of each type',
             metavar='N')
 
-    def process_args(self, type_names):
+    def process_args(self, args):
         max_count = self.settings['max'] or None
 
         api = qvarnutils.create_api(
@@ -69,7 +69,7 @@ class QvarnDump(cliapp.Application):
         ts['currently'] = 'Finding resouces'
         ts.flush()
 
-        rpaths = self.find_all(type_names, api)
+        rpaths = self.find_all(args, api)
         rpaths = rpaths[:max_count]
         ts['rids'] = len(rpaths)
         self.dump_all(ts, api, rpaths)
