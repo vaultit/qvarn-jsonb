@@ -92,7 +92,7 @@ class ObjectStoreInterface:  # pragma: no cover
     def get_blob(self, subpath=None, **keys):
         raise NotImplementedError()
 
-    def remove_blob(self, blob, subpath=None, **keys):
+    def remove_blob(self, subpath=None, **keys):
         raise NotImplementedError()
 
 
@@ -152,7 +152,7 @@ class MemoryObjectStore(ObjectStoreInterface):
             raise NoSuchObject(keys)
         return blobs[0]
 
-    def remove_blob(self, blob, subpath=None, **keys):
+    def remove_blob(self, subpath=None, **keys):
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         self._blobs = [
@@ -336,7 +336,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
                 raise NoSuchObject(keys)
             return blobs
 
-    def remove_blob(self, blob, subpath=None, **keys):
+    def remove_blob(self, subpath=None, **keys):
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
 

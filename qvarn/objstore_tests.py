@@ -155,7 +155,7 @@ class ObjectStoreTests(unittest.TestCase):
         store = self.create_store(key=str)
         store.create_object(self.obj1, key='1st')
         store.create_blob(self.blob1, key='1st', subpath='blob')
-        store.remove_blob(self.blob1, key='1st', subpath='blob')
+        store.remove_blob(key='1st', subpath='blob')
         with self.assertRaises(qvarn.NoSuchObject):
             store.get_blob(key='1st', subpath='blob')
 
