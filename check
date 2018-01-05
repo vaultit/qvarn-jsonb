@@ -49,7 +49,7 @@ title "Yarns"
 if [ "${QVARN_POSTGRES:-no}" = no ]
 then
     # Run yarns without Postgres. For speed.
-   run_yarns "$@"
+    run_yarns "$@"
 else
     scripts/pgempty
     run_yarns --env "QVARN_POSTGRES=$QVARN_POSTGRES" "$@"

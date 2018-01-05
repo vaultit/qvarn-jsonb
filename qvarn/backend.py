@@ -25,8 +25,8 @@ import os
 import yaml
 
 import apifw
-import qvarn
 import slog
+import qvarn
 
 
 DEFAULT_CONFIG_FILE = '/dev/null'

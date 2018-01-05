@@ -70,7 +70,7 @@ class SearchParser:
     def _parse_simple(self, path):
         # Yield operator, args pairs.
         words = [self._unquote(w) for w in path.split('/')]
-        assert len(words) > 0
+        assert words
         while words:
             operator, words = words[0], words[1:]
             if operator not in self.conditions:

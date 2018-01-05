@@ -243,7 +243,7 @@ class NotificationRouter(qvarn.Router):
             qvarn.Equal('id', notification_id),
         )
         pairs = self._store.find_objects(cond)
-        if len(pairs) == 0:
+        if not pairs:
             return qvarn.no_such_resource_response(notification_id)
         if len(pairs) > 1:
             raise qvarn.TooManyResources(notification_id)

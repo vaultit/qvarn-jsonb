@@ -92,7 +92,7 @@ class ObjectStoreInterface:  # pragma: no cover
     def get_blob(self, subpath=None, **keys):
         raise NotImplementedError()
 
-    def remove_blob(self, blob, subpath=None, **keys):
+    def remove_blob(self, subpath=None, **keys):
         raise NotImplementedError()
 
 
@@ -125,9 +125,8 @@ class MemoryObjectStore(ObjectStoreInterface):
             if self._keys_match(k, keys):
                 raise KeyCollision(k)
 
-    def create_blob(self, blob, **keys):
+    def create_blob(self, blob, subpath=None, **keys):
         qvarn.log.log('trace', msg_text='Creating blob', keys=keys)
-        subpath = keys.pop('subpath')
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         self._check_unique_blob(subpath, **keys)
@@ -140,8 +139,7 @@ class MemoryObjectStore(ObjectStoreInterface):
             if self._keys_match(k, keys) and s == subpath:
                 raise BlobKeyCollision(subpath, k)
 
-    def get_blob(self, **keys):
-        subpath = keys.pop('subpath')
+    def get_blob(self, subpath=None, **keys):
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         blobs = [
@@ -154,8 +152,7 @@ class MemoryObjectStore(ObjectStoreInterface):
             raise NoSuchObject(keys)
         return blobs[0]
 
-    def remove_blob(self, **keys):
-        subpath = keys.pop('subpath')
+    def remove_blob(self, subpath=None, **keys):
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         self._blobs = [
@@ -311,7 +308,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         obj = row.pop('_obj')
         return keys, obj
 
-    def create_blob(self, blob, **keys):
+    def create_blob(self, blob, subpath=None, **keys):
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         if not self.get_objects(**keys):
@@ -326,7 +323,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
 
             t.execute(query, values)
 
-    def get_blob(self, **keys):
+    def get_blob(self, subpath=None, **keys):
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
 
@@ -335,11 +332,11 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         with self._sql.transaction() as t:
             query = t.select_objects(self._blobtable, '_blob', *column_names)
             blobs = [bytes(row['_blob']) for row in t.execute(query, keys)]
-            if len(blobs) == 0:
+            if not blobs:
                 raise NoSuchObject(keys)
             return blobs
 
-    def remove_blob(self, **keys):
+    def remove_blob(self, subpath=None, **keys):
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
 

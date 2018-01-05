@@ -51,7 +51,7 @@ class QvarnAPI:
 
     def get_resource_type(self, path):
         objs = self._get_resource_type_given_path(path)
-        if len(objs) == 0:
+        if not objs:
             qvarn.log.log(
                 'error',
                 msg_text='There is no resource type for path',
@@ -90,7 +90,7 @@ class QvarnAPI:
         results = self._store.find_objects(cond)
         objs = [obj for _, obj in results]
 
-        if len(objs) == 0:  # pragma: no cover
+        if not objs:  # pragma: no cover
             raise qvarn.NoSuchResourceType(type_name)
         elif len(objs) > 1:  # pragma: no cover
             raise qvarn.TooManyResourceTypes(type_name)
