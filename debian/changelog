@@ -1,6 +1,8 @@
 qvarn-jsonb (0.89+git-1) UNRELEASED; urgency=medium
 
   * New upstream version.
+  * Run checks during .deb build.
+  * Install NEWS, README in qvarn-jsonb.
 
  -- Lars Wirzenius <liw@qvarnlabs.com>  Thu, 14 Dec 2017 14:47:06 +0200
 
