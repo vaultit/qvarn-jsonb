@@ -18,6 +18,7 @@ Build-Depends: debhelper (>= 9),
  cmdtest,
  pycodestyle,
  pylint3,
+ python-crypto,
  python3-crypto
 X-Python3-Version: >= 3.5
 
