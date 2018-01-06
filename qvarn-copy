@@ -16,6 +16,7 @@
 
 
 import logging
+import json
 import os
 import sys
 
@@ -124,7 +125,7 @@ class QvarnCopy(cliapp.Application):
     def copy_one(self, src, tgt, rpath):
         with qvarnutils.Stopwatch('GET {}'.format(rpath['src_path'])):
             resp = self.get_thing(src, rpath['src_path'])
-        if resp:
+        if resp and resp.ok and resp.content:
             ct = resp.headers['Content-Type']
             obj = resp.json()
             rev = obj['revision']
@@ -136,10 +137,14 @@ class QvarnCopy(cliapp.Application):
             for subpath in rpath['subpaths']:
                 with qvarnutils.Stopwatch('GET {}'.format(subpath)):
                     resp = self.get_thing(src, subpath)
-                if resp:
+                if resp and resp.ok and resp.content:
                     sub_ct = resp.headers['Content-Type']
+                    subobj = resp.json()
+                    if 'revision' not in subobj:
+                        subobj['revision'] = rev
                     with qvarnutils.Stopwatch('PUT {}'.format(subpath)):
-                        self.put_thing(tgt, subpath, resp.content, sub_ct, rev)
+                        body = json.dumps(subobj)
+                        self.put_thing(tgt, subpath, body, sub_ct, rev)
                         logging.debug('PUTted %s', subpath)
 
     def get_thing(self, api, path):
