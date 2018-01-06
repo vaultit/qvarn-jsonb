@@ -67,6 +67,7 @@ class SubresourceRouter(qvarn.Router):
             raise qvarn.NotJson(content_type)
 
         obj_id = kwargs['id']
+
         if 'revision' not in body:
             return qvarn.bad_request_response('must have revision')
         revision = body.pop('revision')
