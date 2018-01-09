@@ -45,6 +45,11 @@ pycodestyle qvarn qvarnutils qvarn-copy qvarn-dump qvarn-stats
 title "Pylint3"
 pylint3 -j0 --rcfile pylint.conf qvarn qvarnutils qvarn-copy qvarn-dump qvarn-stats
 
+title "Pylint (yarns/*.py)"
+pylint -j0 --rcfile pylint.conf \
+       -d wildcard-import,unused-wildcard-import,locally-disabled yarns/*.py
+
+
 title "Yarns"
 if [ "${QVARN_POSTGRES:-no}" = no ]
 then

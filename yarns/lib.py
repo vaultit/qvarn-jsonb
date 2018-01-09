@@ -35,7 +35,7 @@ srcdir = os.environ['SRCDIR']
 datadir = os.environ['DATADIR']
 
 
-vars = Variables(datadir)
+vars = Variables(datadir)  # pylint: disable=redefined-builtin
 
 
 def srcpath(path):
@@ -70,7 +70,7 @@ def add_postgres_config(config):
 
 
 def get(url, headers=None):
-    print('get: url={} headers={}'.format(url, headers))
+    print 'get: url={} headers={}'.format(url, headers)
     r = requests.get(url, headers=headers)
     return r.status_code, dict(r.headers), r.content
 
@@ -125,6 +125,7 @@ def post_to_qvarn(qvarn_vars, path, body):
 
     return post(url + path, headers=headers, body=json.dumps(body))
 
+
 def get_from_qvarn(qvarn_vars, path):
     url = qvarn_vars['url']
     headers = {
@@ -133,6 +134,7 @@ def get_from_qvarn(qvarn_vars, path):
     vars['status_code'], vars['headers'], vars['body'] = get(url + path, headers)
     print('body:', repr(vars['body']))
     return json.loads(vars['body'])
+
 
 def delete_from_qvarn(qvarn_vars, path):
     url = qvarn_vars['url']
@@ -158,7 +160,7 @@ def write_temp(data):
     return filename
 
 
-def expand_vars(text, vars):
+def expand_vars(text, variables):
     result = ''
     while text:
         m = re.search(r'\${(?P<name>[^}]+)}', text)
@@ -167,7 +169,7 @@ def expand_vars(text, vars):
             break
         name = m.group('name')
         print('expanding ', name)
-        result += text[:m.start()] + vars[name]
+        result += text[:m.start()] + variables[name]
         text = text[m.end():]
     return result
 
@@ -206,7 +208,7 @@ def start_qvarn(name):
     privkey, pubkey = create_token_signing_key_pair()
     write('key', privkey)
 
-    port = cliapp.runcmd([os.path.join(srcdir, 'randport' )]).strip()
+    port = cliapp.runcmd([os.path.join(srcdir, 'randport')]).strip()
 
     vars[name] = {
         'issuer': 'issuer',
@@ -237,6 +239,7 @@ def start_qvarn(name):
 
     env = dict(os.environ)
     env['QVARN_CONFIG'] = config_filename
+
     write(config_filename, yaml.safe_dump(config))
 
     argv = [
