@@ -155,6 +155,57 @@ class CollectionAPITests(unittest.TestCase):
         with self.assertRaises(qvarn.NoSuchResource):
             self.coll.get('no-such-object-id')
 
+    def test_get_raises_error_if_resource_is_of_wrong_type(self):
+        # We set up a second qvarn.Collection that shares the same
+        # ObjectStore. We add two different resources, one via each
+        # collection. We should only be able to retrieve resources of
+        # the right type from each of the resources.
+
+        subject = {
+            'type': 'subject',
+            'full_name': 'James Bond',
+        }
+        new_subject = self.coll.post(subject)
+
+        spec2 = {
+            'type': 'person',
+            'path': '/persons',
+            'versions': [
+                {
+                    'version': 'v0',
+                    'prototype': {
+                        'type': '',
+                        'id': '',
+                        'revision': '',
+                        'full_name': '',
+                    },
+                },
+            ],
+        }
+
+        rt2 = qvarn.ResourceType()
+        rt2.from_spec(spec2)
+
+        coll2 = qvarn.CollectionAPI()
+        coll2.set_object_store(self.store)
+        coll2.set_resource_type(rt2)
+
+        person = {
+            'type': 'person',
+            'full_name': 'James Bond',
+        }
+        new_person = coll2.post(person)
+
+        self.assertEqual(self.coll.get(new_subject['id']), new_subject)
+        self.assertEqual(coll2.get(new_person['id']), new_person)
+
+        # Now check we get an error if we retrieve via the wrong
+        # collection.
+        with self.assertRaises(qvarn.NoSuchResource):
+            self.coll.get(new_person['id'])
+        with self.assertRaises(qvarn.NoSuchResource):
+            coll2.get(new_subject['id'])
+
     def test_deleting_nonexisent_resource_raise_error(self):
         with self.assertRaises(qvarn.NoSuchResource):
             self.coll.delete('no-such-object-id')

@@ -90,7 +90,10 @@ class CollectionAPI:
         return self._idgen.new_id(resource_type)
 
     def get(self, obj_id):
-        return self._get_object(obj_id, '')
+        obj = self._get_object(obj_id, '')
+        if obj and obj.get('type') == self.get_type_name():
+            return obj
+        raise NoSuchResource(obj_id=obj_id)
 
     def get_subresource(self, obj_id, subpath):
         return self._get_object(obj_id, subpath)
