@@ -121,6 +121,44 @@ of 404. We may want to fix this some day.
 
     FINALLY qvarn is stopped
 
+# Manage resources of different types
+
+    SCENARIO user manages resources of different types
+
+    GIVEN a running Qvarn instance
+
+    WHEN client gets an authorization token with scope 
+    ... "uapi_subjects_get uapi_subjects_post uapi_subjects_id_get 
+    ...  uapi_persons_get uapi_persons_post uapi_persons_id_get"
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "type": "subject",
+    ...     "names": [
+    ...         { "full_name": "Harry Potter" }
+    ...     ]
+    ... }
+    THEN HTTP status code is 201 Created
+    AND resource id is HARRY
+
+    WHEN client requests POST /persons with token and body
+    ... {
+    ...     "type": "person",
+    ...     "names": [
+    ...         { "full_name": "Hermione Granger" }
+    ...     ]
+    ... }
+    THEN HTTP status code is 201 Created
+    AND resource id is HERMIONE
+
+    WHEN client requests GET /subjects/${HERMIONE} using token
+    THEN HTTP status code is 404 Not Found
+
+    WHEN client requests GET /persons/${HARRY} using token
+    THEN HTTP status code is 404 Not Found
+
+    FINALLY qvarn is stopped
+
 
 # Manage notifications
 
