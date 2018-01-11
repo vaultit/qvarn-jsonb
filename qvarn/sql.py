@@ -17,7 +17,7 @@ import slog
 import qvarn
 
 
-class PostgresAdapter:
+class PostgresAdapter:  # pragma: no cover
 
     def __init__(self):
         self._pool = None
@@ -43,7 +43,7 @@ class PostgresAdapter:
         self._pool.putconn(conn)
 
 
-class Transaction:
+class Transaction:  # pragma: no cover
 
     def __init__(self, sql):
         self._sql = sql
@@ -176,7 +176,7 @@ class Transaction:
         return placeholder(name)
 
 
-def quote(name):
+def quote(name):  # pragma: no cover
     ascii_lower = 'abcdefghijklmnopqrstuvwxyz'
     ascii_digits = '0123456789'
     ascii_chars = ascii_lower + ascii_lower.upper() + ascii_digits
@@ -185,20 +185,20 @@ def quote(name):
     return '_'.join(name.split('-'))
 
 
-def placeholder(name):
+def placeholder(name):  # pragma: no cover
     return '%({})s'.format(quote(name))
 
 
 _counter = slog.Counter()
 
 
-def get_unique_name(base, counter=None):
+def get_unique_name(base, counter=None):  # pragma: no cover
     if counter is None:
         counter = _counter
     return '{}{}'.format(base, counter.increment())
 
 
-class Condition:
+class Condition:  # pragma: no cover
 
     def get_subconditions(self):
         return []
@@ -236,14 +236,19 @@ class All(Condition):
         return '( {} )'.format(conds), values
 
 
-class Cmp(Condition):
+class Cmp(Condition):  # pragma: no cover
 
     def __init__(self, name, pattern):
         self.name = name
         self.pattern = pattern
 
-    def cmp_py(self, actual):
+    def compare(self, a, b):
         raise NotImplementedError()
+
+    def cmp_py(self, actual):
+        if isinstance(actual, str):
+            return self.compare(actual.lower(), self.pattern.lower())
+        return self.compare(actual, self.pattern)
 
     def cmp_sql(self, pattern_name):
         return "lower(_field->>'value') {} lower(%({})s)".format(
@@ -273,10 +278,10 @@ class Cmp(Condition):
 
 class Equal(Cmp):
 
-    def cmp_py(self, actual):
-        return self.pattern.lower() == actual.lower()
+    def compare(self, a, b):
+        return a == b
 
-    def get_operator(self):
+    def get_operator(self):  # pragma: no cover
         return '='
 
 
@@ -291,79 +296,94 @@ class ResourceTypeIs(Equal):
 
 class NotEqual(Cmp):
 
-    def cmp_py(self, actual):
-        return self.pattern.lower() != actual.lower()
+    def compare(self, a, b):
+        return a != b
 
-    def get_operator(self):
+    def get_operator(self):  # pragma: no cover
         return '!='
 
 
 class GreaterThan(Cmp):
 
-    def cmp_py(self, actual):
-        return actual.lower() > self.pattern.lower()
+    def compare(self, a, b):
+        return a > b
 
-    def get_operator(self):
+    def get_operator(self):  # pragma: no cover
         return '>'
 
 
 class GreaterOrEqual(Cmp):
 
-    def cmp_py(self, actual):
-        return actual.lower() >= self.pattern.lower()
+    def compare(self, a, b):
+        return a >= b
 
-    def get_operator(self):
+    def get_operator(self):  # pragma: no cover
         return '>='
 
 
 class LessThan(Cmp):
 
-    def cmp_py(self, actual):
-        return actual.lower() < self.pattern.lower()
+    def compare(self, a, b):
+        return a < b
 
-    def get_operator(self):
+    def get_operator(self):  # pragma: no cover
         return '<'
 
 
 class LessOrEqual(Cmp):
 
-    def cmp_py(self, actual):
-        return actual.lower() <= self.pattern.lower()
+    def compare(self, a, b):
+        return a <= b
 
-    def get_operator(self):
+    def get_operator(self):  # pragma: no cover
         return '<='
 
 
 class Contains(Cmp):
 
-    def cmp_py(self, actual):
-        return self.pattern.lower() in actual.lower()
+    def compare(self, a, b):
+        return b in a
 
-    def cmp_sql(self, pattern_name):
+    def cmp_sql(self, pattern_name):  # pragma: no cover
         t = "lower(_field->>'value') LIKE '%%' || lower(%({})s) || '%%'"
         return t.format(pattern_name)
 
-    def get_operator(self):
+    def get_operator(self):  # pragma: no cover
         pass
 
 
 class Startswith(Cmp):
 
-    def cmp_py(self, actual):
-        return actual.lower().startswith(self.pattern.lower())
+    def compare(self, a, b):
+        return a.startswith(b)
 
-    def cmp_sql(self, pattern_name):
+    def cmp_sql(self, pattern_name):  # pragma: no cover
         t = "lower(_field->>'value') LIKE lower(%({})s) || '%%'"
         return t.format(pattern_name)
 
-    def get_operator(self):
+    def get_operator(self):  # pragma: no cover
         pass
 
 
 class Yes(Condition):
+
+    def compare(self, a, b):  # pragma: no cover
+        assert False
 
     def matches(self, obj):
         return True
 
     def as_sql(self):  # pragma: no cover
         return 'TRUE', {}
+
+
+class No(Condition):
+
+    def compare(self, a, b):  # pragma: no cover
+        assert False
+
+    def matches(self, obj):
+        return False
+
+    def as_sql(self):  # pragma: no cover
+        return 'FALSE', {}

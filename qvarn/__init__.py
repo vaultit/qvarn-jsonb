@@ -40,6 +40,7 @@ from .sql import (
     ResourceTypeIs,
     Startswith,
     Yes,
+    No,
 )
 from .sql_select import sql_select, flatten
 
