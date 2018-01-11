@@ -11,6 +11,9 @@ Version 0.89+git, not yet released
   in use. This allows `qvarn-copy` to update the subresource without
   having to update the parent resource revision separately.
 
+* Qvarn no longer returns a resource of a different type as a response
+  to a request `GET /foos/id`.
+
 Version 0.89, released 2017-12-14
 ----------------------------------
 
