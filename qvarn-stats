@@ -57,14 +57,15 @@ class QvarnStats(cliapp.Application):
         for type_name in args:
             restype = qvarnutils.get_rt(api, type_name)
             path = restype['path']
-            self.stats(api, path, restype['type'], totals)
+            plural = restype['plural']
+            self.stats(api, path, plural, totals)
             listeners = self.stats(
-                api, '{}/listeners'.format(path), restype['type'], totals)
+                api, '{}/listeners'.format(path), plural, totals)
             for r in listeners:
                 self.stats(
                     api,
                     '{}/listeners/{}/notifications'.format(path, r['id']),
-                    restype['type'], totals)
+                    plural, totals)
 
         if self.settings['totals']:
             n = sum(totals[path] for path in totals)

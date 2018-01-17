@@ -79,10 +79,11 @@ class QvarnAPI:
 
     def get_listeners(self, path, rt):
         listener_path = '{}/listeners'.format(path)
-        listener_ids = self.get_list(listener_path, rt['type'])
+        listener_ids = self.get_list(listener_path, rt['plural'])
         listeners = [
             {
                 'type': rt['type'],
+                'plural': rt['plural'],
                 'src_path': '{}/{}'.format(listener_path, rid),
                 'tgt_path': listener_path,
                 'subpaths': [],
@@ -95,10 +96,11 @@ class QvarnAPI:
         notifs = []
         for listener in listeners:
             notifs_path = '{}/notifications'.format(listener['src_path'])
-            notif_ids = self.get_list(notifs_path, rt['type'])
+            notif_ids = self.get_list(notifs_path, rt['plural'])
             notifs.extend(
                 {
                     'type': rt['type'],
+                    'plural': rt['plural'],
                     'src_path': '{}/{}'.format(notifs_path, nid),
                     'tgt_path': notifs_path,
                     'subpaths': [],
@@ -108,11 +110,12 @@ class QvarnAPI:
         return notifs
 
     def get_resource_list(self, path, rt):
-        resources = self.get_list(path, rt['type'])
+        resources = self.get_list(path, rt['plural'])
         rpaths = []
         for rid in resources:
             rpath = {
                 'type': rt['type'],
+                'plural': rt['plural'],
                 'src_path': '{}/{}'.format(path, rid),
                 'tgt_path': path,
                 'subpaths': [
@@ -123,8 +126,8 @@ class QvarnAPI:
             rpaths.append(rpath)
         return rpaths
 
-    def get_list(self, path, type_name):
-        resp = self.GET(self.get_token(type_name), path)
+    def get_list(self, path, plural):
+        resp = self.GET(self.get_token(plural), path)
         if not resp.ok:
             logging.error('GET %s failed', path)
             return []

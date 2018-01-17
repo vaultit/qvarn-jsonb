@@ -14,13 +14,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import logging
+
+
 def get_rt(api, name):
     token = api.get_token('resource_types')
     r = api.GET(token, '/resource_types/{}'.format(name))
     obj = r.json()
     spec = obj['spec']
-    return {
-        'type': spec['path'][1:],  # drop leading slash
+    rt = {
+        'type': spec['type'],
+        'plural': spec['path'].split('/')[1],
         'path': spec['path'],
-        'subpaths': spec['versions'][-1]['subpaths'].keys(),
+        'subpaths': list(spec['versions'][-1]['subpaths'].keys()),
     }
+    logging.debug('get_rt: %r', rt)
+    return rt
