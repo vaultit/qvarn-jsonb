@@ -38,7 +38,7 @@ resource_types = {
 }
 
 
-def get_rt(name):
+def get_rt(api, name):
     if name in resource_types:
         return resource_types[name]
     for rt in resource_types.values():

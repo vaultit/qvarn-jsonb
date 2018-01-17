@@ -55,7 +55,7 @@ class QvarnStats(cliapp.Application):
         totals = {}
 
         for type_name in args:
-            restype = qvarnutils.get_rt(type_name)
+            restype = qvarnutils.get_rt(api, type_name)
             api.fresh_token(restype)
             path = restype['path']
             self.stats(api, path, totals)

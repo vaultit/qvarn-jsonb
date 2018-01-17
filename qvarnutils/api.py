@@ -20,6 +20,7 @@ import time
 
 
 import cliapp
+import jwt
 import requests
 
 
@@ -30,7 +31,7 @@ def create_api(url, secrets_filename, token):
     api = QvarnAPI()
     api.set_api_url(url)
     if token:
-        api.set_token(token, None)
+        api.set_token(token)
     else:
         api.lookup_credentials(secrets_filename)
     return api
@@ -40,35 +41,26 @@ class QvarnAPI:
 
     def __init__(self):
         self._httpapi = HttpAPI()
-
-        self._token = None
-        self._token_created = None
-        self._token_rt = None
+        self._tokens = TokenCache()
+        self._forced_token = None
 
     def set_api_url(self, api_url):
         self._httpapi.set_api_url(api_url)
 
     def lookup_credentials(self, filename):
-        self._httpapi.lookup_credential(filename)
+        self._httpapi.lookup_credentials(filename)
 
-    def set_token(self, token, rt):
-        self._token = token
-        self._token_created = time.time()
-        self._token_rt = rt
+    def set_token(self, token):
+        self._forced_token = token
 
-    def fresh_token(self, rt):
-        self.set_token(self._get_new_token(rt), rt)
-
-    def get_token(self):
-        max_age = 1800
-        if self._token_created is not None:
-            age = time.time() - self._token_created
-        if not self._token or age > max_age:
-            self.set_token(self._get_new_token(self._token_rt), self._token_rt)
-        return self._token
-
-    def _get_new_token(self, rt):
-        return self._httpapi.get_token(rt['type'], rt['subpaths'])
+    def get_token(self, type_name):
+        if self._forced_token:
+            return self._forced_token
+        token = self._tokens.get(type_name)
+        if token is None:
+            self._httpapi.get_token(type_name, [])  # FIXME
+            token = self._tokens.get(type_name)
+        return token
 
     def get_resource_paths(self, rt):
         path = rt['path']
@@ -83,7 +75,7 @@ class QvarnAPI:
 
     def get_listeners(self, path, rt):
         listener_path = '{}/listeners'.format(path)
-        listener_ids = self.get_list(listener_path)
+        listener_ids = self.get_list(listener_path, rt['type'])
         listeners = [
             {
                 'type': rt['type'],
@@ -99,7 +91,7 @@ class QvarnAPI:
         notifs = []
         for listener in listeners:
             notifs_path = '{}/notifications'.format(listener['src_path'])
-            notif_ids = self.get_list(notifs_path)
+            notif_ids = self.get_list(notifs_path, rt['type'])
             notifs.extend(
                 {
                     'type': rt['type'],
@@ -112,7 +104,7 @@ class QvarnAPI:
         return notifs
 
     def get_resource_list(self, path, rt):
-        resources = self.get_list(path)
+        resources = self.get_list(path, rt['type'])
         rpaths = []
         for rid in resources:
             rpath = {
@@ -127,8 +119,8 @@ class QvarnAPI:
             rpaths.append(rpath)
         return rpaths
 
-    def get_list(self, path):
-        resp = self.GET(self.get_token(), path)
+    def get_list(self, path, type_name):
+        resp = self.GET(self.get_token(type_name), path)
         if not resp.ok:
             logging.error('GET %s failed', path)
             return []
@@ -232,6 +224,28 @@ class HttpAPI:
                 response.text)
 
         return response
+
+
+class TokenCache:
+
+    def __init__(self):
+        self._cache = {}
+
+    def __contains__(self, type_name):
+        if type_name in self._cache:
+            token = self._cache[type_name]
+            obj = jwt.decode(token, verify=False)
+            if obj['exp'] > time.time():
+                return True
+        return False
+
+    def add(self, type_name, token):
+        self._cache[type_name] = token
+
+    def get(self, type_name):
+        if type_name in self:
+            return self._cache[type_name]
+        return None
 
 
 class Error(cliapp.AppException):

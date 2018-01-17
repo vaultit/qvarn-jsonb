@@ -83,31 +83,26 @@ class QvarnDump(cliapp.Application):
         rpaths = []
         for type_name in type_names:
             if type_name != prev_type:
-                rt = qvarnutils.get_rt(type_name)
-                self.refresh_token(api, rt, 'token')
+                rt = qvarnutils.get_rt(api, type_name)
                 prev_type = type_name
             rpaths.extend(api.get_resource_paths(rt))
         return rpaths
 
     def dump_all(self, ts, api, rpaths):
         prev_type = None
+        plural = None
         for rpath in rpaths:
             if rpath['type'] != prev_type:
-                rt = qvarnutils.get_rt(rpath['type'])
-                self.refresh_token(api, rt, 'token')
+                rt = qvarnutils.get_rt(api, rpath['type'])
                 prev_type = rpath['type']
 
             ts['currently'] = 'Dumping {}'.format(rpath['src_path'])
-            self.dump(api, rpath['src_path'])
+            self.dump(api, rpath['src_path'], rpath['plural'])
             ts['rid'] += 1
 
-    def refresh_token(self, api, rt, setting_name):
-        if not self.settings[setting_name]:
-            api.fresh_token(rt)
-
-    def dump(self, api, path):
+    def dump(self, api, path, type_name):
         try:
-            resp = api.GET(api.get_token(), path)
+            resp = api.GET(api.get_token(type_name), path)
         except qvarnutils.Error as e:
             logging.error(str(e))
             sys.exit(1)
