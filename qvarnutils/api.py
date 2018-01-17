@@ -39,27 +39,22 @@ def create_api(url, secrets_filename, token):
 class QvarnAPI:
 
     def __init__(self):
-        self._api_url = None
-        self._client_id = None
-        self._client_secret = None
+        self._httpapi = HttpAPI()
+
         self._token = None
         self._token_created = None
         self._token_rt = None
-        self._session = requests.Session()
 
     def set_api_url(self, api_url):
-        self._api_url = api_url
+        self._httpapi.set_api_url(api_url)
+
+    def lookup_credentials(self, filename):
+        self._httpapi.lookup_credential(filename)
 
     def set_token(self, token, rt):
         self._token = token
         self._token_created = time.time()
         self._token_rt = rt
-
-    def lookup_credentials(self, filename):
-        cp = configparser.ConfigParser()
-        cp.read(filename)
-        self._client_id = cp[self._api_url]['client_id']
-        self._client_secret = cp[self._api_url]['client_secret']
 
     def fresh_token(self, rt):
         self.set_token(self._get_new_token(rt), rt)
@@ -73,16 +68,7 @@ class QvarnAPI:
         return self._token
 
     def _get_new_token(self, rt):
-        auth = (self._client_id, self._client_secret)
-
-        data = {
-            u'grant_type': u'client_credentials',
-            u'scope': qvarnutils.scopes_for_type(rt['type'], rt['subpaths']),
-        }
-
-        r = self.request('POST', '/auth/token', auth=auth, data=data)
-        obj = r.json()
-        return obj[u'access_token']
+        return self._httpapi.get_token(rt['type'], rt['subpaths'])
 
     def get_resource_paths(self, rt):
         path = rt['path']
@@ -149,6 +135,49 @@ class QvarnAPI:
 
         obj = resp.json()
         return [r['id'] for r in obj['resources']]
+
+    def GET(self, token, path):
+        return self._httpapi.GET(token, path)
+
+    def POST(self, token, path, resource, content_type, revision):
+        return self._httpapi.POST(
+            token, path, resource, content_type, revision)
+
+    def PUT(self, token, path, resource, content_type, revision):
+        return self._httpapi.PUT(token, path, resource, content_type, revision)
+
+    def DELETE(self, token, path):
+        return self._httpapi.DELETE(token, path)
+
+
+class HttpAPI:
+
+    def __init__(self):
+        self._api_url = None
+        self._client_id = None
+        self._client_secret = None
+        self._session = requests.Session()
+
+    def set_api_url(self, api_url):
+        self._api_url = api_url
+
+    def lookup_credentials(self, filename):
+        cp = configparser.ConfigParser()
+        cp.read(filename)
+        self._client_id = cp[self._api_url]['client_id']
+        self._client_secret = cp[self._api_url]['client_secret']
+
+    def get_token(self, type_name, subpaths):
+        auth = (self._client_id, self._client_secret)
+
+        data = {
+            u'grant_type': u'client_credentials',
+            u'scope': qvarnutils.scopes_for_type(type_name, subpaths),
+        }
+
+        r = self.request('POST', '/auth/token', auth=auth, data=data)
+        obj = r.json()
+        return obj[u'access_token']
 
     def GET(self, token, path):
         return self.request('GET', path, token=token)
