@@ -53,13 +53,17 @@ class QvarnAPI:
     def set_token(self, token):
         self._forced_token = token
 
-    def get_token(self, type_name):
+    def get_token(self, type_name, subpaths=None):
         if self._forced_token:
+            logging.info('Using forced token')
             return self._forced_token
+        logging.info('Getting token for resource type %s', type_name)
         token = self._tokens.get(type_name)
         if token is None:
-            self._httpapi.get_token(type_name, [])  # FIXME
-            token = self._tokens.get(type_name)
+            if subpaths is None:
+                subpaths = []
+            token = self._httpapi.get_token(type_name, subpaths)
+            self._tokens.add(type_name, token)
         return token
 
     def get_resource_paths(self, rt):
@@ -166,9 +170,11 @@ class HttpAPI:
             u'grant_type': u'client_credentials',
             u'scope': qvarnutils.scopes_for_type(type_name, subpaths),
         }
+        logging.debug('Getting token with scopes %r', data['scope'])
 
         r = self.request('POST', '/auth/token', auth=auth, data=data)
         obj = r.json()
+        logging.debug('Got token: %r', obj)
         return obj[u'access_token']
 
     def GET(self, token, path):

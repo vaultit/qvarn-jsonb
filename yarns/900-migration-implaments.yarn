@@ -17,6 +17,7 @@ This chapter shows the scenario step implementations for the
 
     IMPLEMENTS WHEN user creates a person listener in source Qvarn for all changes
     vars['scopes'] = ' '.join([
+        'uapi_resource_types_id_get',
         'uapi_persons_get',
         'uapi_persons_post',
         'uapi_persons_id_get',

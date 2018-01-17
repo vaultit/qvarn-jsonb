@@ -14,34 +14,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-resource_types = {
-    'person': {
-        'type': 'persons',
-        'path': '/persons',
-        'subpaths': ['private', 'photo', 'sync'],
-    },
-    'org': {
-        'type': 'orgs',
-        'path': '/orgs',
-        'subpaths': ['sync'],
-    },
-    'card': {
-        'type': 'cards',
-        'path': '/cards',
-        'subpaths': ['sync', 'holder_photo', 'issuer_logo'],
-    },
-    'contract': {
-        'type': 'contracts',
-        'path': '/contracts',
-        'subpaths': ['sync', 'document'],
-    },
-}
-
-
 def get_rt(api, name):
-    if name in resource_types:
-        return resource_types[name]
-    for rt in resource_types.values():
-        if rt['type'] == name:
-            return rt
-    assert 0
+    token = api.get_token('resource_types')
+    r = api.GET(token, '/resource_types/{}'.format(name))
+    obj = r.json()
+    spec = obj['spec']
+    return {
+        'type': spec['path'][1:],  # drop leading slash
+        'path': spec['path'],
+        'subpaths': spec['versions'][-1]['subpaths'].keys(),
+    }
