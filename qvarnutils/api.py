@@ -63,7 +63,10 @@ class QvarnAPI:
             if subpaths is None:
                 subpaths = []
             token = self._httpapi.get_token(type_name, subpaths)
+            logging.info('Got NEW token for %s', type_name)
             self._tokens.add(type_name, token)
+        else:
+            logging.info('Reusing old token for %s', type_name)
         return token
 
     def get_resource_paths(self, rt):
@@ -79,11 +82,13 @@ class QvarnAPI:
 
     def get_listeners(self, path, rt):
         listener_path = '{}/listeners'.format(path)
-        listener_ids = self.get_list(listener_path, rt['plural'])
+        listener_ids = self.get_list(
+            listener_path, rt['plural'], rt['subpaths'])
         listeners = [
             {
                 'type': rt['type'],
                 'plural': rt['plural'],
+                'token_subpaths': rt['subpaths'],
                 'src_path': '{}/{}'.format(listener_path, rid),
                 'tgt_path': listener_path,
                 'subpaths': [],
@@ -96,11 +101,13 @@ class QvarnAPI:
         notifs = []
         for listener in listeners:
             notifs_path = '{}/notifications'.format(listener['src_path'])
-            notif_ids = self.get_list(notifs_path, rt['plural'])
+            notif_ids = self.get_list(
+                notifs_path, rt['plural'], rt['subpaths'])
             notifs.extend(
                 {
                     'type': rt['type'],
                     'plural': rt['plural'],
+                    'token_subpaths': rt['subpaths'],
                     'src_path': '{}/{}'.format(notifs_path, nid),
                     'tgt_path': notifs_path,
                     'subpaths': [],
@@ -110,12 +117,13 @@ class QvarnAPI:
         return notifs
 
     def get_resource_list(self, path, rt):
-        resources = self.get_list(path, rt['plural'])
+        resources = self.get_list(path, rt['plural'], rt['subpaths'])
         rpaths = []
         for rid in resources:
             rpath = {
                 'type': rt['type'],
                 'plural': rt['plural'],
+                'token_subpaths': rt['subpaths'],
                 'src_path': '{}/{}'.format(path, rid),
                 'tgt_path': path,
                 'subpaths': [
@@ -126,8 +134,8 @@ class QvarnAPI:
             rpaths.append(rpath)
         return rpaths
 
-    def get_list(self, path, plural):
-        resp = self.GET(self.get_token(plural), path)
+    def get_list(self, path, plural, subpaths):
+        resp = self.GET(self.get_token(plural, subpaths), path)
         if not resp.ok:
             logging.error('GET %s failed', path)
             return []
@@ -228,6 +236,7 @@ class HttpAPI:
             verify=False)
 
         if not response.ok:
+            logging.warning('Got error from API, token is %r', token)
             raise Error(
                 method, self._api_url, path, response.status_code,
                 response.text)
