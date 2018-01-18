@@ -55,23 +55,24 @@ class QvarnStats(cliapp.Application):
         totals = {}
 
         for type_name in args:
-            restype = qvarnutils.get_rt(type_name)
-            api.fresh_token(restype)
+            restype = qvarnutils.get_rt(api, type_name)
             path = restype['path']
-            self.stats(api, path, totals)
-            listeners = self.stats(api, '{}/listeners'.format(path), totals)
+            plural = restype['plural']
+            self.stats(api, path, plural, totals)
+            listeners = self.stats(
+                api, '{}/listeners'.format(path), plural, totals)
             for r in listeners:
                 self.stats(
                     api,
                     '{}/listeners/{}/notifications'.format(path, r['id']),
-                    totals)
+                    plural, totals)
 
         if self.settings['totals']:
             n = sum(totals[path] for path in totals)
             self.output.write('\n{} total\n'.format(n))
 
-    def stats(self, api, path, totals):
-        resp = api.GET(api.get_token(), path)
+    def stats(self, api, path, type_name, totals):
+        resp = api.GET(api.get_token(type_name), path)
         assert resp.ok
         obj = resp.json()
         resources = obj['resources']

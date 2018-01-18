@@ -98,8 +98,7 @@ class QvarnCopy(cliapp.Application):
     def find_all(self, api, token, type_names):
         rpaths = []
         for type_name in type_names:
-            rt = qvarnutils.get_rt(type_name)
-            self.refresh_token(api, rt, 'source-token')
+            rt = qvarnutils.get_rt(api, type_name)
             rpaths.extend(api.get_resource_paths(rt))
         return rpaths
 
@@ -110,9 +109,7 @@ class QvarnCopy(cliapp.Application):
             ts['rid'] += 1
 
             if rpath['type'] != prev_type:
-                rt = qvarnutils.get_rt(rpath['type'])
-                self.refresh_token(src, rt, 'source-token')
-                self.refresh_token(tgt, rt, 'target-token')
+                rt = qvarnutils.get_rt(src, rpath['type'])
                 prev_type = rpath['type']
 
             try:
@@ -124,19 +121,24 @@ class QvarnCopy(cliapp.Application):
 
     def copy_one(self, src, tgt, rpath):
         with qvarnutils.Stopwatch('GET {}'.format(rpath['src_path'])):
-            resp = self.get_thing(src, rpath['src_path'])
+            resp = self.get_thing(
+                src, rpath['src_path'], rpath['plural'],
+                rpath['token_subpaths'])
         if resp and resp.ok and resp.content:
             ct = resp.headers['Content-Type']
             obj = resp.json()
             rev = obj['revision']
             with qvarnutils.Stopwatch('POST {}'.format(rpath['src_path'])):
                 body = resp.content
-                self.post_thing(tgt, rpath['tgt_path'], body, ct)
+                self.post_thing(
+                    tgt, rpath['tgt_path'], rpath['plural'],
+                    rpath['token_subpaths'], body, ct)
                 logging.debug('POSTed %s', rpath['src_path'])
 
             for subpath in rpath['subpaths']:
                 with qvarnutils.Stopwatch('GET {}'.format(subpath)):
-                    resp = self.get_thing(src, subpath)
+                    resp = self.get_thing(
+                        src, subpath, rpath['plural'], rpath['token_subpaths'])
                 if resp and resp.ok and resp.content:
                     sub_ct = resp.headers['Content-Type']
                     subobj = resp.json()
@@ -144,34 +146,36 @@ class QvarnCopy(cliapp.Application):
                         subobj['revision'] = rev
                     with qvarnutils.Stopwatch('PUT {}'.format(subpath)):
                         body = json.dumps(subobj)
-                        self.put_thing(tgt, subpath, body, sub_ct, rev)
+                        self.put_thing(
+                            tgt, subpath, rpath['plural'],
+                            rpath['token_subpaths'],
+                            body, sub_ct, rev)
                         logging.debug('PUTted %s', subpath)
 
-    def get_thing(self, api, path):
+    def get_thing(self, api, path, plural, subpaths):
         try:
-            return api.GET(api.get_token(), path)
+            return api.GET(api.get_token(plural, subpaths), path)
         except qvarnutils.Error as e:
             logging.error(str(e))
             sys.exit(1)
 
-    def post_thing(self, tgt, path, body, content_type):
+    def post_thing(self, tgt, path, plural, subpaths, body, content_type):
         try:
-            tgt.POST(tgt.get_token(), path, body, content_type, None)
+            tgt.POST(
+                tgt.get_token(plural, subpaths),
+                path, body, content_type, None)
         except qvarnutils.Error as e:
             # Resource is already there, or other error. Ignore.
             logging.warning(str(e))
             sys.exit(1)
 
-    def put_thing(self, tgt, path, body, content_type, rev):
+    def put_thing(self, tgt, path, plural, subpaths, body, content_type, rev):
         try:
-            tgt.PUT(tgt.get_token(), path, body, content_type, rev)
+            tgt.PUT(
+                tgt.get_token(plural, subpaths), path, body, content_type, rev)
         except qvarnutils.Error as e:
             # Resource is already there, or other error. Ignore.
             logging.warning(str(e))
-
-    def refresh_token(self, api, rt, setting_name):
-        if not self.settings[setting_name]:
-            api.fresh_token(rt)
 
     def get_ttystatus(self):
         ts = ttystatus.TerminalStatus(period=1)
