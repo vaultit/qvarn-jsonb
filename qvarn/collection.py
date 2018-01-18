@@ -156,14 +156,22 @@ class CollectionAPI:
         parent = self.get(obj_id)
         if parent['revision'] != revision:
             raise WrongRevision(revision, parent['revision'])
+
+        new_sub = self._new_subresource(sub_obj, subpath)
         keys = {
             'obj_id': obj_id,
             'subpath': subpath,
         }
         self._store.remove_objects(**keys)
-        self._create_object(sub_obj, **keys)
+        self._create_object(new_sub, **keys)
 
-        return dict(sub_obj)
+        return dict(new_sub)
+
+    def _new_subresource(self, sub_obj, subpath):
+        rt = self.get_type()
+        subprotos = rt.get_subpaths()
+        subproto = subprotos[subpath]
+        return qvarn.add_missing_fields(subproto, sub_obj)
 
     def _update_revision(self, obj_id):
         obj = self.get(obj_id)

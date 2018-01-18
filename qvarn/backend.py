@@ -109,6 +109,7 @@ subject.from_spec({
                 'sub': {
                     'prototype': {
                         'subfield': '',
+                        'sublist': [''],
                     },
                 },
                 'blob': {

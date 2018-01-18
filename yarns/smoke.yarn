@@ -92,7 +92,12 @@ provides consulting, development, and support services around Qvarn.
     ...     "random_id": null,
     ...     "names": [
     ...         {
-    ...             "full_name": "Jason Bourne"
+    ...             "full_name": "Jason Bourne",
+    ...             "sort_key": null,
+    ...             "titles": [],
+    ...             "given_names": [],
+    ...             "surnames": []
+
     ...         }
     ...     ]
     ... }
@@ -619,7 +624,8 @@ don't need to be created specially.
     THEN HTTP status code is 200 OK
     AND JSON body matches
     ... {
-    ...     "subfield": null
+    ...     "subfield": null,
+    ...     "sublist": []
     ... }
 
     WHEN client requests PUT /subjects/${ID}/sub with token and body
