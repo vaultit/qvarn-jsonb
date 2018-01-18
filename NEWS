@@ -18,6 +18,14 @@ Version 0.89+git, not yet released
   Additionally they now fetch resource descriptions from Qvarn via its
   API rather than having them hardcoded in source code.
 
+* If POSTin or PUTting a resource with some fields missing, those
+  fields are now set to `null`. Previously they were set to an empty
+  string, the integer zero, or the Boolean false value. This was
+  different from pre-JSONB Qvarn, and being different from that is a
+  bug. Fixes bug [PUPPY FILAMENT ENDOW][] in the qvarn-devel distix.
+
+[PUPPY FILAMENT ENDOW]: http://qvarn-devel.qvarnlabs.net/9b5d5940a557439eb7535b01e4ba58b6.html
+
 Version 0.89, released 2017-12-14
 ----------------------------------
 

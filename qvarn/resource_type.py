@@ -117,16 +117,13 @@ def add_missing_fields(proto, obj):
 def _fill_in_dict(proto, obj):
     new = {}
     defaults = {
-        str: '',
-        int: 0,
-        bool: False,
+        str: None,
+        int: None,
+        bool: None,
     }
 
     for field in proto:
-        if type(proto[field]) in defaults:
-            if field not in obj:
-                new[field] = defaults[type(proto[field])]
-        elif isinstance(proto[field], list):
+        if isinstance(proto[field], list):
             if field not in obj:
                 new[field] = []
             elif isinstance(proto[field][0], dict):
@@ -134,10 +131,10 @@ def _fill_in_dict(proto, obj):
                     _fill_in_dict(proto[field][0], x)
                     for x in obj[field]
                 ]
-            elif type(proto[field][0]) in defaults:
+            else:
                 new[field] = list(obj[field])
-        else:  # pragma: no cover
-            assert 0, 'field is {!r}'.format(field)
+        elif field not in obj:
+            new[field] = None
 
     if isinstance(obj, dict):  # pragma: no cover
         for field in obj:

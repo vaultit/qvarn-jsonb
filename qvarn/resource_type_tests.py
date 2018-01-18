@@ -146,7 +146,7 @@ class AddMissingFieldsTests(unittest.TestCase):
         self.assertEqual(
             qvarn.add_missing_fields(self.proto, {}),
             {
-                'foo': '',
+                'foo': None,
                 'bars': [],
             }
         )
@@ -161,11 +161,11 @@ class AddMissingFieldsTests(unittest.TestCase):
         self.assertEqual(
             qvarn.add_missing_fields(self.proto, obj),
             {
-                'foo': '',
+                'foo': None,
                 'bars': [
                     {
-                        'foobar': '',
-                        'yo': '',
+                        'foobar': None,
+                        'yo': None,
                         'names': [],
                     },
                 ],
@@ -183,11 +183,11 @@ class AddMissingFieldsTests(unittest.TestCase):
         self.assertEqual(
             qvarn.add_missing_fields(self.proto, obj),
             {
-                'foo': '',
+                'foo': None,
                 'bars': [
                     {
-                        'foobar': '',
-                        'yo': '',
+                        'foobar': None,
+                        'yo': None,
                         'names': ['James Bond'],
                     },
                 ],

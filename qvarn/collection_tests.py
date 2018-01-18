@@ -116,7 +116,7 @@ class CollectionAPITests(unittest.TestCase):
         self.assertEqual(new_obj, self.coll.get(new_obj['id']))
 
         sub = self.coll.get_subresource(new_obj['id'], 'sub')
-        self.assertEqual(sub, {'subfield': ''})
+        self.assertEqual(sub, {'subfield': None})
 
     def test_post_creates_a_new_resource_with_dict_list(self):
         obj = {
@@ -135,7 +135,7 @@ class CollectionAPITests(unittest.TestCase):
             new_obj['things'],
             [
                 {
-                    'things': '',
+                    'things': None,
                     'other': 'foo',
                 },
             ]

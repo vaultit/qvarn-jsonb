@@ -85,8 +85,17 @@ provides consulting, development, and support services around Qvarn.
     WHEN client requests GET /subjects/${ID1} using token
     THEN HTTP status code is 200 OK
     AND JSON body matches
-    ... { "revision": "${REV1}", "id": "${ID1}", "type": "subject",
-    ...   "names": [{ "full_name": "Jason Bourne" }] }
+    ... {
+    ...     "revision": "${REV1}",
+    ...     "id": "${ID1}",
+    ...     "type": "subject",
+    ...     "random_id": null,
+    ...     "names": [
+    ...         {
+    ...             "full_name": "Jason Bourne"
+    ...         }
+    ...     ]
+    ... }
 
 For silly hysterical raisins, the Qvarn API is defined to return 400
 if updating a resource with the wrong revision in the body, instead
@@ -610,7 +619,7 @@ don't need to be created specially.
     THEN HTTP status code is 200 OK
     AND JSON body matches
     ... {
-    ...     "subfield": ""
+    ...     "subfield": null
     ... }
 
     WHEN client requests PUT /subjects/${ID}/sub with token and body
