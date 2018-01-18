@@ -14,6 +14,10 @@ Version 0.89+git, not yet released
 * Qvarn no longer returns a resource of a different type as a response
   to a request `GET /foos/id`.
 
+* Some bug fixes to qvarnutils (`qvarn-copy` and friends).
+  Additionally they now fetch resource descriptions from Qvarn via its
+  API rather than having them hardcoded in source code.
+
 Version 0.89, released 2017-12-14
 ----------------------------------
 
