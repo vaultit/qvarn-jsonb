@@ -1,0 +1,16 @@
+type: access
+path: /access
+versions:
+  - version: v0
+    prototype:
+      type: ""
+      id: ""
+      revision: ""
+      resource_type: ""
+      resource_id: ""
+      resource_revision: ""
+      operation: ""
+      accessors:
+        - accessor_id: ""
+          accessor_type: ""
+      why: ""

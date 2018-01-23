@@ -96,24 +96,30 @@ def create_token_signing_key_pair():
     return key.exportKey('PEM'), key.exportKey('OpenSSH')
 
 
-def create_token(privkey, iss, aud, scopes):
+def create_token(privkey, iss, sub, aud, scopes):
     filename = write_temp(privkey)
     argv = [
         os.path.join(srcdir, 'create-token'),
         filename,
         iss,
+        sub,
         aud,
         scopes,
     ]
     return cliapp.runcmd(argv)
 
 
-def create_token_for_qvarn(qvarn_vars, scopes):
-    if qvarn_vars.get('token') is None:
+def create_token_for_qvarn(qvarn_vars, scopes,
+                           iss=None, sub=None, aud=None, force=False):
+    if force or qvarn_vars.get('token') is None:
         privkey = qvarn_vars['privkey']
-        iss = qvarn_vars['issuer']
-        aud = qvarn_vars['audience']
-        qvarn_vars['token'] = create_token(privkey, iss, aud, scopes)
+        if iss is None:
+            iss = qvarn_vars['issuer']
+        if sub is None:
+            sub = 'subject-uuid'
+        if aud is None:
+            aud = qvarn_vars['audience']
+        qvarn_vars['token'] = create_token(privkey, iss, sub, aud, scopes)
 
 
 def post_to_qvarn(qvarn_vars, path, body):
@@ -145,6 +151,7 @@ def get_from_qvarn(qvarn_vars, path, extra_headers={}):
     vars['status_code'], vars['headers'], vars['body'] = get(
         url + path, dict(headers, **extra_headers)
     )
+
     try:
         return json.loads(vars['body'])
     except ValueError:

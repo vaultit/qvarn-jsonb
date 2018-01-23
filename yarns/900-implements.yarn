@@ -100,7 +100,7 @@ Start a Qvarn running in the background.
     aud = vars['default']['audience']
     print 'privkey', repr(privkey)
     assert privkey
-    vars['token'] = create_token(privkey, iss, aud, scopes)
+    vars['token'] = create_token(privkey, iss, 'subject-uuid', aud, scopes)
 
 ## UUID creation
 

@@ -29,7 +29,8 @@ A creates a person resource, whose access log entries we will look at.
 
 There should now be exactly one access log entry for the newly created person.
 
-    THEN access log contains entry
+    AND access log contains only one entry
+    AND access log contains entry
     ... {
     ...     "type": "access",
     ...     "resource_type": "person",
@@ -40,6 +41,10 @@ There should now be exactly one access log entry for the newly created person.
     ...         {
     ...             "accessor_id": "${A_ID}",
     ...             "accessor_type": "person"
+    ...         },
+    ...         {
+    ...             "accessor_id": "${CLIENT}",
+    ...             "accessor_type": "client"
     ...         }
     ...     ],
     ...     "why": null
@@ -60,6 +65,10 @@ Now B looks at the same person resource. That should be logged.
     ...         {
     ...             "accessor_id": "${B_ID}",
     ...             "accessor_type": "person"
+    ...         },
+    ...         {
+    ...             "accessor_id": "${CLIENT}",
+    ...             "accessor_type": "client"
     ...         }
     ...     ],
     ...     "why": "important"
@@ -82,15 +91,19 @@ A updates the person resource.
     ...         {
     ...             "accessor_id": "${A_ID}",
     ...             "accessor_type": "person"
+    ...         },
+    ...         {
+    ...             "accessor_id": "${CLIENT}",
+    ...             "accessor_type": "client"
     ...         }
     ...     ],
-    ...     "why": ""
+    ...     "why": null
     ... }
 
 A partner system accesses the resource.
 
     WHEN test client requests GET /persons/${ID}, with header
-    ... Qvarn-Why: secret and header
+    ... Qvarn-Why: secret
     ... Qvarn-Access-By: dentarthurdent
     THEN revision is REV2
     AND access log contains entry
@@ -102,8 +115,12 @@ A partner system accesses the resource.
     ...     "operation": "GET",
     ...     "accessors": [
     ...         {
+    ...             "accessor_id": "",
+    ...             "accessor_type": "person"
+    ...         },
+    ...         {
     ...             "accessor_id": "${CLIENT}",
-    ...             "accessor_type": "org"
+    ...             "accessor_type": "client"
     ...         },
     ...         {
     ...             "accessor_id": "dentarthurdent",
