@@ -1,0 +1,114 @@
+---
+title: qvarn-jsonb integration tests
+author: Lars Wirzenius / QvarnLabs Ab
+date: work in progress
+...
+
+
+# Qvarn access log
+
+A test scenario for access log.
+
+First, we set up a couple of test users (A, B) and a test client, which
+corresponds to the partner system.
+
+    SCENARIO access is logged
+
+    GIVEN test client has id CLIENT
+    AND a running access log Qvarn instance
+    AND user A who can fully access person resources
+    AND user A has person resource A_ID
+    AND user B who can fully access person resources
+    AND user B has person resource B_ID
+
+A creates a person resource, whose access log entries we will look at.
+
+    WHEN user A creates a person resource
+    THEN resource id is ID
+    AND revision is REV
+
+There should now be exactly one access log entry for the newly created person.
+
+    THEN access log contains entry
+    ... {
+    ...     "type": "access",
+    ...     "resource_type": "person",
+    ...     "resource_id": "${ID}",
+    ...     "resource_revision": "${REV}",
+    ...     "operation": "POST",
+    ...     "accessors": [
+    ...         {
+    ...             "accessor_id": "${A_ID}",
+    ...             "accessor_type": "person"
+    ...         }
+    ...     ],
+    ...     "why": null
+    ... }
+
+Now B looks at the same person resource. That should be logged.
+
+    WHEN user B requests GET /persons/${ID}, with header
+    ... Qvarn-Why: important
+    THEN access log contains entry
+    ... {
+    ...     "type": "access",
+    ...     "resource_type": "person",
+    ...     "resource_id": "${ID}",
+    ...     "resource_revision": "${REV}",
+    ...     "operation": "GET",
+    ...     "accessors": [
+    ...         {
+    ...             "accessor_id": "${B_ID}",
+    ...             "accessor_type": "person"
+    ...         }
+    ...     ],
+    ...     "why": "important"
+    ... }
+
+    FINALLY access log Qvarn is stopped
+
+A updates the person resource.
+
+    WHEN user A updates /persons/${ID} without changing it
+    THEN revision is REV2
+    AND access log contains entry
+    ... {
+    ...     "type": "access",
+    ...     "resource_type": "person",
+    ...     "resource_id": "${ID}",
+    ...     "resource_revision": "${REV2}",
+    ...     "operation": "PUT",
+    ...     "accessors": [
+    ...         {
+    ...             "accessor_id": "${A_ID}",
+    ...             "accessor_type": "person"
+    ...         }
+    ...     ],
+    ...     "why": ""
+    ... }
+
+A partner system accesses the resource.
+
+    WHEN test client requests GET /persons/${ID}, with header
+    ... Qvarn-Why: secret and header
+    ... Qvarn-Access-By: dentarthurdent
+    THEN revision is REV2
+    AND access log contains entry
+    ... {
+    ...     "type": "access",
+    ...     "resource_type": "person",
+    ...     "resource_id": "${ID}",
+    ...     "resource_revision": "${REV2}",
+    ...     "operation": "GET",
+    ...     "accessors": [
+    ...         {
+    ...             "accessor_id": "${CLIENT}",
+    ...             "accessor_type": "org"
+    ...         },
+    ...         {
+    ...             "accessor_id": "dentarthurdent",
+    ...             "accessor_type": "other"
+    ...         }
+    ...     ],
+    ...     "why": "secret"
+    ... }

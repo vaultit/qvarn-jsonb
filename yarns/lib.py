@@ -126,14 +126,29 @@ def post_to_qvarn(qvarn_vars, path, body):
     return post(url + path, headers=headers, body=json.dumps(body))
 
 
-def get_from_qvarn(qvarn_vars, path):
+def put_to_qvarn(qvarn_vars, path, body):
+    url = qvarn_vars['url']
+    headers = {
+        'Authorization': 'Bearer {}'.format(qvarn_vars['token']),
+        'Content-Type': 'application/json',
+    }
+
+    return put(url + path, headers=headers, body=json.dumps(body))
+
+
+# pylint: disable=dangerous-default-value
+def get_from_qvarn(qvarn_vars, path, extra_headers={}):
     url = qvarn_vars['url']
     headers = {
         'Authorization': 'Bearer {}'.format(qvarn_vars['token'])
     }
-    vars['status_code'], vars['headers'], vars['body'] = get(url + path, headers)
-    print('body:', repr(vars['body']))
-    return json.loads(vars['body'])
+    vars['status_code'], vars['headers'], vars['body'] = get(
+        url + path, dict(headers, **extra_headers)
+    )
+    try:
+        return json.loads(vars['body'])
+    except ValueError:
+        return {}
 
 
 def delete_from_qvarn(qvarn_vars, path):
@@ -141,7 +156,9 @@ def delete_from_qvarn(qvarn_vars, path):
     headers = {
         'Authorization': 'Bearer {}'.format(qvarn_vars['token'])
     }
-    vars['status_code'], vars['headers'], vars['body'] = delete(url + path, headers)
+    vars['status_code'], vars['headers'], vars['body'] = delete(
+        url + path, headers
+    )
 
 
 def cat(filename):
@@ -204,15 +221,15 @@ def values_match(wanted, actual):
     return True
 
 
-def start_qvarn(name):
+def start_qvarn(name, issuer='issuer', audience='audience'):
     privkey, pubkey = create_token_signing_key_pair()
     write('key', privkey)
 
     port = cliapp.runcmd([os.path.join(srcdir, 'randport')]).strip()
 
     vars[name] = {
-        'issuer': 'issuer',
-        'audience': 'audience',
+        'issuer': issuer,
+        'audience': audience,
         'api.log': 'qvarn-{}.log'.format(name),
         'gunicorn3.log': 'gunicorn3-{}.log'.format(name),
         'pid-file': '{}.pid'.format(name),

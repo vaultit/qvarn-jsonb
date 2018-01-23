@@ -1,0 +1,101 @@
+# Step implementations for access log
+
+This chapter shows the scenario step implementations for the
+access log scenario.
+
+    IMPLEMENTS GIVEN test client has id CLIENT
+    vars['CLIENT'] = 'client_audience'
+
+    IMPLEMENTS GIVEN a running access log Qvarn instance
+    vars['scopes'] = ' '.join([
+        'uapi_persons_get',
+        'uapi_persons_post',
+        'uapi_persons_id_get',
+        'uapi_persons_id_put',
+        'uapi_persons_id_delete',
+        'uapi_set_meta_fields',
+    ])
+    start_qvarn('access', audience=vars['CLIENT'])
+
+    IMPLEMENTS FINALLY access log Qvarn is stopped
+    stop_qvarn('access')
+
+    IMPLEMENTS GIVEN user A who can fully access person resources
+    #
+
+    IMPLEMENTS GIVEN user B who can fully access person resources
+    #
+
+    IMPLEMENTS GIVEN user A has person resource A_ID
+    create_token_for_qvarn(vars['access'], vars['scopes'])
+    person = {
+        'names': ['User A'],
+    }
+    vars['status_code'], vars['headers'], vars['body'] = post_to_qvarn(
+        vars['access'], '/persons', person
+    )
+    vars['A_ID'] = json.loads(vars['body'])['id']
+
+    IMPLEMENTS GIVEN user B has person resource B_ID
+    create_token_for_qvarn(vars['access'], vars['scopes'])
+    person = {
+        'names': ['User B'],
+    }
+    vars['status_code'], vars['headers'], vars['body'] = post_to_qvarn(
+        vars['access'], '/persons', person
+    )
+    vars['B_ID'] = json.loads(vars['body'])['id']
+
+    IMPLEMENTS WHEN user A creates a person resource
+    create_token_for_qvarn(vars['access'], vars['scopes'])
+    person = {
+        'names': ['New person created by A'],
+    }
+    vars['status_code'], vars['headers'], vars['body'] = post_to_qvarn(
+        vars['access'], '/persons', person
+    )
+
+    IMPLEMENTS THEN person resource id is ID
+    vars['ID'] = json.loads(vars['body'])['id']
+
+    IMPLEMENTS THEN person revision is REV
+    vars['REV'] = json.loads(vars['body'])['revision']
+
+    IMPLEMENTS THEN access log contains entry (.+)
+    create_token_for_qvarn(vars['access'], vars['scopes'])
+    expected = json.loads(expand_vars(get_next_match(), vars))
+    get_from_qvarn(
+        vars['access'], '/access/search/exact/resource_id/{}'.format(vars['ID'])
+    )
+    assertEqual(vars['status_code'], 200)
+    logs = json.loads(vars['body'])['resources']
+    assertEqual(len(logs), 1)
+    assertEqual(expected, logs[0])
+
+    IMPLEMENTS WHEN user B requests GET (/.+), with header (.+): (.+)
+    create_token_for_qvarn(vars['access'], vars['scopes'])
+    path = expand_vars(get_next_match(), vars)
+    header_key = get_next_match()
+    header_value = get_next_match()
+    get_from_qvarn(vars['access'], path, {header_key: header_value})
+
+    IMPLEMENTS WHEN user A updates (/.+) without changing it
+    create_token_for_qvarn(vars['access'], vars['scopes'])
+    path = expand_vars(get_next_match(), vars)
+    person = get_from_qvarn(vars['access'], path)
+    vars['status_code'], vars['headers'], vars['body'] = put_to_qvarn(
+        vars['access'], path, person
+    )
+    vars['REV2'] = json.loads(vars['body'])['revision']
+
+    IMPLEMENTS WHEN test client requests GET (/.+), with header (Qvarn.+): (.+) (Qvarn.+): (.+)
+    create_token_for_qvarn(vars['access'], vars['scopes'])
+    path = expand_vars(get_next_match(), vars)
+    why_key = get_next_match()
+    why_value = get_next_match()
+    by_key = get_next_match()
+    by_value = get_next_match()
+    get_from_qvarn(vars['access'], path, {
+        why_key: why_value,
+        by_key: by_value
+    })
