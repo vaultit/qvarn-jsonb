@@ -1,4 +1,5 @@
 # Copyright (C) 2017  Lars Wirzenius
+# Copyright (C) 2018  Ivan Dolgov
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -14,6 +15,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import re
+import jwt
+
 import qvarn
 
 
@@ -25,6 +29,7 @@ class QvarnAPI:
         self._baseurl = None
         self._rt_coll = None
         self._notifs = None
+        self._alog = None
 
     def set_base_url(self, baseurl):  # pragma: no cover
         self._baseurl = baseurl
@@ -82,6 +87,9 @@ class QvarnAPI:
     def get_notification_resource_type(self):  # pragma: no cover
         return self._get_resource_type_given_type('notification')
 
+    def get_access_log_resource_type(self):  # pragma: no cover
+        return self._get_resource_type_given_type('access')
+
     def _get_resource_type_given_type(self, type_name):
         cond = qvarn.All(
             qvarn.Equal('id', type_name),
@@ -127,6 +135,7 @@ class QvarnAPI:
         router.set_baseurl(self._baseurl)
         router.set_collection(coll)
         router.set_notifier(self.notify)
+        router.set_access_logger(self.log_access)
         routes = router.get_routes()
 
         files = rt.get_files()
@@ -202,3 +211,64 @@ class QvarnAPI:
         if rid in obj.get('listen_on', []):
             return True
         return False
+
+    def log_access(self, res, rtype, op,
+                   ahead, qhead, ohead, whead):  # pragma: no cover
+        if rtype in [
+                'access', 'notification', 'listener', 'resource_type']:
+            return
+
+        token_headers = ahead
+        if qhead:
+            token_headers = ', '.join([ahead, qhead])
+        encoded_tokens = re.split(r'(?:\A|,\s*)Bearer ', token_headers)[1:]
+        tokens = [jwt.decode(t, verify=False) for t in encoded_tokens]
+        persons = [
+            {
+                'accessor_id': t['sub'],
+                'accessor_type': 'person',
+            }
+            for t in tokens]
+        clients = [
+            {
+                'accessor_id': t['aud'],
+                'accessor_type': 'client',
+            }
+            for t in tokens]
+        orgs = [
+            {
+                'accessor_id': t,
+                'accessor_type': 'org',
+            }
+            for t in re.findall(r',?\s*Org (.+?)(?:,|\Z)', ohead) if t]
+        others = [
+            {
+                'accessor_id': t,
+                'accessor_type': 'other',
+            }
+            for t in re.findall(r',?\s*Other (.+?)(?:,|\Z)', ohead) if t]
+
+        self.create_access_entry(
+            {
+                'type': 'access',
+                'resource_type': rtype,
+                'resource_id': res.get('id'),
+                'resource_revision': res.get('revision'),
+                'operation': op,
+                'accessors': [*persons, *clients, *orgs, *others],
+                'why': whead,
+                'timestamp': qvarn.get_current_timestamp(),
+            })
+
+    def create_access_entry(self, entry):  # pragma: no cover
+        qvarn.log.log('info', msg_text='Log access', access_entry=entry)
+        alog = self._create_alog_collection()
+        alog.post_with_id(entry)
+
+    def _create_alog_collection(self):  # pragma: no cover
+        if self._alog is None:
+            rt = self.get_access_log_resource_type()
+            self._alog = qvarn.CollectionAPI()
+            self._alog.set_object_store(self._store)
+            self._alog.set_resource_type(rt)
+        return self._alog

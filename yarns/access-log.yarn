@@ -1,6 +1,8 @@
 ---
 title: qvarn-jsonb integration tests
-author: Lars Wirzenius / QvarnLabs Ab
+author:
+- Lars Wirzenius / QvarnLabs Ab
+- Ivan Dolgov / QvarnLabs Ab
 date: work in progress
 ...
 
@@ -16,9 +18,8 @@ corresponds to the partner system.
 
     GIVEN test client has id CLIENT
     AND a running access log Qvarn instance
-    AND user A who can fully access person resources
+    AND users A and B who can fully access person resources
     AND user A has person resource A_ID
-    AND user B who can fully access person resources
     AND user B has person resource B_ID
 
 A creates a person resource, whose access log entries we will look at.
@@ -74,18 +75,65 @@ Now B looks at the same person resource. That should be logged.
     ...     "why": "important"
     ... }
 
-    FINALLY access log Qvarn is stopped
+When B searches for that person, that should be logged too, even if
+the search result includes only a resource id.
 
-A updates the person resource.
+    WHEN user B requests GET /persons/search/exact/id/${ID}, with header
+    ... Qvarn-Why: searching
+    THEN access log contains entry
+    ... {
+    ...     "type": "access",
+    ...     "resource_type": "person",
+    ...     "resource_id": "${ID}",
+    ...     "resource_revision": null,
+    ...     "operation": "SEARCH",
+    ...     "accessors": [
+    ...         {
+    ...             "accessor_id": "${B_ID}",
+    ...             "accessor_type": "person"
+    ...         },
+    ...         {
+    ...             "accessor_id": "${CLIENT}",
+    ...             "accessor_type": "client"
+    ...         }
+    ...     ],
+    ...     "why": "searching"
+    ... }
+
+When B searches lists persons, that should be logged too as well.
+
+    WHEN user B requests GET /persons, with header
+    ... Qvarn-Why: listing
+    THEN access log contains entry
+    ... {
+    ...     "type": "access",
+    ...     "resource_type": "person",
+    ...     "resource_id": "${ID}",
+    ...     "resource_revision": null,
+    ...     "operation": "GET",
+    ...     "accessors": [
+    ...         {
+    ...             "accessor_id": "${B_ID}",
+    ...             "accessor_type": "person"
+    ...         },
+    ...         {
+    ...             "accessor_id": "${CLIENT}",
+    ...             "accessor_type": "client"
+    ...         }
+    ...     ],
+    ...     "why": "listing"
+    ... }
+
+User A updates the person resource.
 
     WHEN user A updates /persons/${ID} without changing it
-    THEN revision is REV2
+    THEN revision is REV
     AND access log contains entry
     ... {
     ...     "type": "access",
     ...     "resource_type": "person",
     ...     "resource_id": "${ID}",
-    ...     "resource_revision": "${REV2}",
+    ...     "resource_revision": "${REV}",
     ...     "operation": "PUT",
     ...     "accessors": [
     ...         {
@@ -100,18 +148,46 @@ A updates the person resource.
     ...     "why": null
     ... }
 
-A partner system accesses the resource.
+An organization accesses the resource.
 
     WHEN test client requests GET /persons/${ID}, with header
     ... Qvarn-Why: secret
-    ... Qvarn-Access-By: dentarthurdent
-    THEN revision is REV2
-    AND access log contains entry
+    ... Qvarn-Access-By: Org Nokia
+    THEN access log contains entry
     ... {
     ...     "type": "access",
     ...     "resource_type": "person",
     ...     "resource_id": "${ID}",
-    ...     "resource_revision": "${REV2}",
+    ...     "resource_revision": "${REV}",
+    ...     "operation": "GET",
+    ...     "accessors": [
+    ...         {
+    ...             "accessor_id": "",
+    ...             "accessor_type": "person"
+    ...         },
+    ...         {
+    ...             "accessor_id": "${CLIENT}",
+    ...             "accessor_type": "client"
+    ...         },
+    ...         {
+    ...             "accessor_id": "Nokia",
+    ...             "accessor_type": "org"
+    ...         }
+    ...     ],
+    ...     "why": "secret"
+    ... }
+
+A partner system accesses the resource.
+
+    WHEN test client requests GET /persons/${ID}, with header
+    ... Qvarn-Why: secret
+    ... Qvarn-Access-By: Other dentarthurdent
+    THEN access log contains entry
+    ... {
+    ...     "type": "access",
+    ...     "resource_type": "person",
+    ...     "resource_id": "${ID}",
+    ...     "resource_revision": "${REV}",
     ...     "operation": "GET",
     ...     "accessors": [
     ...         {
@@ -129,3 +205,49 @@ A partner system accesses the resource.
     ...     ],
     ...     "why": "secret"
     ... }
+
+If A deletes that person resource, that should be logged.
+
+    WHEN user A deletes /persons/${ID}
+    THEN access log contains entry
+    ... {
+    ...     "type": "access",
+    ...     "resource_type": "person",
+    ...     "resource_id": "${ID}",
+    ...     "resource_revision": null,
+    ...     "operation": "DELETE",
+    ...     "accessors": [
+    ...         {
+    ...             "accessor_id": "${A_ID}",
+    ...             "accessor_type": "person"
+    ...         },
+    ...         {
+    ...             "accessor_id": "${CLIENT}",
+    ...             "accessor_type": "client"
+    ...         }
+    ...     ],
+    ...     "why": null
+    ... }
+
+Access log can be listed, but not altered externally.
+
+    WHEN access log can be listed
+    AND there is an entry ACCESS in access log
+    THEN access log entry cannot be added, with body
+    ... {
+    ...     "type": "access",
+    ...     "resource_type": "person",
+    ...     "resource_id": "fake",
+    ...     "resource_revision": "fake",
+    ...     "operation": "GET",
+    ...     "accessors": [
+    ...         {
+    ...             "accessor_id": "fake",
+    ...             "accessor_type": "person"
+    ...         }
+    ...     ],
+    ...     "why": "faking"
+    ... }
+    AND access log entry ACCESS cannot be updated
+
+    FINALLY access log Qvarn is stopped
