@@ -1,15 +1,124 @@
----
-title: qvarn-jsonb integration tests
-author:
-- Lars Wirzenius / QvarnLabs Ab
-- Ivan Dolgov / QvarnLabs Ab
-date: work in progress
-...
-
-
 # Qvarn access log
 
-A test scenario for access log.
+Access log feature originates from the need of some Qvarn users to add to
+their applications a feature that shows end-users who has accessed or updated
+the end user's data. Access could be done by an authenticated user, or a
+partner system (application) that does not authenticate its user to the ID
+provider used by Qvarn.
+
+## Use cases
+
+### End user wants to know who's accessed their data
+
+End user wants to see who has seen or modified their data in the
+previous 12 months. The user specifies the time period covered by the
+report. The user is shown a name of the entity (user, application) who
+has done the access. The name is something the end user can understand
+or communicate to others, not just a cryptic code.
+
+The end user access an application that is a Qvarn API client, not
+Qvarn directly. This is called the facade.
+
+## Implementation overview
+
+If a resource of type `foo` is accessed (with an exception of notifications,
+listeners, resource types and access records), Qvarn will add an `access`
+resource that gets accessed via `/access`.
+
+Supported functionality:
+
+* `GET /access` lists all access records for all types of resource
+* `GET /access/ID` returns a specific access record
+* `GET /access/search/COND` does a search on access records,
+  where `COND` is a condition like for normal Qvarn API searches, such
+  as
+  `/exact/resource_id/CAFEBEEF/gt/timestamp/20170901/lt/timestamp/20171001`
+  to return access records for the resource `CAFEBEEF` (whatever
+  resource type it might be) in September 2017.
+* `DELETE /access/ID` deletes an access record
+* no POST or PUT operations for `/access` are allowed, such requests
+  will return status code 405 (method not allowed)
+
+Access record resources have the following structure:
+
+    EXAMPLE
+    {
+        "type": "access",
+        "id": "...",
+        "revision": "...",
+        "timestamp": "...",
+        "resource_id": "...",
+        "resource_type": "...",
+        "resource_revision": "...",
+        "operation": "...",
+        "accessors": [
+            {
+                "accessor_id": "...",
+                "accessor_type": "..."
+            }
+        ],
+        "why": "..."
+    }
+
+Where:
+
+* `type`, `id`, and `revision` are as for other resource types.
+  `revision` will never change, but is included to be consistent with
+  other resource types.
+
+* `timestamp` uses ISO 8601 timestamps with full second resolution.
+  It is the timestamp for the access to the resource being logged.
+
+* `resource_id` is the id of the resource affected by the access,
+  `resource_type` is its type, and `resource_revision` is the revision
+  (the revision returned by the API call, the newly updated/created
+  one if that's what the operation was doing)
+
+* `operation` is the HTTP method (`POST`, `PUT`, `GET`, `DELETE`) of
+  the request that caused the access log entry to be created; if the
+  resource was included in a search result (even if only its id), the
+  operation is stored as `SEARCH`
+
+* `accessors` is a list of identifiers for who made the access.
+ `accessor_id` is the identifier, and `accessor_type` is the type
+ of identifier. The identifier type is one of `person`, `client`, `org`
+ or `other`, and the identifier is then, respectively, a person
+ resource id or client identifier, both from the access token, or org
+ resource id or other accessor identifier given in the `Qvarn-Access-By`
+ header by the client.
+
+* `why` is a string to be shown to the end-user to explain why the
+  access was done; it is collected from the `Qvarn-Why` header, not
+  from an access token; if the header is missing, the field is set to
+  `null`.
+
+Qvarn will retrieve accessor values from the access token given in the
+`Authorization` header, and all `Qvarn-Token` headers, as well as the
+`Qvarn-Access-By` header, and set the access record fields as follows:
+
+* `accessor_type=person` and `accessor_id` is the `sub` field of
+  the token
+
+* `accessor_type=client` and `accessor_id` is the `aud` field of
+  the token
+
+* `accessor_type=org` and `accessor_id` is taken from the
+  `Qvarn-Access-By` header's value in form of `Org ...`
+
+* `accessor_type=other` and `accessor_id` is taken from the
+  `Qvarn-Access-By` header's value in form of `Other ...`
+
+Qvarn does not look up the person or application names. Whoever
+processes the access log should do that.
+
+Qvarn itself won't aggregate access log information. A separate
+service outside Qvarn and using the Qvarn API should do the aggregation
+as needed. The aggregation should be triggered by API notifications.
+The aggregator should remove aggregated access log records.
+
+## Tests
+
+This is a test scenario for access log implementation.
 
 First, we set up a couple of test users (A, B) and a test client, which
 corresponds to the partner system.
@@ -251,7 +360,11 @@ Access log can be listed, but not altered externally.
     AND access log entry ACCESS cannot be updated
 
 Access log can be cleaned up with access log management tool `qvarn-access`.
-The tool currently supports only deletion of old access log entries.
+The tool currently supports only deletion of old access log entries. Typical
+use case for the tool is removing access records older then a given date:
+
+    EXAMPLE
+    $ qvarn-access --api API_URL --delete --min-days 30
 
     WHEN new access log entries are generated
     AND user deletes old entries with access log tool
