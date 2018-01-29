@@ -1,4 +1,5 @@
 # Copyright (C) 2017  Lars Wirzenius
+# Copyright (C) 2018  Ivan Dolgov
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -35,7 +36,7 @@ srcdir = os.environ['SRCDIR']
 datadir = os.environ['DATADIR']
 
 
-vars = Variables(datadir)
+vars = Variables(datadir)  # pylint: disable=redefined-builtin
 
 
 def srcpath(path):
@@ -70,7 +71,7 @@ def add_postgres_config(config):
 
 
 def get(url, headers=None):
-    print('get: url={} headers={}'.format(url, headers))
+    print 'get: url={} headers={}'.format(url, headers)
     r = requests.get(url, headers=headers)
     return r.status_code, dict(r.headers), r.content
 
@@ -96,24 +97,30 @@ def create_token_signing_key_pair():
     return key.exportKey('PEM'), key.exportKey('OpenSSH')
 
 
-def create_token(privkey, iss, aud, scopes):
+def create_token(privkey, iss, sub, aud, scopes):
     filename = write_temp(privkey)
     argv = [
         os.path.join(srcdir, 'create-token'),
         filename,
         iss,
+        sub,
         aud,
         scopes,
     ]
     return cliapp.runcmd(argv)
 
 
-def create_token_for_qvarn(qvarn_vars, scopes):
-    if qvarn_vars.get('token') is None:
+def create_token_for_qvarn(qvarn_vars, scopes,
+                           iss=None, sub=None, aud=None, force=False):
+    if force or qvarn_vars.get('token') is None:
         privkey = qvarn_vars['privkey']
-        iss = qvarn_vars['issuer']
-        aud = qvarn_vars['audience']
-        qvarn_vars['token'] = create_token(privkey, iss, aud, scopes)
+        if iss is None:
+            iss = qvarn_vars['issuer']
+        if sub is None:
+            sub = 'subject-uuid'
+        if aud is None:
+            aud = qvarn_vars['audience']
+        qvarn_vars['token'] = create_token(privkey, iss, sub, aud, scopes)
 
 
 def post_to_qvarn(qvarn_vars, path, body):
@@ -125,21 +132,41 @@ def post_to_qvarn(qvarn_vars, path, body):
 
     return post(url + path, headers=headers, body=json.dumps(body))
 
-def get_from_qvarn(qvarn_vars, path):
+
+def put_to_qvarn(qvarn_vars, path, body):
+    url = qvarn_vars['url']
+    headers = {
+        'Authorization': 'Bearer {}'.format(qvarn_vars['token']),
+        'Content-Type': 'application/json',
+    }
+
+    return put(url + path, headers=headers, body=json.dumps(body))
+
+
+# pylint: disable=dangerous-default-value
+def get_from_qvarn(qvarn_vars, path, extra_headers={}):
     url = qvarn_vars['url']
     headers = {
         'Authorization': 'Bearer {}'.format(qvarn_vars['token'])
     }
-    vars['status_code'], vars['headers'], vars['body'] = get(url + path, headers)
-    print('body:', repr(vars['body']))
-    return json.loads(vars['body'])
+    vars['status_code'], vars['headers'], vars['body'] = get(
+        url + path, dict(headers, **extra_headers)
+    )
+
+    try:
+        return json.loads(vars['body'])
+    except ValueError:
+        return {}
+
 
 def delete_from_qvarn(qvarn_vars, path):
     url = qvarn_vars['url']
     headers = {
         'Authorization': 'Bearer {}'.format(qvarn_vars['token'])
     }
-    vars['status_code'], vars['headers'], vars['body'] = delete(url + path, headers)
+    vars['status_code'], vars['headers'], vars['body'] = delete(
+        url + path, headers
+    )
 
 
 def cat(filename):
@@ -158,7 +185,7 @@ def write_temp(data):
     return filename
 
 
-def expand_vars(text, vars):
+def expand_vars(text, variables):
     result = ''
     while text:
         m = re.search(r'\${(?P<name>[^}]+)}', text)
@@ -167,7 +194,7 @@ def expand_vars(text, vars):
             break
         name = m.group('name')
         print('expanding ', name)
-        result += text[:m.start()] + vars[name]
+        result += text[:m.start()] + variables[name]
         text = text[m.end():]
     return result
 
@@ -202,15 +229,15 @@ def values_match(wanted, actual):
     return True
 
 
-def start_qvarn(name):
+def start_qvarn(name, issuer='issuer', audience='audience'):
     privkey, pubkey = create_token_signing_key_pair()
     write('key', privkey)
 
-    port = cliapp.runcmd([os.path.join(srcdir, 'randport' )]).strip()
+    port = cliapp.runcmd([os.path.join(srcdir, 'randport')]).strip()
 
     vars[name] = {
-        'issuer': 'issuer',
-        'audience': 'audience',
+        'issuer': issuer,
+        'audience': audience,
         'api.log': 'qvarn-{}.log'.format(name),
         'gunicorn3.log': 'gunicorn3-{}.log'.format(name),
         'pid-file': '{}.pid'.format(name),
@@ -237,6 +264,7 @@ def start_qvarn(name):
 
     env = dict(os.environ)
     env['QVARN_CONFIG'] = config_filename
+
     write(config_filename, yaml.safe_dump(config))
 
     argv = [
@@ -286,4 +314,16 @@ def qvarn_copy(source, target, names):
         '--target', target['url'],
         '--log', 'copy.log',
     ] + names
+    cliapp.runcmd(argv)
+
+
+def delete_access(qvarn_vars, min_seconds):
+    argv = [
+        srcpath('qvarn-access'),
+        '--token', qvarn_vars['token'],
+        '--api', qvarn_vars['url'],
+        '--log', 'access_delete.log',
+        '--delete',
+        '--min-seconds', str(min_seconds),
+    ]
     cliapp.runcmd(argv)

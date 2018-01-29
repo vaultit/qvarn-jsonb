@@ -160,7 +160,7 @@ esac
 ISS=test
 AUD=aud
 ./generate-rsa-key "$key"
-./create-token "$key" "$ISS" "$AUD" "$default_scopes" > "$token"
+./create-token "$key" "$ISS" subject-uuid "$AUD" "$default_scopes" > "$token"
 
 cat <<EOF > "$tmp/qvarn.yaml"
 baseurl: http://localhost:12765

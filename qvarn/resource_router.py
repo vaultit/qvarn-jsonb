@@ -1,4 +1,5 @@
 # Copyright (C) 2017  Lars Wirzenius
+# Copyright (C) 2018  Ivan Dolgov
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -14,6 +15,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+# FIXME: remove when redundant
+import bottle
+
 import qvarn
 
 
@@ -25,6 +29,7 @@ class ResourceRouter(qvarn.Router):
         self._coll = None
         self._baseurl = None
         self._notify = None
+        self._log_access = None
 
     def set_api(self, api):
         self._api = api
@@ -38,6 +43,9 @@ class ResourceRouter(qvarn.Router):
     def set_notifier(self, notify):
         self._notify = notify
 
+    def set_access_logger(self, log_access):
+        self._log_access = log_access
+
     def get_routes(self):
         assert self._baseurl is not None
 
@@ -48,17 +56,7 @@ class ResourceRouter(qvarn.Router):
         def S(callback, msg, **kwargs):
             return qvarn.stopwatch(callback, msg, **kwargs)
 
-        return [
-            {
-                'method': 'POST',
-                'path': path,
-                'callback': S(self._create, 'POST'),
-            },
-            {
-                'method': 'PUT',
-                'path': id_path,
-                'callback': S(self._update, 'PUT'),
-            },
+        routes = [
             {
                 'method': 'GET',
                 'path': path,
@@ -80,6 +78,22 @@ class ResourceRouter(qvarn.Router):
                 'callback': S(self._delete, 'DELETE'),
             },
         ]
+
+        if self._coll.get_type_name() not in ['access']:
+            routes += [
+                {
+                    'method': 'POST',
+                    'path': path,
+                    'callback': S(self._create, 'POST'),
+                },
+                {
+                    'method': 'PUT',
+                    'path': id_path,
+                    'callback': S(self._update, 'PUT'),
+                },
+            ]
+
+        return routes
 
     def _create(self, content_type, body, *args, **kwargs):
         if content_type != 'application/json':
@@ -111,6 +125,15 @@ class ResourceRouter(qvarn.Router):
             result_body['id'])
 
         self._notify(result_body['id'], result_body['revision'], 'created')
+        self._log_access(
+            result_body,
+            result_body.get('type'),
+            'POST',
+            # FIXME: add header getting to apifw
+            bottle.request.get_header('Authorization', ''),
+            bottle.request.get_header('Qvarn-Token', ''),
+            bottle.request.get_header('Qvarn-Access-By', ''),
+            bottle.request.get_header('Qvarn-Why', None))
 
         return qvarn.created_response(result_body, location)
 
@@ -136,7 +159,6 @@ class ResourceRouter(qvarn.Router):
         # no longer need test-api.
         if False and body['id'] != obj_id:
             raise qvarn.IdMismatch(body['id'], obj_id)
-
         try:
             result_body = self._coll.put(body)
         except qvarn.WrongRevision as e:
@@ -148,10 +170,32 @@ class ResourceRouter(qvarn.Router):
             return qvarn.bad_request_response(str(e))
 
         self._notify(result_body['id'], result_body['revision'], 'updated')
+        self._log_access(
+            result_body,
+            result_body.get('type'),
+            'PUT',
+            # FIXME: add header getting to apifw
+            bottle.request.get_header('Authorization', ''),
+            bottle.request.get_header('Qvarn-Token', ''),
+            bottle.request.get_header('Qvarn-Access-By', ''),
+            bottle.request.get_header('Qvarn-Why', None))
+
         return qvarn.ok_response(result_body)
 
     def _list(self, *args, **kwargs):
         body = self._coll.list()
+
+        for obj in body.get('resources', []):
+            self._log_access(
+                obj,
+                self._coll.get_type_name(),
+                'GET',
+                # FIXME: add header getting to apifw
+                bottle.request.get_header('Authorization', ''),
+                bottle.request.get_header('Qvarn-Token', ''),
+                bottle.request.get_header('Qvarn-Access-By', ''),
+                bottle.request.get_header('Qvarn-Why', None))
+
         return qvarn.ok_response(body)
 
     def _get(self, *args, **kwargs):
@@ -159,6 +203,17 @@ class ResourceRouter(qvarn.Router):
             obj = self._coll.get(kwargs['id'])
         except qvarn.NoSuchResource as e:
             return qvarn.no_such_resource_response(str(e))
+
+        self._log_access(
+            obj,
+            obj.get('type'),
+            'GET',
+            # FIXME: add header getting to apifw
+            bottle.request.get_header('Authorization', ''),
+            bottle.request.get_header('Qvarn-Token', ''),
+            bottle.request.get_header('Qvarn-Access-By', ''),
+            bottle.request.get_header('Qvarn-Why', None))
+
         return qvarn.ok_response(obj)
 
     def _search(self, *args, **kwargs):
@@ -172,13 +227,33 @@ class ResourceRouter(qvarn.Router):
             return qvarn.need_sort_response()
         except qvarn.SearchParserError as e:
             return qvarn.search_parser_error_response(e)
-        body = {
-            'resources': result,
-        }
-        return qvarn.ok_response(body)
+
+        for obj in result:
+            self._log_access(
+                obj,
+                self._coll.get_type_name(),
+                'SEARCH',
+                # FIXME: add header getting to apifw
+                bottle.request.get_header('Authorization', ''),
+                bottle.request.get_header('Qvarn-Token', ''),
+                bottle.request.get_header('Qvarn-Access-By', ''),
+                bottle.request.get_header('Qvarn-Why', None))
+
+        return qvarn.ok_response({'resources': result})
 
     def _delete(self, *args, **kwargs):
         obj_id = kwargs['id']
         self._coll.delete(obj_id)
+
         self._notify(obj_id, None, 'deleted')
+        self._log_access(
+            {'id': obj_id},
+            self._coll.get_type_name(),
+            'DELETE',
+            # FIXME: add header getting to apifw
+            bottle.request.get_header('Authorization', ''),
+            bottle.request.get_header('Qvarn-Token', ''),
+            bottle.request.get_header('Qvarn-Access-By', ''),
+            bottle.request.get_header('Qvarn-Why', None))
+
         return qvarn.ok_response({})
