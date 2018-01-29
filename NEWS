@@ -6,6 +6,16 @@ This file has release notes for Qvarn (the JSONB version).
 Version 0.89+git, not yet released
 ----------------------------------
 
+New features:
+
+* Qvarn now logs access to user data. Access log records are stored as Qvarn
+  resources and thus are e.g. easily searchable.
+
+* New utility `qvarn-access` added for managing access log. There is only
+  support for cleaning up old access log at the moment.
+
+Bug fixes:
+
 * Fixed Qvarn backend to NOT update the parent resource revision, when
   a subresource gets updated, IF the `uapi_set_meta_fields` scope is
   in use. This allows `qvarn-copy` to update the subresource without

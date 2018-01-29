@@ -33,7 +33,8 @@ the GNU Affero General Public Licence, version 3, or later.
     Qvarn-JSONB, a RESTful HTTP API for storing structured personal information
     Copyright (C) 2015, 2016 Suomen Tilaajavastuu Oy
     Copyright (C) 2017 QvarnLabs Ab
-    Copyright (C) 2017  Lars Wirzenius
+    Copyright (C) 2017 Lars Wirzenius
+    Copyright (C) 2018 Ivan Dolgov
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as
