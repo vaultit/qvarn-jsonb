@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+# Copyright 2018  Ivan Dolgov
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+import logging
+import os
+import datetime
+
+
+import cliapp
+
+
+import qvarn
+import qvarnutils
+
+
+logging.captureWarnings(True)
+
+
+class QvarnAccess(cliapp.Application):
+
+    def add_settings(self):
+        self.settings.string(
+            ['secrets'],
+            'get API client id and secret from FILE',
+            metavar='FILE',
+            default=os.path.expanduser('~/.config/qvarn/createtoken.conf'))
+
+        self.settings.string(
+            ['token'],
+            'use TOKEN as the access token',
+            metavar='TOKEN')
+
+        self.settings.string(
+            ['api'],
+            'use URL as the base URL for the Qvarn',
+            metavar='URL')
+
+        self.settings.boolean(
+            ['delete'],
+            'delete old entries')
+
+        self.settings.boolean(
+            ['min-days'],
+            'minimun age of entries in days',
+            metavar='MIN_DAYS')
+
+        self.settings.boolean(
+            ['min-seconds'],
+            'minimun age of entries in seconds',
+            metavar='MIN_SECONDS')
+
+    def process_args(self, args):
+        api = qvarnutils.create_api(
+            self.settings['api'],
+            self.settings['secrets'],
+            self.settings['token'])
+
+        if self.settings['delete']:
+            min_seconds = 0
+            if self.settings['min-seconds']:
+                min_seconds += int(self.settings['min-seconds'])
+            if self.settings['min-days']:
+                min_seconds += int(self.settings['min-days']) * 86400
+
+            self.delete_old_entries(api, min_seconds)
+
+    def delete_old_entries(self, api, min_age):
+        d = datetime.datetime.utcnow() - datetime.timedelta(seconds=min_age)
+        timestamp = d.replace(microsecond=0).isoformat()
+        path = '/access/search/lt/timestamp/{}'.format(timestamp)
+        entries = api.GET(api.get_token('access'), path).json()
+
+        logging.debug(path)
+        logging.debug(api.GET(api.get_token('access'),
+                              '/access/search/show/timestamp').json())
+
+        for e in entries.get('resources', []):
+            api.DELETE(api.get_token('access'), '/access/{}'.format(e['id']))
+
+
+QvarnAccess(version=qvarn.__version__).run()

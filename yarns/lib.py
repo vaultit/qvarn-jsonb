@@ -315,3 +315,15 @@ def qvarn_copy(source, target, names):
         '--log', 'copy.log',
     ] + names
     cliapp.runcmd(argv)
+
+
+def delete_access(qvarn_vars, min_seconds):
+    argv = [
+        srcpath('qvarn-access'),
+        '--token', qvarn_vars['token'],
+        '--api', qvarn_vars['url'],
+        '--log', 'access_delete.log',
+        '--delete',
+        '--min-seconds', str(min_seconds),
+    ]
+    cliapp.runcmd(argv)

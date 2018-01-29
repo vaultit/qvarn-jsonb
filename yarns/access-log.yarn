@@ -250,4 +250,11 @@ Access log can be listed, but not altered externally.
     ... }
     AND access log entry ACCESS cannot be updated
 
+Access log can be cleaned up with access log management tool `qvarn-access`.
+The tool currently supports only deletion of old access log entries.
+
+    WHEN new access log entries are generated
+    AND user deletes old entries with access log tool
+    THEN no old access log entries are found
+
     FINALLY access log Qvarn is stopped
