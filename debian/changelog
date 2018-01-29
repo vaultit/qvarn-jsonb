@@ -1,10 +1,10 @@
-qvarn-jsonb (0.89+git-1) UNRELEASED; urgency=medium
+qvarn-jsonb (0.90-1) unstable; urgency=medium
 
   * New upstream version.
   * Run checks during .deb build.
   * Install NEWS, README in qvarn-jsonb.
 
- -- Lars Wirzenius <liw@qvarnlabs.com>  Thu, 14 Dec 2017 14:47:06 +0200
+ -- Lars Wirzenius <liw@liw.fi>  Mon, 29 Jan 2018 18:09:57 +0200
 
 qvarn-jsonb (0.89-1) unstable; urgency=medium
 
