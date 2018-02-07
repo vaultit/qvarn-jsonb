@@ -309,6 +309,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         return keys, obj
 
     def create_blob(self, blob, subpath=None, **keys):
+        keys['subpath'] = subpath
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         if not self.get_objects(**keys):
@@ -324,6 +325,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             t.execute(query, values)
 
     def get_blob(self, subpath=None, **keys):
+        keys['subpath'] = subpath
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
 
@@ -337,6 +339,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             return blobs
 
     def remove_blob(self, subpath=None, **keys):
+        keys['subpath'] = subpath
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
 
