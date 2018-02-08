@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import itertools
 import re
 import jwt
 
@@ -267,7 +268,8 @@ class QvarnAPI:
                 'resource_id': res.get('id'),
                 'resource_revision': res.get('revision'),
                 'operation': op,
-                'accessors': [*persons, *clients, *orgs, *others],
+                'accessors': list(itertools.chain(persons, clients, orgs,
+                                                  others)),
                 'why': whead,
                 'timestamp': qvarn.get_current_timestamp(),
             })
