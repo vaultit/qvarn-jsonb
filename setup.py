@@ -17,17 +17,41 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import importlib.machinery
 
 from setuptools import setup
 
-import qvarn
-
+version = (
+    importlib.machinery.
+    SourceFileLoader('version', 'qvarn/version.py').
+    load_module()
+)
 
 setup(
     name='qvarn-jsonb',
-    version=qvarn.__version__,
+    version=version.__version__,
     description='backend service for JSON and binary data storage',
     author='Lars Wirzenius',
     author_email='liw@qvarnlabs.com',
     packages=['qvarn', 'qvarnutils'],
+    scripts=[
+        'qvarn-access',
+        'qvarn-copy',
+        'qvarn-dump',
+        'qvarn-stats',
+    ],
+    install_requires=[
+        'apifw',
+        'bottle',
+        'cliapp',
+        'cryptography',
+        'gunicorn',
+        'psycopg2',
+        'pycryptodome',
+        'pyjwt',
+        'pyyaml',
+        'requests',
+        'slog',
+        'ttystatus',
+    ],
 )
