@@ -1,0 +1,114 @@
+# Search subjects
+
+    SCENARIO search subjects
+
+    GIVEN a running Qvarn instance
+
+    WHEN client gets an authorization token with scope 
+    ... "uapi_subjects_post uapi_subjects_search_id_get
+    ...  uapi_subjects_id_sub_put
+    ...  uapi_subjects_id_delete"
+
+    WHEN client requests POST /subjects with token and body
+    ... { "type": "subject", "names": [ { "full_name": "Alfred" } ] }
+    THEN resource id is ID1
+    AND revision is REV1
+
+    WHEN client requests POST /subjects with token and body
+    ... { "type": "subject", "names": [ { "full_name": "Alfred" } ] }
+    THEN resource id is ID2
+
+    WHEN client requests POST /subjects with token and body
+    ... { "type": "subject", "names": [ { "full_name": "Bruce" } ] }
+    THEN resource id is ID3
+
+    WHEN client requests GET /subjects/search/exact/full_name/Batman
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches { "resources": []}
+
+Make sure searches are case-insensitive.
+
+    WHEN client requests GET /subjects/search/exact/full_name/ALFRED
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result contains {"id": "${ID1}"}
+    AND search result contains {"id": "${ID2}"}
+    AND search result does NOT contain {"id": "${ID3}"}
+
+    WHEN client requests GET /subjects/search/exact/full_name/bruce
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result does NOT contain {"id": "${ID1}"}
+    AND search result does NOT contain {"id": "${ID2}"}
+    AND search result contains {"id": "${ID3}"}
+    AND JSON body matches { "resources": [{"id": "${ID3}"}]}
+
+    WHEN client requests
+    ... GET /subjects/search/contains/full_name/fred
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result contains {"id": "${ID1}"}
+    AND search result contains {"id": "${ID2}"}
+    AND search result does NOT contain {"id": "${ID3}"}
+
+    WHEN client requests
+    ... GET /subjects/search/gt/full_name/Alfred
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result does NOT contain {"id": "${ID1}"}
+    AND search result does NOT contain {"id": "${ID2}"}
+    AND search result contains {"id": "${ID3}"}
+
+    WHEN client requests
+    ... GET /subjects/search/ge/full_name/Alfred
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result contains {"id": "${ID1}"}
+    AND search result contains {"id": "${ID2}"}
+    AND search result contains {"id": "${ID3}"}
+
+    WHEN client requests
+    ... GET /subjects/search/startswith/full_name/Alfred
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result contains {"id": "${ID1}"}
+    AND search result contains {"id": "${ID2}"}
+    AND search result does NOT contain {"id": "${ID3}"}
+
+    WHEN client requests
+    ... GET /subjects/search/show/full_name/contains/full_name/fred
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result contains {"id": "${ID1}"}
+    AND search result contains {"id": "${ID2}"}
+    AND search result does NOT contain {"id": "${ID3}"}
+
+    WHEN client requests
+    ... GET /subjects/search/show_all/exact/full_name/Bruce
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND search result contains
+    ... {
+    ...     "id": "${ID3}",
+    ...     "names": [ { "full_name": "Bruce" } ]
+    ... }
+
+    WHEN client requests
+    ... GET /subjects/search/exact/full_name/Br%2Fce
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches { "resources": [] }
+
+    GIVEN unique random identifier RANDOM
+    WHEN client requests PUT /subjects/${ID1}/sub with token and body
+    ... { "subfield": "${RANDOM}", "revision": "${REV1}" }
+    THEN HTTP status code is 200 OK
+
+    WHEN client requests GET /subjects/search/exact/subfield/${RANDOM} using token
+    THEN HTTP status code is 200 OK
+    AND search result contains {"id": "${ID1}"}
+
+    FINALLY qvarn is stopped
+
+

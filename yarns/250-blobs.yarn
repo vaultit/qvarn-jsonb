@@ -1,0 +1,102 @@
+# Manage blobs
+
+Blobs are like sub-resources, but they're arbitrary binary data, not
+JSON.
+
+    SCENARIO manage blobs
+
+    GIVEN a running qvarn instance
+
+    WHEN client gets an authorization token with scope
+    ... "uapi_subjects_post uapi_subjects_id_put
+    ... uapi_subjects_id_blob_put uapi_subjects_id_blob_get"
+
+Create a subject.
+
+    WHEN client requests POST /subjects with token and body
+    ... { "type": "subject", "names": [ { "full_name": "Alfred" } ] }
+    THEN resource id is ID
+    AND revision is REV1
+
+Newly created subject does not have a blob.
+
+    WHEN client requests GET /subjects/${ID}/blob using token
+    THEN HTTP status code is 404 Not found
+
+Uploading an empty blob doesn't work.
+
+    WHEN client requests PUT /subjects/${ID}/blob with token,
+    ... revision REV1,
+    ... content-type image/jpeg,
+    ... and empty body
+    THEN HTTP status code is 411 Length required
+
+Uploading a COMPLETELY VALID JPEG as a blob fails, if subject resource
+revision is wrong.
+
+    WHEN client requests PUT /subjects/${ID}/blob with token,
+    ... revision BADREV,
+    ... content-type image/jpeg,
+    ... and body "FAKE JPEG"
+    THEN HTTP status code is 409 Conflict
+
+Uploading with valid revision works.
+
+    WHEN client requests PUT /subjects/${ID}/blob with token,
+    ... revision ${REV1},
+    ... content-type image/jpeg,
+    ... and body "FAKE JPEG"
+    THEN HTTP status code is 200 OK
+
+Do we get the right blob back? Also, note that subject revision
+should've changed.
+
+    WHEN client requests GET /subjects/${ID}/blob using token
+    THEN HTTP status code is 200 OK
+    AND HTTP Content-Type header is image/jpeg
+    AND body is "FAKE JPEG"
+    AND remember HTTP Revision header as REV2
+    AND revisions REV1 and REV2 are different
+
+Uploading with old revision fails.
+
+    WHEN client requests PUT /subjects/${ID}/blob with token,
+    ... revision ${REV1},
+    ... content-type image/jpeg,
+    ... and body "FAKE JPEG"
+    THEN HTTP status code is 409 Conflict
+
+Uploading a new blob with the current revision works.
+
+    WHEN client requests PUT /subjects/${ID}/blob with token,
+    ... revision ${REV2},
+    ... content-type image/jpeg,
+    ... and body "\x89"
+    THEN HTTP status code is 200 OK
+    AND remember HTTP Revision header as REV3
+
+And it did get updated.
+
+    WHEN client requests GET /subjects/${ID}/blob using token
+    THEN HTTP status code is 200 OK
+    AND HTTP Content-Type header is image/jpeg
+    AND body is "\x89"
+
+Updating parent doesn't affect the blob.
+
+    WHEN client requests PUT /subjects/${ID} with token and body
+    ... { 
+    ...     "type": "subject",
+    ...     "revision": "${REV3}",
+    ...     "names": [ { "full_name": "Melissa" } ]
+    ... }
+    THEN revision is REV4
+
+    WHEN client requests GET /subjects/${ID}/blob using token
+    THEN HTTP status code is 200 OK
+    AND HTTP Content-Type header is image/jpeg
+    AND body is "\x89"
+    AND remember HTTP Revision header as REV5
+    AND revisions REV4 and REV5 match
+
+    FINALLY qvarn is stopped

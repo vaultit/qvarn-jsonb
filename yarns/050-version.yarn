@@ -1,0 +1,14 @@
+# Version checking
+
+    SCENARIO Qvarn reports its version
+
+    GIVEN a running qvarn instance
+
+    WHEN client requests GET /version without token
+    THEN HTTP status code is 200 OK
+
+    WHEN client gets an authorization token with scope "uapi_version_get"
+    AND client requests GET /version using token
+    THEN HTTP status code is 200 OK
+
+    FINALLY qvarn is stopped

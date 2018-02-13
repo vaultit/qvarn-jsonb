@@ -1,0 +1,137 @@
+# Sort search results with /offset and /limit
+
+    SCENARIO search with /offset and /limit
+
+    GIVEN a running Qvarn instance
+
+    WHEN client gets an authorization token with scope
+    ... "uapi_subjects_post uapi_subjects_search_id_get"
+
+Create several person resources.
+
+    GIVEN unique random identifier UID
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "random_id": "${UID}",
+    ...     "names": [
+    ...         {
+    ...             "full_name": "Person 1"
+    ...         }
+    ...     ]
+    ... }
+    THEN HTTP status code is 201 Created
+    THEN resource id is ID1
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "random_id": "${UID}",
+    ...     "names": [
+    ...         {
+    ...             "full_name": "Person 2"
+    ...         }
+    ...     ]
+    ... }
+    THEN HTTP status code is 201 Created
+    THEN resource id is ID2
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "random_id": "${UID}",
+    ...     "names": [
+    ...         {
+    ...             "full_name": "Person 3"
+    ...         }
+    ...     ]
+    ... }
+    THEN HTTP status code is 201 Created
+    THEN resource id is ID3
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "random_id": "${UID}",
+    ...     "names": [
+    ...         {
+    ...             "full_name": "Person 4"
+    ...         }
+    ...     ]
+    ... }
+    THEN HTTP status code is 201 Created
+    THEN resource id is ID4
+
+    WHEN client requests POST /subjects with token and body
+    ... {
+    ...     "random_id": "${UID}",
+    ...     "names": [
+    ...         {
+    ...             "full_name": "Person 5"
+    ...         }
+    ...     ]
+    ... }
+    THEN HTTP status code is 201 Created
+    THEN resource id is ID5
+
+Sort, return first two hits.
+
+    WHEN client requests
+    ... GET /subjects/search/exact/random_id/${UID}/sort/full_name/limit/2
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": [
+    ...         {"id": "${ID1}"},
+    ...         {"id": "${ID2}"}
+    ...     ]
+    ... }
+
+Sort, return second set of two hits.
+
+    WHEN client requests
+    ... GET /subjects/search/exact/random_id/${UID}/sort/full_name/offset/2/limit/2
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": [
+    ...         {"id": "${ID3}"},
+    ...         {"id": "${ID4}"}
+    ...     ]
+    ... }
+
+Sort, return third set of two hits, which is actualy only one item.
+
+    WHEN client requests
+    ... GET /subjects/search/exact/random_id/${UID}/sort/full_name/offset/4/limit/2
+    ... using token
+    THEN HTTP status code is 200 OK
+    AND JSON body matches
+    ... {
+    ...     "resources": [
+    ...         {"id": "${ID5}"}
+    ...     ]
+    ... }
+
+Don't sort. Then /offset and /limit are verboten.
+
+    WHEN client requests
+    ... GET /subjects/search/exact/random_id/${UID}/offset/1
+    ... using token
+    THEN HTTP status code is 400 Error
+    AND JSON body matches
+    ... {
+    ...   "message": "LIMIT and OFFSET can only be used with together SORT.",
+    ...   "error_code": "LimitWithoutSortError"
+    ... }
+
+    WHEN client requests
+    ... GET /subjects/search/exact/random_id/${UID}/offset/1
+    ... using token
+    THEN HTTP status code is 400 Error
+    AND JSON body matches
+    ... {
+    ...   "message": "LIMIT and OFFSET can only be used with together SORT.",
+    ...   "error_code": "LimitWithoutSortError"
+    ... }
+
+    FINALLY qvarn is stopped
