@@ -1,0 +1,191 @@
+# Manage access control rules via `/allow`
+
+As part of Qvarn's _fine-grained access control_ we can manage rules
+via the `/allow` endpoint. Each rule looks like this:
+
+    EXAMPLE sample access control rule
+    {
+        "method": "GET",
+        "client_id": "@42@",
+        "user_id": "@105@,
+        "id": "123",
+        "subpath": "",
+        "resource_type": "event",
+        "resource_field": "org_id",
+        "resource_value": "*"
+    }
+
+If an API request made by an API client matches such a rule, the
+requestis allowed. Otherwise, it is denied.
+
+The fields are:
+
+* `method` &mdash; The HTTP method for the access: `GET`, `PUT`,
+  `DELETE` (encoded into one character: `G`, `P`, `D`). `POST` is not
+  supported, as it never references a specific resource, and scopes
+  are sufficient for controlling POST access.
+
+* `client_id` &mdash; The API client id, taken from the `aud` claim in
+  the access token.
+
+* `user_id` &mdash; The end-user id, taken from the `sub` claim in the
+  access token in the `Authorization` header, or the empty string if it
+  is not in the token.
+
+  Additionally, if the access token has the `uapi_trusted_client`
+  scope, the end-user id will be taken a JWT access token in first
+  `Qvarn-Token` header with an `aud` claim. That token will be treated
+  as if given in the `Authorization` header.
+
+* `id` &mdash; The resource identifier of the resource being accessed.
+
+* `subpath` &mdash; The sub-resource path, or the empty string for the
+  parent resource.
+
+* `resource_type` &mdash; The resource type of the resource being accessed. 
+
+* `resource_field`, `resource_vcalue`` &mdash; Optionally, any
+  top-level field in the resource being accessed; the field name and
+  expected value are given in the access control rule. These fields
+  may be left out or set to `null`.
+
+To allow a more compact access control table, the access control
+decisions may use wildcards. The `client_id`, `user_id`, `id`, and
+`resource_value` fields may be the string `*` (asterisk). When making
+an access control decision, Qvarn will accept either the specified
+value (from the request or the access token), or any value if the rule
+uses a wildcard.
+
+The `/allow` endpoint treats access control rules as resources, so the
+usual operations work on them, except that an existing rule may not be
+updated (no `PUT`).
+
+    SCENARIO manage access control rules
+
+    GIVEN a running Qvarn instance
+
+    WHEN client gets an authorization token with scope
+    ... "uapi_allow_post uapi_allow_get uapi_allow_delete"
+
+    WHEN client requests GET /allow with token and body
+    ... {
+    ...     "method": "GET",
+    ...     "client_id": "*",
+    ...     "user_id": "*",
+    ...     "resource_id": "*",
+    ...     "subpath": "",
+    ...     "resource_type": "org",
+    ...     "resource_field": null,
+    ...     "resource_value": null
+    ... }
+    THEN HTTP status code is 404 Not Found
+
+    WHEN client requests POST /allow with token and body
+    ... {
+    ...     "method": "GET",
+    ...     "client_id": "*",
+    ...     "user_id": "*",
+    ...     "resource_id": "*",
+    ...     "subpath": "",
+    ...     "resource_type": "org",
+    ...     "resource_field": null,
+    ...     "resource_value": null
+    ... }
+    THEN HTTP status code is 200 OK
+
+    WHEN client requests GET /allow with token and body
+    ... {
+    ...     "method": "GET",
+    ...     "client_id": "*",
+    ...     "user_id": "*",
+    ...     "resource_id": "*",
+    ...     "subpath": "",
+    ...     "resource_type": "org",
+    ...     "resource_field": null,
+    ...     "resource_value": null
+    ... }
+    THEN HTTP status code is 200 OK
+
+    WHEN client requests DELETE /allow with token and body
+    ... {
+    ...     "method": "GET",
+    ...     "client_id": "*",
+    ...     "user_id": "*",
+    ...     "resource_id": "*",
+    ...     "subpath": "",
+    ...     "resource_type": "org",
+    ...     "resource_field": null,
+    ...     "resource_value": null
+    ... }
+    THEN HTTP status code is 200 OK
+
+    WHEN client requests GET /allow with token and body
+    ... {
+    ...     "method": "GET",
+    ...     "client_id": "*",
+    ...     "user_id": "*",
+    ...     "resource_id": "*",
+    ...     "subpath": "",
+    ...     "resource_type": "org",
+    ...     "resource_field": null,
+    ...     "resource_value": null
+    ... }
+    THEN HTTP status code is 404 Not Found
+
+    FINALLY Qvarn is stopped
+
+
+# Fine-grained access control
+
+Let's see if rules in `/allow` actually work.
+
+    SCENARIO fine-grained access
+
+    GIVEN a Qvarn with fine-grained access disabled
+
+    GIVEN user A with access to Qvarn person resources
+    AND user B with access to Qvarn person resources
+    AND user HR with access to Qvarn person resources
+
+    GIVEN a person resource for A
+    AND a person resource for B
+    AND a person resource for HR
+    AND an organisation resource for BIGCORP
+    AND an employment contract resource between A and BIGCORP
+
+    WHEN user A lists all persons in Qvarn
+    THEN they see resources A, B, HR
+
+    WHEN user A looks at person A in Qvarn
+    THEN they see that person resource
+
+    WHEN user A looks at person B in Qvarn
+    THEN they see that person resource
+
+    WHEN user A looks at person HR in Qvarn
+    THEN they see that person resource
+
+    WHEN user HR lists all persons in Qvarn
+    THEN they see resources A, B, HR
+
+    GIVEN a Qvarn with fine-grained access enabled
+    AND rule that allows A to see the A person resource
+    AND rule that allows B to see the B person resource
+    AND rules that allow HR to see A, HR resources
+
+    WHEN user A lists all persons in Qvarn
+    THEN they see resource A
+
+    WHEN user A looks at person A in Qvarn
+    THEN they see that person resource
+
+    WHEN user A looks at person B in Qvarn
+    THEN the resource is not found
+
+    WHEN user A looks at person HR in Qvarn
+    THEN the resource is not found
+
+    WHEN user HR lists all persons in Qvarn
+    THEN they see only A, HR, but not B
+
+    FINALLY Qvarn is stopped
