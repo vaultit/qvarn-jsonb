@@ -1,4 +1,4 @@
-# Copyright (C) 2017  Lars Wirzenius
+# Copyright (C) 2017-2018  Lars Wirzenius
 # Copyright (C) 2018  Ivan Dolgov
 #
 # This program is free software: you can redistribute it and/or modify
@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import json
+import json  # pylint: disable=unused-import
 import os
 import re
 import signal
@@ -36,7 +36,9 @@ srcdir = os.environ['SRCDIR']
 datadir = os.environ['DATADIR']
 
 
-vars = Variables(datadir)  # pylint: disable=redefined-builtin
+V = Variables(datadir)
+V['qvarns'] = {}
+V['users'] = {}
 
 
 def srcpath(path):
@@ -61,6 +63,19 @@ def unescape(s):
     return t
 
 
+def strfy(v):
+    if isinstance(v, unicode):
+        return v.encode('utf-8')
+    if isinstance(v, dict):
+        return {
+            strfy(key): strfy(value)
+            for key, value in v.items()
+        }
+    if isinstance(v, list):
+        return [strfy(item) for item in v]
+    return v
+
+
 def add_postgres_config(config):
     pg = os.environ.get('QVARN_POSTGRES')
     if pg:
@@ -70,24 +85,147 @@ def add_postgres_config(config):
     return config
 
 
-def get(url, headers=None):
+def qvarn_var_name(name):
+    return 'qvarn_{}'.format(name)
+
+
+def get_qvarn(name):
+    var_name = qvarn_var_name(name)
+    return V[var_name]
+
+
+def save_qvarn(name, qvarn_vars):
+    var_name = qvarn_var_name(name)
+    V[var_name] = qvarn_vars
+
+
+def add_authz_header(headers, token):
+    if token is not None:
+        if headers is None:
+            headers = {}
+        headers['Authorization'] = 'Bearer {}'.format(token)
+    assert headers is None or isinstance(headers, dict)
+    return headers
+
+
+def request(func, name, path, **kwargs):
+    status, resp_headers, content = func(name, path, **kwargs)
+    as_json = None
+    if content and resp_headers.get('Content-Type') == 'application/json':
+        as_json = json.loads(content)
+    V['response'] = {
+        'status_code': status,
+        'headers': resp_headers,
+        'body': content,
+        'json': as_json,
+    }
+
+
+def request_resource(qvarn_name, path, token):
+    request(get_from_qvarn, qvarn_name, path, token=token)
+    return {
+        'status': get_status(),
+        'headers': get_headers(),
+        'body': get_json(),
+    }
+
+
+def get_status():
+    return V['response']['status_code']
+
+
+def get_headers():
+    return V['response']['headers']
+
+
+def get_body():
+    return V['response']['body']
+
+
+def get_json():
+    return V['response']['json']
+
+
+def get_from_qvarn(name, path, headers=None, token=None, body=None):
+    assert headers is None or isinstance(headers, dict)
+    assert token is None or isinstance(token, str)
+    qvarn_vars = get_qvarn(name)
+    url = '{}/{}'.format(qvarn_vars['url'], path)
+    headers = add_authz_header(headers, token)
+    return GET(url, headers=headers, body=body)
+
+
+def post_to_qvarn(name, path, headers=None, body=None, token=None):
+    assert headers is None or isinstance(headers, dict)
+    assert body is None or isinstance(body, dict)
+    assert token is None or isinstance(token, str)
+    qvarn_vars = get_qvarn(name)
+    url = '{}/{}'.format(qvarn_vars['url'], path)
+    headers = add_authz_header(headers, token)
+    return POST(url, headers=headers, body=body)
+
+
+def put_to_qvarn(name, path, headers=None, body=None, token=None):
+    assert headers is None or isinstance(headers, dict)
+    assert body is None or isinstance(body, (dict, str))
+    assert token is None or isinstance(token, str)
+    qvarn_vars = get_qvarn(name)
+    url = '{}/{}'.format(qvarn_vars['url'], path)
+    headers = add_authz_header(headers, token)
+    return PUT(url, headers=headers, body=body)
+
+
+def delete_from_qvarn(name, path, headers=None, token=None, body=None):
+    assert headers is None or isinstance(headers, dict)
+    assert token is None or isinstance(token, str)
+    qvarn_vars = get_qvarn(name)
+    url = '{}/{}'.format(qvarn_vars['url'], path)
+    headers = add_authz_header(headers, token)
+    return DELETE(url, headers=headers, body=body)
+
+
+def GET(url, headers=None, body=None):
+    headers = add_content_type(headers, body)
+    if isinstance(body, dict):
+        body = json.dumps(body)
     print 'get: url={} headers={}'.format(url, headers)
-    r = requests.get(url, headers=headers)
+    r = requests.get(url, headers=headers, data=body)
     return r.status_code, dict(r.headers), r.content
 
 
-def post(url, headers=None, body=None):
+def add_content_type(headers, body):
+    if headers is None:
+        headers = {}
+    if isinstance(body, dict):
+        ct = 'application/json'
+    else:
+        ct = 'application/octent-type'
+    if 'Content-Type' not in headers:
+        headers['Content-Type'] = ct
+    return headers
+
+
+def POST(url, headers=None, body=None):
+    headers = add_content_type(headers, body)
+    if isinstance(body, dict):
+        body = json.dumps(body)
     r = requests.post(url, headers=headers, data=body)
     return r.status_code, dict(r.headers), r.text
 
 
-def put(url, headers=None, body=None):
+def PUT(url, headers=None, body=None):
+    headers = add_content_type(headers, body)
+    if isinstance(body, dict):
+        body = json.dumps(body)
     r = requests.put(url, headers=headers, data=body)
     return r.status_code, dict(r.headers), r.text
 
 
-def delete(url, headers=None):
-    r = requests.delete(url, headers=headers)
+def DELETE(url, headers=None, body=None):
+    headers = add_content_type(headers, body)
+    if isinstance(body, dict):
+        body = json.dumps(body)
+    r = requests.delete(url, headers=headers, data=body)
     return r.status_code, dict(r.headers), r.text
 
 
@@ -110,63 +248,41 @@ def create_token(privkey, iss, sub, aud, scopes):
     return cliapp.runcmd(argv)
 
 
-def create_token_for_qvarn(qvarn_vars, scopes,
-                           iss=None, sub=None, aud=None, force=False):
-    if force or qvarn_vars.get('token') is None:
-        privkey = qvarn_vars['privkey']
-        if iss is None:
-            iss = qvarn_vars['issuer']
-        if sub is None:
-            sub = 'subject-uuid'
-        if aud is None:
-            aud = qvarn_vars['audience']
-        qvarn_vars['token'] = create_token(privkey, iss, sub, aud, scopes)
+def token_var_name(qvarn, user):
+    return 'token_{}_{}'.format(qvarn, user)
 
 
-def post_to_qvarn(qvarn_vars, path, body):
-    url = qvarn_vars['url']
-    headers = {
-        'Authorization': 'Bearer {}'.format(qvarn_vars['token']),
-        'Content-Type': 'application/json',
-    }
-
-    return post(url + path, headers=headers, body=json.dumps(body))
+def has_token(qvarn, user):
+    return get_token(qvarn, user) is not None
 
 
-def put_to_qvarn(qvarn_vars, path, body):
-    url = qvarn_vars['url']
-    headers = {
-        'Authorization': 'Bearer {}'.format(qvarn_vars['token']),
-        'Content-Type': 'application/json',
-    }
-
-    return put(url + path, headers=headers, body=json.dumps(body))
+def get_token(qvarn, user):
+    var_name = token_var_name(qvarn, user)
+    return V[var_name]
 
 
-# pylint: disable=dangerous-default-value
-def get_from_qvarn(qvarn_vars, path, extra_headers={}):
-    url = qvarn_vars['url']
-    headers = {
-        'Authorization': 'Bearer {}'.format(qvarn_vars['token'])
-    }
-    vars['status_code'], vars['headers'], vars['body'] = get(
-        url + path, dict(headers, **extra_headers)
-    )
-
-    try:
-        return json.loads(vars['body'])
-    except ValueError:
-        return {}
+def save_token(qvarn, user, token):
+    var_name = token_var_name(qvarn, user)
+    V[var_name] = token
+    V['tokens'] = (V['tokens'] or []) + [var_name]
 
 
-def delete_from_qvarn(qvarn_vars, path):
-    url = qvarn_vars['url']
-    headers = {
-        'Authorization': 'Bearer {}'.format(qvarn_vars['token'])
-    }
-    vars['status_code'], vars['headers'], vars['body'] = delete(
-        url + path, headers
-    )
+def forget_all_tokens():
+    print('tokens', V['tokens'])
+    token_names = V['tokens'] or []
+    print('token_names', token_names)
+    for name in token_names:
+        V[name] = None
+
+
+def create_token_for_user(qvarn_name, user_name, scopes, force=False):
+    if force or not has_token(qvarn_name, user_name):
+        qvarn_vars = get_qvarn(qvarn_name)
+        token = create_token(
+            qvarn_vars['privkey'], qvarn_name, user_name,
+            qvarn_vars['audience'], scopes)
+        save_token(qvarn_name, user_name, token)
+    return get_token(qvarn_name, user_name)
 
 
 def cat(filename):
@@ -193,7 +309,7 @@ def expand_vars(text, variables):
             result += text
             break
         name = m.group('name')
-        print('expanding ', name)
+        print('expanding ', name, repr(variables[name]))
         result += text[:m.start()] + variables[name]
         text = text[m.end():]
     return result
@@ -229,14 +345,12 @@ def values_match(wanted, actual):
     return True
 
 
-def start_qvarn(name, issuer='issuer', audience='audience'):
+def start_qvarn(name, audience='audience'):
     privkey, pubkey = create_token_signing_key_pair()
-    write('key', privkey)
-
     port = cliapp.runcmd([os.path.join(srcdir, 'randport')]).strip()
 
-    vars[name] = {
-        'issuer': issuer,
+    qvarn_vars = {
+        'issuer': name,
         'audience': audience,
         'api.log': 'qvarn-{}.log'.format(name),
         'gunicorn3.log': 'gunicorn3-{}.log'.format(name),
@@ -246,37 +360,43 @@ def start_qvarn(name, issuer='issuer', audience='audience'):
         'privkey': privkey,
         'pubkey': pubkey,
     }
+    save_qvarn(name, qvarn_vars)
+
+    start_qvarn_with_vars(name)
+
+
+def start_qvarn_with_vars(name):
+    qvarn_vars = get_qvarn(name)
 
     config = {
         'log': [
             {
-                'filename': vars[name]['api.log'],
+                'filename': qvarn_vars['api.log'],
             },
         ],
-        'baseurl': vars[name]['url'],
-        'token-issuer': vars[name]['issuer'],
-        'token-audience': vars[name]['audience'],
-        'token-public-key': pubkey,
+        'baseurl': qvarn_vars['url'],
+        'token-issuer': qvarn_vars['issuer'],
+        'token-audience': qvarn_vars['audience'],
+        'token-public-key': qvarn_vars['pubkey'],
         'resource-type-dir': os.path.join(srcdir, 'resource_type'),
     }
     config = add_postgres_config(config)
     config_filename = os.path.join(datadir, 'qvarn-{}.yaml'.format(name))
+    write(config_filename, yaml.safe_dump(config))
 
     env = dict(os.environ)
     env['QVARN_CONFIG'] = config_filename
 
-    write(config_filename, yaml.safe_dump(config))
-
     argv = [
         'gunicorn3',
         '--daemon',
-        '--bind', '127.0.0.1:{}'.format(vars[name]['port']),
-        '-p', vars[name]['pid-file'],
+        '--bind', '127.0.0.1:{}'.format(qvarn_vars['port']),
+        '-p', qvarn_vars['pid-file'],
         'qvarn.backend:app',
     ]
     cliapp.runcmd(argv, env=env, stdout=None, stderr=None)
 
-    wait_for_file(vars[name]['pid-file'], 2.0)
+    wait_for_file(qvarn_vars['pid-file'], 2.0)
 
 
 def wait_for_file(filename, timeout):
@@ -287,17 +407,20 @@ def wait_for_file(filename, timeout):
 
 
 def stop_qvarn(name):
-    if vars[name]:
-        filename = vars[name]['pid-file']
+    qvarn_vars = get_qvarn(name)
+    if qvarn_vars:
+        filename = qvarn_vars['pid-file']
         pid_text = cat(filename)
         pid = int(pid_text)
         os.kill(pid, signal.SIGTERM)
 
 
-def dump_qvarn(qvarn_vars, filename, names):
+def dump_qvarn(qvarn_name, filename, names):
+    qvarn_vars = get_qvarn(qvarn_name)
+    token = create_token_for_user(qvarn_name, '', V['scopes'])
     argv = [
         srcpath('qvarn-dump'),
-        '--token', qvarn_vars['token'],
+        '--token', token,
         '--api', qvarn_vars['url'],
         '--output', filename,
         '--log', filename + '.log',
@@ -305,11 +428,19 @@ def dump_qvarn(qvarn_vars, filename, names):
     cliapp.runcmd(argv)
 
 
-def qvarn_copy(source, target, names):
+def qvarn_copy(source_name, target_name, names):
+    source = get_qvarn(source_name)
+    assert source is not None
+    target = get_qvarn(target_name)
+    assert source is not None
+    source_token = create_token_for_user(
+        source_name, '', V['scopes'], force=True)
+    target_token = create_token_for_user(
+        target_name, '', V['scopes'], force=True)
     argv = [
         srcpath('qvarn-copy'),
-        '--source-token', source['token'],
-        '--target-token', target['token'],
+        '--source-token', source_token,
+        '--target-token', target_token,
         '--source', source['url'],
         '--target', target['url'],
         '--log', 'copy.log',

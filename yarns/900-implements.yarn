@@ -18,160 +18,157 @@ Start a Qvarn running in the background.
 
     IMPLEMENTS WHEN client requests GET (/.+) without token
     path = get_next_match()
-    path = expand_vars(path, vars)
-    vars['status_code'], vars['headers'], vars['body'] = get(
-        vars['default']['url'] + path)
+    path = expand_vars(path, V)
+    request(get_from_qvarn, 'default', path)
 
     IMPLEMENTS WHEN client requests GET (/.+) using token
     path = get_next_match()
-    path = expand_vars(path, vars)
-    headers = {
-        'Authorization': 'Bearer {}'.format(vars['token']),
-    }
-    vars['status_code'], vars['headers'], vars['body'] = get(
-        vars['default']['url'] + path, headers)
+    path = expand_vars(path, V)
+    token = V['token']
+    request(get_from_qvarn, 'default', path, token=token)
+
+    IMPLEMENTS WHEN client requests GET (/.+) with token and body (.+)
+    path = get_next_match()
+    body = get_next_match()
+    body = expand_vars(body, V)
+    body = json.loads(body)
+    token = V['token']
+    request(get_from_qvarn, 'default', path, token=token, body=body)
 
     IMPLEMENTS WHEN client requests POST (/.+) with token and body (.+)
     path = get_next_match()
-    body = get_next_match()
-    headers = {
-        'Authorization': 'Bearer {}'.format(vars['token']),
-        'Content-Type': 'application/json',
-    }
-    vars['status_code'], vars['headers'], vars['body'] = post(
-        vars['default']['url'] + path, headers=headers, body=body)
+    body = json.loads(get_next_match())
+    token = V['token']
+    request(post_to_qvarn, 'default', path, token=token, body=body)
 
     IMPLEMENTS WHEN client requests PUT (/.+) with token and body (.+)
     path = get_next_match()
-    path = expand_vars(path, vars)
+    path = expand_vars(path, V)
     body = get_next_match()
-    body = expand_vars(body, vars)
-    headers = {
-        'Authorization': 'Bearer {}'.format(vars['token']),
-        'Content-Type': 'application/json',
-    }
-    vars['status_code'], vars['headers'], vars['body'] = put(
-        vars['default']['url'] + path, headers=headers, body=body)
+    body = expand_vars(body, V)
+    body = json.loads(body)
+    token = V['token']
+    request(put_to_qvarn, 'default', path, body=body, token=token)
 
     IMPLEMENTS WHEN client requests PUT (/[a-z0-9/${}]+) with token, revision (\S+), content-type (\S+), and empty body
-    path = expand_vars(get_next_match(), vars)
-    revision = expand_vars(get_next_match(), vars)
-    ctype = expand_vars(get_next_match(), vars)
+    path = expand_vars(get_next_match(), V)
+    revision = expand_vars(get_next_match(), V)
+    ctype = expand_vars(get_next_match(), V)
     body = ''
+    token = V['token']
     headers = {
-        'Authorization': 'Bearer {}'.format(vars['token']),
         'Revision': revision,
         'Content-Type': ctype,
     }
-    vars['status_code'], vars['headers'], vars['body'] = put(
-        vars['default']['url'] + path, headers=headers, body=body)
+    request(
+        put_to_qvarn, 'default', path, headers=headers, body=body, token=token)
 
     IMPLEMENTS WHEN client requests PUT (/[a-z0-9/${}]+) with token, revision (\S+), content-type (\S+), and body "(.+)"
-    path = expand_vars(get_next_match(), vars)
-    revision = expand_vars(get_next_match(), vars)
-    ctype = expand_vars(get_next_match(), vars)
-    body = unescape(expand_vars(get_next_match(), vars))
+    path = expand_vars(get_next_match(), V)
+    revision = expand_vars(get_next_match(), V)
+    ctype = expand_vars(get_next_match(), V)
+    body = unescape(expand_vars(get_next_match(), V))
+    token = V['token']
     headers = {
-        'Authorization': 'Bearer {}'.format(vars['token']),
         'Revision': revision,
         'Content-Type': ctype,
     }
-    vars['status_code'], vars['headers'], vars['body'] = put(
-        vars['default']['url'] + path, headers=headers, body=body)
+    request(
+        put_to_qvarn, 'default', path, headers=headers, body=body, token=token)
 
     IMPLEMENTS WHEN client requests DELETE (/.+) with token
     path = get_next_match()
-    path = expand_vars(path, vars)
-    headers = {
-        'Authorization': 'Bearer {}'.format(vars['token']),
-    }
-    vars['status_code'], vars['headers'], vars['body'] = delete(
-        vars['default']['url'] + path, headers=headers)
+    path = expand_vars(path, V)
+    token = V['token']
+    request(delete_from_qvarn, 'default', path, token=token)
 
-    IMPLEMENTS WHEN client uploads a fake jpg
-    assert 0
+    IMPLEMENTS WHEN client requests DELETE (/.+) with token and body (.+)
+    path = get_next_match()
+    path = expand_vars(path, V)
+    body = get_next_match()
+    body = expand_vars(body, V)
+    body = json.loads(body)
+    token = V['token']
+    request(delete_from_qvarn, 'default', path, token=token, body=body)
 
 ## API access token creation
 
     IMPLEMENTS WHEN client gets an authorization token with scope "(.+)"
     scopes = get_next_match()
-    privkey = vars['default']['privkey']
-    iss = vars['default']['issuer']
-    aud = vars['default']['audience']
-    print 'privkey', repr(privkey)
-    assert privkey
-    vars['token'] = create_token(privkey, iss, 'subject-uuid', aud, scopes)
+    V['token'] = create_token_for_user('default', '', scopes, force=True)
 
 ## UUID creation
 
     IMPLEMENTS GIVEN unique random identifier (\S+)
     import uuid
     name = get_next_match()
-    vars[name] = str(uuid.uuid4())
+    V[name] = str(uuid.uuid4())
 
 ## API request result checking
 
     IMPLEMENTS THEN HTTP status code is (\d+) (.*)
     expected = int(get_next_match())
-    assertEqual(vars['status_code'], expected)
+    actual = get_status()
+    assertEqual(actual, expected)
 
     IMPLEMENTS THEN HTTP (\S+) header is (.+)
     header = get_next_match()
-    vars['API_URL'] = vars['default']['url']
-    value = expand_vars(get_next_match(), vars)
-    assertEqual(vars['headers'].get(header), value)
+    qvarn_keys = get_qvarn('default')
+    V['API_URL'] = qvarn_keys['url']
+    value = expand_vars(get_next_match(), V)
+    headers = get_headers()
+    assertEqual(headers.get(header), value)
 
     IMPLEMENTS THEN remember HTTP (\S+) header as (.+)
     header = get_next_match()
     name = get_next_match()
-    vars[name] = vars['headers'].get(header)
+    headers = get_headers()
+    V[name] = headers.get(header)
 
     IMPLEMENTS THEN resource id is (\S+)
     import json
     name = get_next_match()
-    print 'body:', repr(vars['body'])
-    body = json.loads(vars['body'])
-    vars[name] = body['id']
+    body = get_json()
+    print 'body:', body
+    V[name] = body['id']
 
     IMPLEMENTS THEN revision is (\S+)
     import json
     name = get_next_match()
-    body = json.loads(vars['body'])
-    vars[name] = body['revision']
+    body = get_json()
+    V[name] = body['revision']
 
     IMPLEMENTS THEN revisions (\S+) and (\S+) are different
     rev1 = get_next_match()
     rev2 = get_next_match()
-    assertNotEqual(vars[rev1], vars[rev2])
+    assertNotEqual(V[rev1], V[rev2])
 
     IMPLEMENTS THEN revisions (\S+) and (\S+) match
     rev1 = get_next_match()
     rev2 = get_next_match()
-    assertEqual(vars[rev1], vars[rev2])
+    assertEqual(V[rev1], V[rev2])
 
     IMPLEMENTS THEN JSON body matches (.+)
-    import json
     wanted = get_next_match()
     print 'wanted1', repr(wanted)
-    wanted = expand_vars(wanted, vars)
+    wanted = expand_vars(wanted, V)
     print 'wanted2', repr(wanted)
-    wanted = json.loads(wanted)
-    actual = json.loads(vars['body'])
+    wanted = strfy(json.loads(wanted))
+    actual = get_json()
     print 'actual ', repr(actual)
     print 'wanted3', repr(wanted)
     assertTrue(values_match(wanted, actual))
 
     IMPLEMENTS THEN body is "(.+)"
-    wanted = unescape(expand_vars(get_next_match(), vars))
-    body = vars['body']
+    wanted = unescape(expand_vars(get_next_match(), V))
+    body = get_body()
     assertTrue(values_match(wanted, body))
 
     IMPLEMENTS THEN search result contains (.+)
-    import json
     wanted1 = get_next_match()
-    wanted2 = expand_vars(wanted1, vars)
-    wanted = json.loads(wanted2)
-    actual = json.loads(vars['body'])
+    wanted2 = expand_vars(wanted1, V)
+    wanted = strfy(json.loads(str(wanted2)))
+    actual = get_json()
     print 'wanted1:', repr(wanted1)
     print 'wanted2:', repr(wanted2)
     print 'wanted:', repr(wanted)
@@ -187,11 +184,10 @@ Start a Qvarn running in the background.
     assertTrue(found)
 
     IMPLEMENTS THEN search result does NOT contain (.+)
-    import json
     wanted1 = get_next_match()
-    wanted2 = expand_vars(wanted1, vars)
-    wanted = json.loads(wanted2)
-    actual = json.loads(vars['body'])
+    wanted2 = expand_vars(wanted1, V)
+    wanted = strfy(json.loads(wanted2))
+    actual = get_json()
     print 'wanted1:', repr(wanted1)
     print 'wanted2:', repr(wanted2)
     print 'wanted:', repr(wanted)
@@ -206,7 +202,7 @@ Start a Qvarn running in the background.
     import json
     index = int(get_next_match())
     id_name = get_next_match()
-    body = json.loads(vars['body'])
+    body = get_json()
     print 'body', repr(body)
     resources = body['resources']
     print 'resources', repr(resources)
@@ -216,11 +212,11 @@ Start a Qvarn running in the background.
     obj = resources[index]
     print 'resource at index', repr(obj)
     print 'id', repr(obj['id'])
-    vars[id_name] = obj['id']
+    V[id_name] = obj['id']
 
     IMPLEMENTS THEN search result has (\d+) resources
     wanted = int(get_next_match())
-    body = json.loads(vars['body'])
+    body = get_json()
     print 'body', repr(body)
     resources = body['resources']
     print 'resources', repr(resources)

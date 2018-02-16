@@ -4,16 +4,16 @@ This chapter shows the scenario step implementations for the
 access log scenario.
 
     IMPLEMENTS GIVEN test client has id CLIENT
-    vars['CLIENT'] = 'test_client'
+    V['CLIENT'] = 'test_client'
 
     IMPLEMENTS GIVEN a running access log Qvarn instance
-    start_qvarn('access', audience=vars['CLIENT'])
+    start_qvarn('access', audience=V['CLIENT'])
 
     IMPLEMENTS FINALLY access log Qvarn is stopped
     stop_qvarn('access')
 
     IMPLEMENTS GIVEN users A and B who can fully access person resources
-    vars['scopes'] = ' '.join([
+    V['scopes'] = ' '.join([
         'uapi_persons_get',
         'uapi_persons_post',
         'uapi_persons_id_get',
@@ -29,135 +29,117 @@ access log scenario.
         'uapi_set_meta_fields',
     ])
 
-    IMPLEMENTS GIVEN user A has person resource A_ID
-    create_token_for_qvarn(vars['access'], vars['scopes'])
+    IMPLEMENTS GIVEN user (\S+) has person resource (\S+)
+    name = get_next_match()
+    rid = get_next_match()
+    token = create_token_for_user('access', name, V['scopes'])
     person = {
-        'names': ['User A'],
+        'names': ['User {}'.format(name)],
     }
-    vars['status_code'], vars['headers'], vars['body'] = post_to_qvarn(
-        vars['access'], '/persons', person)
-    print vars['headers']
-    print vars['body']
-    vars['A_ID'] = json.loads(vars['body'])['id']
-
-    IMPLEMENTS GIVEN user B has person resource B_ID
-    create_token_for_qvarn(vars['access'], vars['scopes'])
-    person = {
-        'names': ['User B'],
-    }
-    vars['status_code'], vars['headers'], vars['body'] = post_to_qvarn(
-        vars['access'], '/persons', person)
-    vars['B_ID'] = json.loads(vars['body'])['id']
+    request(post_to_qvarn, 'access', '/persons', body=person, token=token)
+    obj = get_json()
+    V[rid] = obj['id']
 
     IMPLEMENTS WHEN user A creates a person resource
-    create_token_for_qvarn(
-        vars['access'], vars['scopes'],
-        'issuer', vars['A_ID'], vars['CLIENT'], True)
+    token = create_token_for_user('access', V['A_ID'], V['scopes'], force=True)
     person = {
         'names': ['New person created by A'],
     }
-    vars['status_code'], vars['headers'], vars['body'] = post_to_qvarn(
-        vars['access'], '/persons', person)
+    request(post_to_qvarn, 'access', '/persons', body=person, token=token)
 
     IMPLEMENTS THEN access log contains only one entry
-    create_token_for_qvarn(vars['access'], vars['scopes'])
-    get_from_qvarn(
-        vars['access'],
-        '/access/search/exact/resource_id/{}'.format(vars['ID']))
-    assertEqual(vars['status_code'], 200)
-    logs = json.loads(vars['body'])['resources']
+    token = create_token_for_user('access', '', V['scopes'])
+    path = '/access/search/exact/resource_id/{}'.format(V['ID'])
+    request(get_from_qvarn, 'access', path, token=token)
+    assertEqual(get_status(), 200)
+    logs = get_json()['resources']
     assertEqual(len(logs), 1)
 
     IMPLEMENTS THEN access log contains entry (.+)
-    create_token_for_qvarn(vars['access'], vars['scopes'])
-    expected = json.loads(expand_vars(get_next_match(), vars))
-    get_from_qvarn(
-        vars['access'],
-        '/access/search/show_all/exact/resource_id/{}'.format(vars['ID']))
-    assertEqual(vars['status_code'], 200)
-    logs = json.loads(vars['body'])['resources']
+    token = create_token_for_user('access', '', V['scopes'])
+    expected = json.loads(expand_vars(get_next_match(), V))
+    path = '/access/search/show_all/exact/resource_id/{}'.format(V['ID'])
+    request(get_from_qvarn, 'access', path, token=token)
+    logs = get_json()['resources']
     filtered_logs = [{k: l[k] for k in expected.keys()} for l in logs]
     assertIn(expected, filtered_logs)
 
     IMPLEMENTS WHEN user B requests GET (/.+), with header (.+): (.+)
-    create_token_for_qvarn(
-        vars['access'], vars['scopes'],
-        'issuer', vars['B_ID'], vars['CLIENT'], True)
-    path = expand_vars(get_next_match(), vars)
+    token = create_token_for_user('access', V['B_ID'], V['scopes'], force=True)
+    path = expand_vars(get_next_match(), V)
     header_key = get_next_match()
     header_value = get_next_match()
-    get_from_qvarn(vars['access'], path, {header_key: header_value})
+    headers = {
+        header_key: header_value,
+    }
+    request(get_from_qvarn, 'access', path, headers=headers, token=token)
 
     IMPLEMENTS WHEN user A updates (/.+) without changing it
-    create_token_for_qvarn(
-        vars['access'], vars['scopes'],
-        'issuer', vars['A_ID'], vars['CLIENT'], True)
-    path = expand_vars(get_next_match(), vars)
-    person = get_from_qvarn(vars['access'], path)
-    vars['status_code'], vars['headers'], vars['body'] = put_to_qvarn(
-        vars['access'], path, person)
-    # vars['REV2'] = json.loads(vars['body'])['revision']
+    token = create_token_for_user('access', V['A_ID'], V['scopes'], force=True)
+    path = expand_vars(get_next_match(), V)
+    request(get_from_qvarn, 'access', path, token=token)
+    assertEqual(get_status(), 200)
+    body = get_json()
+    request(put_to_qvarn, 'access', path, token=token, body=body)
 
     IMPLEMENTS WHEN user A deletes (/.+)
-    create_token_for_qvarn(
-        vars['access'], vars['scopes'],
-        'issuer', vars['A_ID'], vars['CLIENT'], True)
-    path = expand_vars(get_next_match(), vars)
-    delete_from_qvarn(vars['access'], path)
-    assertEqual(vars['status_code'], 200)
-    get_from_qvarn(vars['access'], path)
-    assertEqual(vars['status_code'], 404)
+    token = create_token_for_user('access', V['A_ID'], V['scopes'])
+    path = expand_vars(get_next_match(), V)
+    delete_from_qvarn('access', path, token=token)
+    assertEqual(get_status(), 200)
+    request(get_from_qvarn, 'access', path, token=token)
+    assertEqual(get_status(), 404)
 
     IMPLEMENTS WHEN test client requests GET (/.+), with header (.+)
-    create_token_for_qvarn(
-        vars['access'], vars['scopes'], 'issuer', '', vars['CLIENT'], True)
-    path = expand_vars(get_next_match(), vars)
+    token = create_token_for_user('access', '', V['scopes'], force=True)
+    path = expand_vars(get_next_match(), V)
     header = get_next_match()
     header_dict = {}
     for h in re.findall('[a-zA-Z-]+: .+?(?=(?: [a-zA-Z-]+: )|\Z)', header):
         key, value = h.split(': ', 1)
         header_dict[key] = value
-    get_from_qvarn(vars['access'], path, header_dict)
+    request(get_from_qvarn, 'access', path, headers=header_dict, token=token)
 
     IMPLEMENTS WHEN access log can be listed
-    create_token_for_qvarn(vars['access'], vars['scopes'])
-    get_from_qvarn(vars['access'], '/access')
-    assertEqual(vars['status_code'], 200)
+    token = create_token_for_user('access', '', V['scopes'])
+    request(get_from_qvarn, 'access', '/access', token=token)
+    assertEqual(get_status(), 200)
 
     IMPLEMENTS WHEN there is an entry (.+) in access log
-    create_token_for_qvarn(vars['access'], vars['scopes'])
-    get_from_qvarn(vars['access'], '/access/search/show_all')
-    assertEqual(vars['status_code'], 200)
-    logs = json.loads(vars['body'])['resources']
+    token = create_token_for_user('access', '', V['scopes'])
+    request(get_from_qvarn, 'access', '/access/search/show_all', token=token)
+    assertEqual(get_status(), 200)
+    logs = get_json()['resources']
     assertGreaterThan(len(logs), 0)
-    vars[get_next_match()] = logs[0]
+    V[get_next_match()] = logs[0]
 
     IMPLEMENTS THEN access log entry cannot be added, with body (.+)
-    create_token_for_qvarn(vars['access'], vars['scopes'])
-    entry = json.loads(expand_vars(get_next_match(), vars))
-    vars['status_code'], vars['headers'], vars['body'] = post_to_qvarn(
-        vars['access'], '/access', entry)
-    assertEqual(vars['status_code'], 405)
+    token = create_token_for_user('access', '', V['scopes'])
+    entry = json.loads(expand_vars(get_next_match(), V))
+    request(post_to_qvarn, 'access', '/access', body=entry, token=token)
+    assertEqual(get_status(), 405)
 
     IMPLEMENTS THEN access log entry (.+) cannot be updated
-    create_token_for_qvarn(vars['access'], vars['scopes'])
-    entry = vars[get_next_match()]
-    vars['status_code'], vars['headers'], vars['body'] = put_to_qvarn(
-        vars['access'], '/access/{}'.format(entry['id']), entry)
-    assertEqual(vars['status_code'], 405)
+    token = create_token_for_user('access', '', V['scopes'], force=True)
+    entry = V[get_next_match()]
+    path = '/access/{}'.format(entry['id'])
+    request(put_to_qvarn, 'access', path, body=entry, token=token)
+    assertEqual(get_status(), 405)
 
     IMPLEMENTS WHEN new access log entries are generated
-    create_token_for_qvarn(vars['access'], vars['scopes'])
+    token = create_token_for_user('access', '', V['scopes'], force=True)
     time.sleep(2)
-    vars['status_code'], vars['headers'], vars['body'] = post_to_qvarn(
-        vars['access'], '/persons', {'names': ['Person']})
+    person = {'names': ['Person']}
+    request(post_to_qvarn, 'access', '/persons', body=person, token=token)
 
     IMPLEMENTS WHEN user deletes old entries with access log tool
-    create_token_for_qvarn(vars['access'], vars['scopes'])
-    delete_access(vars['access'], 1)
+    qvarn_vars = get_qvarn('access')
+    token = create_token_for_user('access', '', V['scopes'], force=True)
+    delete_access(qvarn_vars, 1, token=token)
 
     IMPLEMENTS THEN no old access log entries are found
-    get_from_qvarn(vars['access'], '/access')
-    assertEqual(vars['status_code'], 200)
-    logs = json.loads(vars['body'])['resources']
+    qvarn_vars = get_qvarn('access')
+    request(get_from_qvarn, 'access', '/access', token=token)
+    assertEqual(get_status(), 200)
+    logs = get_json()['resources']
     assertEqual(len(logs), 1)

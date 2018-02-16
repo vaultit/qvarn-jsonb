@@ -16,7 +16,7 @@ This chapter shows the scenario step implementations for the
     stop_qvarn('target')
 
     IMPLEMENTS WHEN user creates a person listener in source Qvarn for all changes
-    vars['scopes'] = ' '.join([
+    V['scopes'] = ' '.join([
         'uapi_resource_types_id_get',
         'uapi_persons_get',
         'uapi_persons_post',
@@ -30,81 +30,80 @@ This chapter shows the scenario step implementations for the
         'uapi_persons_listeners_id_notifications_id_get',
         'uapi_set_meta_fields',
     ])
-    create_token_for_qvarn(vars['source'], vars['scopes'])
-    create_token_for_qvarn(vars['target'], vars['scopes'])
+    token = create_token_for_user('source', '', V['scopes'])
     listener = {
         'type': 'listener',
         'notify_of_new': True,
     }
-    vars['status_code'], vars['headers'], vars['body'] = post_to_qvarn(
-        vars['source'], '/persons/listeners', listener)
+    request(
+        post_to_qvarn, 'source', '/persons/listeners', body=listener, token=token)
 
     IMPLEMENTS THEN listener has id (\S+)
     name = get_next_match()
     print('name', repr(name))
-    body = vars['body']
+    body = get_json()
     print('body', repr(body))
-    body = json.loads(body)
-    vars[name] = body['id']
+    V[name] = body['id']
 
     IMPLEMENTS THEN listener has revision (\S+)
     name = get_next_match()
-    body = json.loads(vars['body'])
-    vars[name] = body['revision']
+    body = get_json()
+    V[name] = body['revision']
 
     IMPLEMENTS WHEN user creates person in source Qvarn
+    token = create_token_for_user('source', '', V['scopes'])
     person = {
         'names': ['James Bond'],
     }
-    vars['status_code'], vars['headers'], vars['body'] = post_to_qvarn(
-        vars['source'], '/persons', person)
-    vars['ID'] = json.loads(vars['body'])['id']
+    request(post_to_qvarn, 'source', '/persons', body=person, token=token)
+    V['ID'] = get_json()['id']
 
     IMPLEMENTS THEN there is a notification for person listener LID notification id NID in source Qvarn
-    body = get_from_qvarn(vars['source'], '/persons/listeners/{}/notifications'.format(vars['LID']))
-    vars['NID'] = body['resources'][0]['id']
+    token = create_token_for_user('source', '', V['scopes'])
+    path = '/persons/listeners/{}/notifications'.format(V['LID'])
+    request(get_from_qvarn, 'source', path, token=token)
+    assertEqual(get_status(), 200)
+    obj = get_json()
+    V['NID'] = obj['resources'][0]['id']
 
     IMPLEMENTS WHEN user runs qvarn-copy
-    qvarn_copy(vars['source'], vars['target'], ['person'])
-    dump_qvarn(vars['source'], 'source.dump0', ['person'])
-    dump_qvarn(vars['target'], 'target.dump0', ['person'])
+    qvarn_copy('source', 'target', ['person'])
+    dump_qvarn('source', 'source.dump0', ['person'])
+    dump_qvarn('target', 'target.dump0', ['person'])
 
     IMPLEMENTS THEN person ID in source and target Qvarns are identical
-    src = get_from_qvarn(vars['source'], '/persons/{}'.format(vars['ID']))
-    tgt = get_from_qvarn(vars['target'], '/persons/{}'.format(vars['ID']))
+    stoken = create_token_for_user('source', '', V['scopes'])
+    ttoken = create_token_for_user('target', '', V['scopes'])
+    path = '/persons/{}'.format(V['ID'])
+    src = request_resource('source', path, stoken)
+    tgt = request_resource('target', path, ttoken)
     assertEqual(src, tgt)
 
     IMPLEMENTS THEN person listener LID in source and target Qvarns are identical
-    path = '/persons/listeners/{}'.format(vars['LID'])
-    src = get_from_qvarn(vars['source'], path)
-    tgt = get_from_qvarn(vars['target'], path)
+    path = '/persons/listeners/{}'.format(V['LID'])
+    stoken = create_token_for_user('source', '', V['scopes'])
+    ttoken = create_token_for_user('target', '', V['scopes'])
+    src = request_resource('source', path, stoken)
+    tgt = request_resource('target', path, ttoken)
     assertEqual(src, tgt)
 
     IMPLEMENTS THEN notification NID in person listener LID in source and target Qvarns are identical
-    path = '/persons/listeners/{}/notifications/{}'.format(vars['LID'], vars['NID'])
-    src = get_from_qvarn(vars['source'], path)
-    tgt = get_from_qvarn(vars['target'], path)
+    path = '/persons/listeners/{}/notifications/{}'.format(V['LID'], V['NID'])
+    stoken = create_token_for_user('source', '', V['scopes'])
+    ttoken = create_token_for_user('target', '', V['scopes'])
+    src = request_resource('source', path, stoken)
+    tgt = request_resource('target', path, ttoken)
     assertEqual(src, tgt)
 
     IMPLEMENTS WHEN user runs qvarn-dump on source Qvarn
-    dump_qvarn(vars['source'], 'source.dump', ['person'])
+    dump_qvarn('source', 'source.dump', ['person'])
 
     IMPLEMENTS WHEN user runs qvarn-dump on target Qvarn
-    dump_qvarn(vars['target'], 'target.dump', ['person'])
+    dump_qvarn('target', 'target.dump', ['person'])
 
     IMPLEMENTS THEN source and target dumps are bitwise identical
     cliapp.runcmd(['cmp', 'source.dump', 'target.dump'])
 
     IMPLEMENTS WHEN user deletes person ID from source Qvarn
-    path = '/persons/{}'.format(vars['ID'])
-    delete_from_qvarn(vars['source'], path)
-
-    IMPLEMENTS THEN target Qvarn does not have person ID
-    path = '/persons/{}'.format(vars['ID'])
-    qvarn_vars = vars['target']
-    url = qvarn_vars['url']
-    headers = {
-        'Authorization': 'Bearer {}'.format(qvarn_vars['token'])
-    }
-    vars['status_code'], vars['headers'], vars['body'] = get(url + path, headers)
-    assertEqual(vars['status_code'], 404)
+    path = '/persons/{}'.format(V['ID'])
+    delete_from_qvarn('source', path)
