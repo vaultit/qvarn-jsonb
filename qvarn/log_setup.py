@@ -50,6 +50,8 @@ def setup_logging_to_target(target):
     rule = get_filter_rules(target)
     if 'filename' in target:
         setup_logging_to_file(target, rule)
+    elif 'syslog' in target:
+        setup_logging_to_syslog(target, rule)
     else:
         raise Exception('Do not understand logging target %r' % target)
 
@@ -65,4 +67,9 @@ def setup_logging_to_file(target, rule):
     writer.set_filename(target['filename'])
     if 'max_bytes' in target:
         writer.set_max_file_size(target['max_bytes'])
+    log.add_log_writer(writer, rule)
+
+
+def setup_logging_to_syslog(target, rule):
+    writer = slog.SyslogSlogWriter()
     log.add_log_writer(writer, rule)
