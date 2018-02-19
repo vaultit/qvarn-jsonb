@@ -23,74 +23,20 @@ import qvarn
 
 class SqlSelectTests(unittest.TestCase):
 
-    def test_returns_simple_query_for_simple_equal(self):
+    def test_returns_query_for_simple_equal(self):
         cond = qvarn.Equal('foo', 'bar')
         counter = slog.Counter()
-        sql, values = qvarn.sql_select(counter, cond)
-        self.assertEqual(
-            sql,
-            ("SELECT _objects.obj_id, _objects.subpath, _objects._obj "
-             "FROM _objects, "
-             "( SELECT obj_id FROM _aux WHERE "
-             "_field->>'name' = %(name1)s AND "
-             "lower(_field->>'value') = lower(%(value2)s) ) AS _temp "
-             "WHERE _temp.obj_id = _objects.obj_id")
-        )
-        self.assertEqual(
-            values,
-            {
-                'name1': 'foo',
-                'value2': 'bar',
-            }
-        )
-
-    def test_returns_simple_query_for_simple_not_equal(self):
-        cond = qvarn.NotEqual('foo', 'bar')
-        counter = slog.Counter()
-        sql, values = qvarn.sql_select(counter, cond)
-        self.assertEqual(
-            sql,
-            ("SELECT _objects.obj_id, _objects.subpath, _objects._obj "
-             "FROM _objects, "
-             "( SELECT obj_id FROM _aux WHERE "
-             "_field->>'name' = %(name1)s AND "
-             "lower(_field->>'value') != lower(%(value2)s) ) AS _temp "
-             "WHERE _temp.obj_id = _objects.obj_id")
-        )
-        self.assertEqual(
-            values,
-            {
-                'name1': 'foo',
-                'value2': 'bar',
-            }
-        )
+        all_cond = qvarn.All()
+        query, values = qvarn.sql_select(counter, cond, all_cond, 'TRUE')
+        self.assertTrue(isinstance(query, str))
+        self.assertTrue(isinstance(values, dict))
 
     def test_returns_query_for_anded_conditions(self):
         cond1 = qvarn.Equal('foo1', 'bar1')
         cond2 = qvarn.NotEqual('foo2', 'bar2')
         cond = qvarn.All(cond1, cond2)
         counter = slog.Counter()
-        sql, values = qvarn.sql_select(counter, cond)
-        self.maxDiff = None
-        self.assertEqual(
-            sql,
-            ("SELECT _objects.obj_id, _objects.subpath, _objects._obj "
-             "FROM _objects, ( "
-             "SELECT obj_id, count(obj_id) AS _hits FROM _aux WHERE "
-             "(_field->>'name' = %(name1)s AND "
-             "lower(_field->>'value') = lower(%(value2)s)) OR "
-             "(_field->>'name' = %(name3)s AND "
-             "lower(_field->>'value') != lower(%(value4)s)) "
-             "GROUP BY obj_id ) AS _temp WHERE _hits >= %(count)s AND "
-             "_temp.obj_id = _objects.obj_id")
-        )
-        self.assertEqual(
-            values,
-            {
-                'name1': 'foo1',
-                'value2': 'bar1',
-                'name3': 'foo2',
-                'value4': 'bar2',
-                'count': 2,
-            }
-        )
+        all_cond = qvarn.All()
+        query, values = qvarn.sql_select(counter, cond, all_cond, 'TRUE')
+        self.assertTrue(isinstance(query, str))
+        self.assertTrue(isinstance(values, dict))

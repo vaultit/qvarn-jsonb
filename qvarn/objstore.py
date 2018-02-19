@@ -83,10 +83,7 @@ class ObjectStoreInterface:  # pragma: no cover
     def remove_objects(self, **keys):
         raise NotImplementedError()
 
-    def get_objects(self, **keys):
-        raise NotImplementedError()
-
-    def find_objects(self, cond):
+    def get_matches(self, cond=None, allow_cond=None, **keys):
         raise NotImplementedError()
 
     def create_blob(self, blob, subpath=None, **keys):
@@ -151,7 +148,7 @@ class MemoryObjectStore(ObjectStoreInterface):
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         self._check_unique_blob(subpath, **keys)
-        if not self.get_objects(**keys):
+        if not self.get_matches(**keys):
             raise NoSuchObject(keys)
         self._blobs.append((blob, subpath, keys))
 
@@ -187,9 +184,20 @@ class MemoryObjectStore(ObjectStoreInterface):
         self._objs = [
             (o, k) for o, k in self._objs if not self._keys_match(k, keys)]
 
-    def get_objects(self, **keys):
+    def get_matches(self, cond=None, allow_cond=None, **keys):
+        assert cond is not None or len(keys) > 0
         self.check_all_keys_are_allowed(**keys)
-        return [o for o, k in self._objs if self._keys_match(k, keys)]
+        if cond is None:
+            cond = qvarn.Yes()
+        if allow_cond is None:
+            allow_cond = qvarn.Yes()
+        return [
+            (k, o)
+            for o, k in self._objs
+            if (self._keys_match(k, keys) and cond.
+                matches(o, k) and
+                allow_cond.matches(o, k))
+        ]
 
     def _keys_match(self, got_keys, wanted_keys):
         for key in wanted_keys.keys():
@@ -197,8 +205,8 @@ class MemoryObjectStore(ObjectStoreInterface):
                 return False
         return True
 
-    def find_objects(self, cond):
-        return [(keys, obj) for obj, keys in self._objs if cond.matches(obj)]
+    def get_allow_rules(self):
+        return list(self._allow)
 
     def has_allow_rule(self, rule):
         return rule in self._allow
@@ -328,30 +336,24 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         query = t.remove_objects(self._auxtable, *keys.keys())
         t.execute(query, keys)
 
-    def get_objects(self, **keys):
-        with self._sql.transaction() as t:
-            return self._get_objects_in_transaction(t, **keys)
+    def get_matches(self, cond=None, allow_cond=None, **keys):
+        if cond is None:
+            cond = qvarn.Yes()
 
-    def _get_objects_in_transaction(self, t, **keys):
-        query = t.select_objects(self._table, '_obj', *keys.keys())
-        cursor = t.execute(query, keys)
-        return [row['_obj'] for row in t.get_rows(cursor)]
-
-    def find_objects(self, cond):
         with self._sql.transaction() as t:
-            rows = self._find_helper(t, cond)
+            query, values = t.select_objects_with_keys_and_cond(
+                self._table, cond, allow_cond, **keys)
+            cursor = t.execute(query, values)
             return [
-                self._split_row(row)
-                for row in rows
-                if row['subpath'] == ''
+                (self.get_keys_from_row(row), row['_obj'])
+                for row in t.get_rows(cursor)
             ]
 
-    def _find_helper(self, t, cond):
-        keys_columns = [key for key in self._keys if key != '_obj']
-        query, values = t.select_objects_on_cond(
-            self._auxtable, cond, *keys_columns)
-        cursor = t.execute(query, values)
-        return t.get_rows(cursor)
+    def get_keys_from_row(self, row):
+        return {
+            key: row[key]
+            for key in self._keys
+        }
 
     def _split_row(self, row):
         keys = dict(row)
@@ -362,7 +364,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         keys['subpath'] = subpath
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
-        if not self.get_objects(**keys):
+        if not self.get_matches(**keys):
             raise NoSuchObject(keys)
 
         with self._sql.transaction() as t:

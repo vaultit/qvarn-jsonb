@@ -30,6 +30,7 @@ from .sql import (
     placeholder,
     get_unique_name,
     All,
+    Cmp,
     Contains,
     Equal,
     GreaterThan,

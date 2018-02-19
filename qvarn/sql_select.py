@@ -17,36 +17,15 @@
 import qvarn
 
 
-def sql_select(counter, cond):
+def sql_select(counter, cond, allow_cond, keys_check):
+    assert cond is not None
     conds = list(flatten(cond))
-    if len(conds) == 1:
-        query, params = _select_on_simple_cond(counter, cond)
-    else:
-        query, params = _select_on_multiple_conds(counter, conds)
+    query, params = select_on_multiple_conds(
+        counter, conds, allow_cond, keys_check)
     return query, params
 
 
-def _select_on_simple_cond(counter, cond):
-    name = qvarn.get_unique_name('name', counter=counter)
-    value = qvarn.get_unique_name('value', counter=counter)
-    params = {
-        name: cond.name,
-        value: cond.pattern,
-    }
-    template = ' '.join('''
-        SELECT _objects.obj_id, _objects.subpath, _objects._obj FROM _objects,
-        (
-            SELECT obj_id FROM _aux WHERE
-            _field->>'name' = %({name})s
-            AND {valuecmp}
-        ) AS _temp
-        WHERE _temp.obj_id = _objects.obj_id
-    '''.split())
-    query = template.format(name=name, valuecmp=cond.cmp_sql(value))
-    return query, params
-
-
-def _select_on_multiple_conds(counter, conds):
+def select_on_multiple_conds(counter, conds, allow_cond, keys_check):
     params = {
         'count': len(conds),
     }
@@ -54,24 +33,45 @@ def _select_on_multiple_conds(counter, conds):
     part_template = "(_field->>'name' = %({name})s AND {valuecmp})"
     parts = []
     for subcond in conds:
-        name = qvarn.get_unique_name('name', counter=counter)
-        value = qvarn.get_unique_name('value', counter=counter)
-        params[name] = subcond.name
-        params[value] = subcond.pattern
-        part = part_template.format(name=name, valuecmp=subcond.cmp_sql(value))
+        if isinstance(subcond, qvarn.Cmp):
+            name = qvarn.get_unique_name('name', counter=counter)
+            value = qvarn.get_unique_name('value', counter=counter)
+            params[name] = subcond.name
+            params[value] = subcond.pattern
+            part = part_template.format(
+                name=name,
+                valuecmp=subcond.cmp_sql(value),
+            )
+        else:  # pragma: no cover
+            part, values = subcond.as_sql()
+            params.update(values)
         parts.append(part)
 
     template = ' '.join('''
-        SELECT _objects.obj_id, _objects.subpath, _objects._obj
-            FROM _objects, (
+        SELECT DISTINCT _objects.obj_id, _objects.subpath, _objects._obj
+            FROM _objects, {allow_table} (
             SELECT obj_id, count(obj_id) AS _hits FROM _aux WHERE
-            {}
+            {parts}
             GROUP BY obj_id
-        ) AS _temp WHERE _hits >= %(count)s AND _temp.obj_id = _objects.obj_id
+        ) AS _temp WHERE
+            _hits >= %(count)s AND
+            _temp.obj_id = _objects.obj_id AND
+            {keys_check} AND {allow_check}
     '''.split())
 
-    query = template.format(' OR '.join(parts))
+    allow_table = ''
+    allow_check = 'TRUE'
+    if allow_cond is not None:
+        allow_table = '_allow, '
+        allow_check, allow_params = allow_cond.as_sql()
+        params.update(allow_params)
 
+    query = template.format(
+        parts=' OR '.join(parts),
+        keys_check=keys_check,
+        allow_table=allow_table,
+        allow_check=allow_check,
+    )
     return query, params
 
 

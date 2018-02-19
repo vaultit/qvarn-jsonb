@@ -37,10 +37,13 @@ class ObjectStoreTests(unittest.TestCase):
         return store
 
     def get_all_objects(self, store):
-        return [obj for _, obj in store.find_objects(qvarn.Yes())]
+        return [obj for _, obj in store.get_matches(qvarn.Yes())]
 
     def sorted_dicts(self, dicts):
         return sorted(dicts, key=lambda d: sorted(d.items()))
+
+    def sorted_matches(self, matches):
+        return sorted(matches, key=lambda match: sorted(match[0].items()))
 
     def test_is_initially_empty(self):
         store = self.create_store(key=str)
@@ -93,18 +96,44 @@ class ObjectStoreTests(unittest.TestCase):
         store = self.create_store(key=str)
         store.create_object(self.obj1, key='1st')
         store.create_object(self.obj2, key='2nd')
-        self.assertEqual(store.get_objects(key='1st'), [self.obj1])
-        self.assertEqual(store.get_objects(key='2nd'), [self.obj2])
+        self.assertEqual(
+            store.get_matches(key='1st'),
+            [
+                ({'key': '1st'}, self.obj1)
+            ]
+        )
+        self.assertEqual(
+            store.get_matches(key='2nd'),
+            [
+                ({'key': '2nd'}, self.obj2)
+            ]
+        )
 
     def test_gets_objects_using_only_one_key(self):
+        keys1 = {
+            'key1': '1st',
+            'key2': 'foo',
+        }
+        keys2 = {
+            'key1': '2nd',
+            'key2': 'foo',
+        }
+
+        match1 = (keys1, self.obj1)
+        match2 = (keys2, self.obj2)
+
         store = self.create_store(key1=str, key2=str)
-        store.create_object(self.obj1, key1='1st', key2='foo')
-        store.create_object(self.obj2, key1='2nd', key2='foo')
-        self.assertEqual(store.get_objects(key1='1st'), [self.obj1])
-        self.assertEqual(store.get_objects(key1='2nd'), [self.obj2])
+        store.create_object(self.obj1, **keys1)
+        store.create_object(self.obj2, **keys2)
+        self.assertEqual(store.get_matches(key1='1st'), [match1])
+        self.assertEqual(store.get_matches(key1='2nd'), [match2])
+
+        matches = store.get_matches(key2='foo')
+        expected = [match1, match2]
         self.assertEqual(
-            self.sorted_dicts(store.get_objects(key2='foo')),
-            self.sorted_dicts([self.obj1, self.obj2]))
+            self.sorted_matches(matches),
+            self.sorted_matches(expected)
+        )
 
     def test_removes_only_one_object(self):
         store = self.create_store(key=str)
@@ -119,7 +148,7 @@ class ObjectStoreTests(unittest.TestCase):
         store.create_object(self.obj2, key='2nd')
 
         cond = qvarn.Equal('name', self.obj1['name'])
-        objs = store.find_objects(cond)
+        objs = store.get_matches(cond)
         self.assertEqual(
             objs,
             [({'key': '1st'}, self.obj1)]
@@ -240,7 +269,7 @@ class FindObjectsTests(unittest.TestCase):
         store.create_object(obj2, **keys2)
 
         cond = qvarn.Equal('bar', 'yo')
-        objs = store.find_objects(cond)
+        objs = store.get_matches(cond)
         self.assertEqual(objs, [(keys1, obj1)])
 
 

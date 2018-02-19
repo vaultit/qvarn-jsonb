@@ -149,6 +149,31 @@ class Transaction:  # pragma: no cover
             ' AND '.join(conditions),
         )
 
+    def select_objects_with_keys_and_cond(
+            self, table_name, cond, allow_cond, **keys):
+        keys_check = self.keys_checks(keys)
+        query, values = qvarn.sql_select(
+            _counter, cond, allow_cond, keys_check)
+        values.update(self.keys_values(keys))
+        return query, values
+
+    def keys_checks(self, keys):
+        if not keys:
+            checks = ['TRUE']
+        else:
+            checks = [
+                '_objects.{} = {}'.format(quote(key), placeholder(key))
+                for key in keys
+            ]
+        sql_snippet = ' AND '.join(checks)
+        return sql_snippet
+
+    def keys_values(self, keys):
+        return {
+            placeholder(key): keys[key]
+            for key in keys
+        }
+
     def select_objects(self, table_name, col_name, *keys):
         conditions = [
             '{} = {}'.format(self._q(key), self._placeholder(key))
@@ -161,10 +186,6 @@ class Transaction:  # pragma: no cover
         if conditions:
             query += ' WHERE {}'.format(' AND '.join(conditions))
         return query
-
-    def select_objects_on_cond(self, table_name, cond, *keys):
-        query, values = qvarn.sql_select(_counter, cond)
-        return query, values
 
     def _condition(self, cond):
         return cond.as_sql()

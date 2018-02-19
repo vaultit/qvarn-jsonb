@@ -103,7 +103,7 @@ class CollectionAPI:
             'obj_id': obj_id,
             'subpath': subpath,
         }
-        objs = self._store.get_objects(**keys)
+        objs = [o for k, o in self._store.get_matches(cond, **keys)]
         assert len(objs) <= 1
         if objs:
             return objs[0]
@@ -115,7 +115,15 @@ class CollectionAPI:
 
     def list(self):
         oftype = qvarn.Equal('type', self.get_type_name())
-        matches = self._store.find_objects(oftype)
+        if self._store.have_fine_grained_access_control():  # pragma: no cover
+            assert claims is not None
+            assert access_params is not None
+            allowed = qvarn.AccessIsAllowed(
+                access_params, self._store.get_allow_rules())
+            cond = qvarn.All(oftype, allowed)
+        else:
+            cond = oftype
+        matches = self._store.get_matches(cond)
         qvarn.log.log('xxx', matches=matches, type=self.get_type_name())
         return {
             'resources': [
@@ -277,7 +285,7 @@ class CollectionAPI:
                 yield name
 
     def _find_matches(self, cond):
-        matches = self._store.find_objects(cond)
+        matches = self._store.get_matches(cond)
         qvarn.log.log('xxx', matches=matches)
         obj_ids = self._uniq(keys['obj_id'] for keys, _ in matches)
         objects = [

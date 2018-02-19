@@ -78,7 +78,10 @@ class QvarnAPI:
             qvarn.Equal('path', path),
             qvarn.Equal('type', 'resource_type'),
         )
-        results = self._store.find_objects(cond)
+        results = self._store.get_matches(cond=cond)
+        qvarn.log.log(
+            'trace', msg_text='_get_resource_type_given_path',
+            results=results, path=path)
         return [obj for _, obj in results]
 
     def get_listener_resource_type(self):
@@ -95,7 +98,10 @@ class QvarnAPI:
             qvarn.Equal('id', type_name),
             qvarn.Equal('type', 'resource_type'),
         )
-        results = self._store.find_objects(cond)
+        results = self._store.get_matches(cond=cond)
+        qvarn.log.log(
+            'trace', msg_text='_get_resource_type_given_type',
+            results=results, type_name=type_name)
         objs = [obj for _, obj in results]
 
         if not objs:  # pragma: no cover
@@ -204,7 +210,7 @@ class QvarnAPI:
 
     def find_listeners(self, rid, change):  # pragma: no cover
         cond = qvarn.Equal('type', 'listener')
-        pairs = self._store.find_objects(cond)
+        pairs = self._store.get_matches(cond)
         for _, obj in pairs:
             if self.listener_matches(obj, rid, change):
                 yield obj

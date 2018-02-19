@@ -205,7 +205,7 @@ class NotificationRouter(qvarn.Router):
         )
         obj_ids = [
             keys['obj_id']
-            for keys, _ in self._store.find_objects(cond)
+            for keys, _ in self._store.get_matches(cond)
         ]
         qvarn.log.log(
             'trace', msg_text='Found notifications',
@@ -222,7 +222,7 @@ class NotificationRouter(qvarn.Router):
             qvarn.Equal('type', 'notification'),
             qvarn.Equal('listener_id', listener_id)
         )
-        pairs = self._store.find_objects(cond)
+        pairs = self._store.get_matches(cond)
         ordered = sorted(pairs, key=timestamp)
         body = {
             'resources': [
@@ -242,7 +242,7 @@ class NotificationRouter(qvarn.Router):
             qvarn.Equal('listener_id', listener_id),
             qvarn.Equal('id', notification_id),
         )
-        pairs = self._store.find_objects(cond)
+        pairs = self._store.get_matches(cond)
         if not pairs:
             return qvarn.no_such_resource_response(notification_id)
         if len(pairs) > 1:
@@ -272,7 +272,7 @@ class NotificationRouter(qvarn.Router):
             qvarn.Equal('listener_id', listener_id),
             qvarn.Equal('id', notification_id),
         )
-        for keys, _ in self._store.find_objects(cond):
+        for keys, _ in self._store.get_matches(cond):
             values = {
                 key: keys[key]
                 for key in keys
