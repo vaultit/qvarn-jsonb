@@ -112,6 +112,7 @@ from .notification_router import NotificationRouter
 from .resource_router import ResourceRouter
 from .subresource_router import SubresourceRouter
 from .version_router import VersionRouter
+from .allow_router import AllowRouter
 from .timestamp import get_current_timestamp
 
 from .api import QvarnAPI

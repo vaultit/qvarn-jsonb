@@ -345,7 +345,7 @@ def values_match(wanted, actual):
     return True
 
 
-def start_qvarn(name, audience='audience'):
+def start_qvarn(name, audience='audience', fine_grained=False):
     privkey, pubkey = create_token_signing_key_pair()
     port = cliapp.runcmd([os.path.join(srcdir, 'randport')]).strip()
 
@@ -359,6 +359,7 @@ def start_qvarn(name, audience='audience'):
         'url': 'http://127.0.0.1:{}'.format(port),
         'privkey': privkey,
         'pubkey': pubkey,
+        'fine-grained': fine_grained,
     }
     save_qvarn(name, qvarn_vars)
 
@@ -379,6 +380,7 @@ def start_qvarn_with_vars(name):
         'token-audience': qvarn_vars['audience'],
         'token-public-key': qvarn_vars['pubkey'],
         'resource-type-dir': os.path.join(srcdir, 'resource_type'),
+        'enable-fine-grained-access-control': qvarn_vars['fine-grained'],
     }
     config = add_postgres_config(config)
     config_filename = os.path.join(datadir, 'qvarn-{}.yaml'.format(name))

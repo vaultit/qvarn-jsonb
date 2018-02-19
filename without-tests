@@ -1,5 +1,6 @@
 setup.py
 qvarn/__init__.py
+qvarn/allow_router.py
 qvarn/api_errors.py
 qvarn/backend.py
 qvarn/file_router.py

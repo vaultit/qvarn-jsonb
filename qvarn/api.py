@@ -115,6 +115,12 @@ class QvarnAPI:
             v = qvarn.VersionRouter()
             return v.get_routes()
 
+        if path == '/allow':
+            qvarn.log.log('info', msg_text='Add /allow route')
+            a = qvarn.AllowRouter()
+            a.set_store(self._store)
+            return a.get_routes()
+
         try:
             rt = self.get_resource_type(path)
         except qvarn.NoSuchResourceType:

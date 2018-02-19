@@ -51,6 +51,9 @@ class ObjectStoreInterface:  # pragma: no cover
 
     '''
 
+    def __init__(self):
+        self._fine_grained_access_control = False
+
     def create_store(self, **keys):
         raise NotImplementedError()
 
@@ -95,13 +98,31 @@ class ObjectStoreInterface:  # pragma: no cover
     def remove_blob(self, subpath=None, **keys):
         raise NotImplementedError()
 
+    def have_fine_grained_access_control(self):
+        return self._fine_grained_access_control
+
+    def enable_fine_grained_access_control(self):
+        self._fine_grained_access_control = True
+
+    def has_allow_rule(self, rule):
+        raise NotImplementedError()
+
+    def add_allow_rule(self, rule):
+        raise NotImplementedError()
+
+    def remove_allow_rule(self, rule):
+        raise NotImplementedError()
+
 
 class MemoryObjectStore(ObjectStoreInterface):
 
     def __init__(self):
+        super().__init__()
         self._objs = []
         self._blobs = []
         self._known_keys = {}
+        self._fine_grained_access_control = False
+        self._allow = []
 
     def get_known_keys(self):
         return self._known_keys
@@ -179,14 +200,25 @@ class MemoryObjectStore(ObjectStoreInterface):
     def find_objects(self, cond):
         return [(keys, obj) for obj, keys in self._objs if cond.matches(obj)]
 
+    def has_allow_rule(self, rule):
+        return rule in self._allow
+
+    def add_allow_rule(self, rule):
+        self._allow.append(dict(rule))
+
+    def remove_allow_rule(self, rule):
+        self._allow = [r for r in self._allow if r != rule]
+
 
 class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
 
     _table = '_objects'
     _auxtable = '_aux'
     _blobtable = '_blobs'
+    _allowtable = '_allow'
 
     def __init__(self, sql):
+        super().__init__()
         self._sql = sql
         self._keys = None
 
@@ -206,6 +238,24 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
 
         # Create helper table for blobs.
         self._create_table(self._blobtable, self._keys, '_blob', bytes)
+
+        # Create table for fine-grained access control rules.
+        self._create_allow_table()
+
+    def _create_allow_table(self):
+        columns = {
+            'method': str,
+            'client_id': str,
+            'user_id': str,
+            'subpath': str,
+            'id': str,
+            'resource_type': str,
+            'resource_field': str,
+            'resource_value': str,
+        }
+        with self._sql.transaction() as t:
+            query = t.create_table(self._allowtable, **columns)
+            t.execute(query, {})
 
     def _create_table(
             self, name, col_dict, col_name, col_type, index=False,
@@ -347,6 +397,25 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         with self._sql.transaction() as t:
             query = t.remove_objects(self._blobtable, *column_names)
             t.execute(query, keys)
+
+    def has_allow_rule(self, rule):
+        with self._sql.transaction() as t:
+            query = t.has_allow_rule(self._allowtable)
+            for row in t.execute(query, rule):
+                return True
+        return False
+
+    def add_allow_rule(self, rule):
+        with self._sql.transaction() as t:
+            column_names = list(rule.keys())
+            query = t.insert_object(self._allowtable, *column_names)
+            t.execute(query, rule)
+
+    def remove_allow_rule(self, rule):
+        column_names = list(rule.keys())
+        with self._sql.transaction() as t:
+            query = t.remove_objects(self._allowtable, *column_names)
+            t.execute(query, rule)
 
 
 class KeyCollision(Exception):

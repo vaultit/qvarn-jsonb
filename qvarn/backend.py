@@ -62,6 +62,7 @@ default_config = {
     'token-issuer': None,
     'log': [],
     'resource-type-dir': None,
+    'enable-fine-grained-access-control': None,
     'memory-database': True,
     'database': {
         'host': None,
@@ -134,6 +135,11 @@ else:
     sql = qvarn.PostgresAdapter()
     sql.connect(**config['database'])
     store = qvarn.PostgresObjectStore(sql)
+if config['enable-fine-grained-access-control']:
+    store.enable_fine_grained_access_control()
+qvarn.log.log(
+    'info', msg_text='Fine grained access control?',
+    enabled=store.have_fine_grained_access_control())
 
 api = qvarn.QvarnAPI()
 api.set_base_url(config['baseurl'])

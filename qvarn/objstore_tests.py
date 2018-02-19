@@ -242,3 +242,46 @@ class FindObjectsTests(unittest.TestCase):
         cond = qvarn.Equal('bar', 'yo')
         objs = store.find_objects(cond)
         self.assertEqual(objs, [(keys1, obj1)])
+
+
+class AllowRuleTests(unittest.TestCase):
+
+    rule = {
+        'client_id': 'test-client',
+        'method': 'GET',
+        'subpath': '',
+        'user_id': 'test-user',
+        'id': '123',
+        'resource_type': 'person',
+        'resource_field': None,
+        'resource_value': None,
+    }
+
+    def create_store(self, **keys):
+        store = qvarn.MemoryObjectStore()
+        store.create_store(**keys)
+        return store
+
+    def test_fine_grained_access_control_is_disabled_initially(self):
+        store = self.create_store(obj_id=str)
+        self.assertFalse(store.have_fine_grained_access_control())
+
+    def test_fine_grained_access_control_can_be_enabled(self):
+        store = self.create_store(obj_id=str)
+        store.enable_fine_grained_access_control()
+        self.assertTrue(store.have_fine_grained_access_control())
+
+    def test_doesnt_have_allow_rule_initially(self):
+        store = self.create_store(obj_id=str)
+        self.assertFalse(store.has_allow_rule(self.rule))
+
+    def test_adds_allow_rule(self):
+        store = self.create_store(obj_id=str)
+        store.add_allow_rule(self.rule)
+        self.assertTrue(store.has_allow_rule(self.rule))
+
+    def test_removes_allow_rule(self):
+        store = self.create_store(obj_id=str)
+        store.add_allow_rule(self.rule)
+        store.remove_allow_rule(self.rule)
+        self.assertFalse(store.has_allow_rule(self.rule))

@@ -38,6 +38,10 @@ class QvarnAPITests(unittest.TestCase):
         api = qvarn.QvarnAPI()
         self.assertNotEqual(api.find_missing_route('/version'), [])
 
+    def test_returns_routes_for_allow_path(self):
+        api = qvarn.QvarnAPI()
+        self.assertNotEqual(api.find_missing_route('/allow'), [])
+
     def test_returns_no_routes_for_unknown_resource_type(self):
         store = qvarn.MemoryObjectStore()
         api = qvarn.QvarnAPI()
