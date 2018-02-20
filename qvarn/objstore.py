@@ -101,6 +101,9 @@ class ObjectStoreInterface:  # pragma: no cover
     def enable_fine_grained_access_control(self):
         self._fine_grained_access_control = True
 
+    def get_allow_rules(self):
+        raise NotImplementedError()
+
     def has_allow_rule(self, rule):
         raise NotImplementedError()
 
@@ -399,6 +402,9 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         with self._sql.transaction() as t:
             query = t.remove_objects(self._blobtable, *column_names)
             t.execute(query, keys)
+
+    def get_allow_rules(self):
+        return None
 
     def has_allow_rule(self, rule):
         with self._sql.transaction() as t:

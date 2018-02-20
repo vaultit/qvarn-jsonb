@@ -497,3 +497,113 @@ class CollectionAPITests(unittest.TestCase):
             new_obj = self.coll.post(obj)
             objs.append(new_obj)
         return objs
+
+
+class FineGrainedAccessControlTests(unittest.TestCase):
+
+    def setUp(self):
+        self.store = qvarn.MemoryObjectStore()
+
+        spec = {
+            'type': 'subject',
+            'path': '/subjects',
+            'versions': [
+                {
+                    'version': 'v0',
+                    'prototype': {
+                        'type': '',
+                        'id': '',
+                        'full_name': '',
+                    },
+                    'subpaths': {
+                        'moar': {
+                            'prototype': {
+                                'nickname': '',
+                            },
+                        },
+                    },
+                },
+            ],
+        }
+        self.rt = qvarn.ResourceType()
+        self.rt.from_spec(spec)
+
+        self.coll = qvarn.CollectionAPI()
+        self.coll.set_object_store(self.store)
+        self.coll.set_resource_type(self.rt)
+
+        self.next_id = 1
+
+        self.claims = {
+            'aud': 'test-client',
+            'sub': 'test-user',
+        }
+
+        self.client_id = 'test-client'
+        self.user_id = 'test-user'
+        rule = {
+            'method': 'GET',
+            'client_id': self.client_id,
+            'user_id': self.user_id,
+            'subpath': '',
+            'resource_id': '*',
+            'resource_type': 'subject',
+            'resource_field': None,
+            'resource_value': None,
+        }
+        self.store.add_allow_rule(rule)
+
+    def create_subject(self):
+        subject = {
+            'type': 'subject',
+            'id': str(self.next_id),
+            'full_name': 'Subject {}'.format(self.next_id)
+        }
+        self.store.create_object(subject, obj_id=subject['id'], subpath='')
+        self.next_id += 1
+        return subject['id']
+
+    def list_ids(self, claims, params):
+        result = self.coll.list(claims=claims, access_params=params)
+        return [r['id'] for r in result['resources']]
+
+    def access_params(self, **kwargs):
+        defaults = {
+            'method': 'GET',
+            'client_id': 'unknown-client',
+            'user_id': 'unknown-user',
+            'resource_type': 'unknown-type',
+            'subpath': '',
+        }
+
+        params = {}
+        for key in defaults:
+            if key in kwargs:
+                params[key] = kwargs[key]
+            else:
+                params[key] = defaults[key]
+        return params
+
+    def test_lists_nothing_for_empty_store(self):
+        ids = self.list_ids(self.claims, None)
+        self.assertEqual(ids, [])
+
+    def test_lists_everything_without_fine_grained_access_control(self):
+        obj_id = self.create_subject()
+        ids = self.list_ids(None, None)
+        self.assertEqual(ids, [obj_id])
+
+    def test_lists_nothing_with_fine_grained_access_control(self):
+        self.store.enable_fine_grained_access_control()
+        obj_id = self.create_subject()
+        params = self.access_params()
+        ids = self.list_ids(self.claims, params)
+        self.assertEqual(ids, [])
+
+    def test_lists_everything_with_fine_grained_access_control(self):
+        self.store.enable_fine_grained_access_control()
+        obj_id = self.create_subject()
+        params = self.access_params(
+            client_id=self.client_id, user_id=self.user_id)
+        ids = self.list_ids(self.claims, params)
+        self.assertEqual(ids, [obj_id])

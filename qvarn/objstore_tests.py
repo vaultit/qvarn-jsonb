@@ -291,6 +291,10 @@ class AllowRuleTests(unittest.TestCase):
         store.create_store(**keys)
         return store
 
+    def test_has_no_rules_initially(self):
+        store = self.create_store(obj_id=str)
+        self.assertEqual(store.get_allow_rules(), [])
+
     def test_fine_grained_access_control_is_disabled_initially(self):
         store = self.create_store(obj_id=str)
         self.assertFalse(store.have_fine_grained_access_control())

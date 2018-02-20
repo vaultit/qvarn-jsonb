@@ -113,18 +113,16 @@ class CollectionAPI:
         self.get(obj_id)
         self._store.remove_objects(obj_id=obj_id)
 
-    def list(self):
+    def list(self, claims=None, access_params=None):
         oftype = qvarn.Equal('type', self.get_type_name())
+        allowed = None
         if self._store.have_fine_grained_access_control():  # pragma: no cover
             assert claims is not None
             assert access_params is not None
             allowed = qvarn.AccessIsAllowed(
                 access_params, self._store.get_allow_rules())
-            cond = qvarn.All(oftype, allowed)
-        else:
-            cond = oftype
-        matches = self._store.get_matches(cond)
-        qvarn.log.log('xxx', matches=matches, type=self.get_type_name())
+        matches = self._store.get_matches(
+            oftype, allow_cond=allowed, subpath='')
         return {
             'resources': [
                 {'id': obj['id']}

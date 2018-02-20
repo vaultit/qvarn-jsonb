@@ -95,6 +95,14 @@ class ResourceRouter(qvarn.Router):
 
         return routes
 
+    def _get_access_params(self, claims):
+        return {
+            'method': bottle.request.method,
+            'client_id': claims['aud'],
+            'user_id': claims['sub'],
+            'resource_type': self._coll.get_type_name(),
+        }
+
     def _create(self, content_type, body, *args, **kwargs):
         if content_type != 'application/json':
             raise qvarn.NotJson(content_type)
@@ -183,7 +191,9 @@ class ResourceRouter(qvarn.Router):
         return qvarn.ok_response(result_body)
 
     def _list(self, *args, **kwargs):
-        body = self._coll.list()
+        claims = kwargs.get('claims')
+        params = self._get_access_params(claims)
+        body = self._coll.list(claims=claims, access_params=params)
 
         for obj in body.get('resources', []):
             self._log_access(
