@@ -1,4 +1,4 @@
-# Copyright (C) 2017  Lars Wirzenius
+# Copyright (C) 2017-2018  Lars Wirzenius
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -89,8 +89,9 @@ class CollectionAPI:
     def _invent_id(self, resource_type):
         return self._idgen.new_id(resource_type)
 
-    def get(self, obj_id):
-        obj = self._get_object(obj_id, '')
+    def get(self, obj_id, claims=None, access_params=None):
+        obj = self._get_object(
+            obj_id, '', claims=claims, access_params=access_params)
         if obj and obj.get('type') == self.get_type_name():
             return obj
         raise NoSuchResource(obj_id=obj_id)
@@ -98,12 +99,20 @@ class CollectionAPI:
     def get_subresource(self, obj_id, subpath):
         return self._get_object(obj_id, subpath)
 
-    def _get_object(self, obj_id, subpath):
+    def _get_object(self, obj_id, subpath, claims=None, access_params=None):
+        allow_cond = None
+        if self._store.have_fine_grained_access_control():  # pragma: no cover
+            assert claims is not None
+            assert access_params is not None
+            allow_cond = qvarn.AccessIsAllowed(
+                access_params, self._store.get_allow_rules())
+
         keys = {
             'obj_id': obj_id,
             'subpath': subpath,
         }
-        objs = [o for k, o in self._store.get_matches(cond, **keys)]
+        matches = self._store.get_matches(allow_cond=allow_cond, **keys)
+        objs = [o for k, o in matches]
         assert len(objs) <= 1
         if objs:
             return objs[0]

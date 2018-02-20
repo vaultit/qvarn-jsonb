@@ -563,6 +563,9 @@ class FineGrainedAccessControlTests(unittest.TestCase):
         self.next_id += 1
         return subject['id']
 
+    def get_resource(self, obj_id, claims, params):
+        return self.coll.get(obj_id, claims=claims, access_params=params)
+
     def list_ids(self, claims, params):
         result = self.coll.list(claims=claims, access_params=params)
         return [r['id'] for r in result['resources']]
@@ -607,3 +610,23 @@ class FineGrainedAccessControlTests(unittest.TestCase):
             client_id=self.client_id, user_id=self.user_id)
         ids = self.list_ids(self.claims, params)
         self.assertEqual(ids, [obj_id])
+
+    def test_allows_showing_resource_without_fine_grained_access_control(self):
+        obj_id = self.create_subject()
+        obj = self.get_resource(obj_id, None, None)
+        self.assertEqual(obj['id'], obj_id)
+
+    def test_denies_resource_with_fine_grained_access_control(self):
+        self.store.enable_fine_grained_access_control()
+        obj_id = self.create_subject()
+        params = self.access_params()
+        with self.assertRaises(qvarn.NoSuchResource):
+            self.get_resource(obj_id, self.claims, params)
+
+    def test_allows_resource_with_fine_grained_access_control(self):
+        self.store.enable_fine_grained_access_control()
+        obj_id = self.create_subject()
+        params = self.access_params(
+            client_id=self.client_id, user_id=self.user_id)
+        obj = self.get_resource(obj_id, self.claims, params)
+        self.assertEqual(obj['id'], obj_id)
