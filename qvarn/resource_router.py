@@ -209,8 +209,12 @@ class ResourceRouter(qvarn.Router):
         return qvarn.ok_response(body)
 
     def _get(self, *args, **kwargs):
+        claims = kwargs.get('claims')
+        params = self._get_access_params(claims)
+
         try:
-            obj = self._coll.get(kwargs['id'])
+            obj = self._coll.get(
+                kwargs['id'], claims=claims, access_params=params)
         except qvarn.NoSuchResource as e:
             return qvarn.no_such_resource_response(str(e))
 
