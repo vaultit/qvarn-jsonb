@@ -559,12 +559,20 @@ class FineGrainedAccessControlTests(unittest.TestCase):
             'id': str(self.next_id),
             'full_name': 'Subject {}'.format(self.next_id)
         }
+        moar = {
+            'nickname': 'Nik'
+        }
         self.store.create_object(subject, obj_id=subject['id'], subpath='')
+        self.store.create_object(moar, obj_id=subject['id'], subpath='moar')
         self.next_id += 1
         return subject['id']
 
     def get_resource(self, obj_id, claims, params):
         return self.coll.get(obj_id, claims=claims, access_params=params)
+
+    def get_subresource(self, obj_id, subpath, claims, params):
+        return self.coll.get_subresource(
+            obj_id, subpath, claims=claims, access_params=params)
 
     def list_ids(self, claims, params):
         result = self.coll.list(claims=claims, access_params=params)
@@ -630,3 +638,23 @@ class FineGrainedAccessControlTests(unittest.TestCase):
             client_id=self.client_id, user_id=self.user_id)
         obj = self.get_resource(obj_id, self.claims, params)
         self.assertEqual(obj['id'], obj_id)
+
+    def test_allows_subresource_without_fine_grained_access_control(self):
+        obj_id = self.create_subject()
+        moar = self.get_subresource(obj_id, 'moar', None, None)
+        self.assertEqual(moar['nickname'], 'Nik')
+
+    def test_denies_subresource_with_fine_grained_access_control(self):
+        self.store.enable_fine_grained_access_control()
+        obj_id = self.create_subject()
+        params = self.access_params()
+        with self.assertRaises(qvarn.NoSuchResource):
+            self.get_subresource(obj_id, 'moar', self.claims, params)
+
+    def test_allows_subresource_with_fine_grained_access_control(self):
+        self.store.enable_fine_grained_access_control()
+        obj_id = self.create_subject()
+        params = self.access_params(
+            client_id=self.client_id, user_id=self.user_id)
+        moar = self.get_subresource(obj_id, 'moar', self.claims, params)
+        self.assertEqual(moar['nickname'], 'Nik')

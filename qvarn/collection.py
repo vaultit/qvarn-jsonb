@@ -96,8 +96,10 @@ class CollectionAPI:
             return obj
         raise NoSuchResource(obj_id=obj_id)
 
-    def get_subresource(self, obj_id, subpath):
-        return self._get_object(obj_id, subpath)
+    def get_subresource(
+            self, obj_id, subpath, claims=None, access_params=None):
+        return self._get_object(
+            obj_id, subpath, claims=claims, access_params=access_params)
 
     def _get_object(self, obj_id, subpath, claims=None, access_params=None):
         allow_cond = None
