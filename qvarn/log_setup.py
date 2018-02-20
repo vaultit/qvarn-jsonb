@@ -13,8 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 
 import slog
+import slog.slog
 
 
 def drop_get_message(log_obj):
@@ -52,6 +54,8 @@ def setup_logging_to_target(target):
         setup_logging_to_file(target, rule)
     elif 'syslog' in target:
         setup_logging_to_syslog(target, rule)
+    elif 'stdout' in target:
+        setup_logging_to_stdout(target, rule)
     else:
         raise Exception('Do not understand logging target %r' % target)
 
@@ -72,4 +76,24 @@ def setup_logging_to_file(target, rule):
 
 def setup_logging_to_syslog(target, rule):
     writer = slog.SyslogSlogWriter()
+    log.add_log_writer(writer, rule)
+
+
+class StdoutSlogWriter(slog.slog.SlogWriter):  # pragma: no cover
+
+    def __init__(self, pretty=False):
+        self._pretty = pretty
+
+    def write(self, log_obj):
+        if self._pretty:
+            print(json.dumps(log_obj, sort_keys=True, indent=4), flush=True)
+        else:
+            print(json.dumps(log_obj, sort_keys=True), flush=True)
+
+    def close(self):
+        pass
+
+
+def setup_logging_to_stdout(target, rule):
+    writer = StdoutSlogWriter(target.get('pretty', False))
     log.add_log_writer(writer, rule)
