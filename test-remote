@@ -1,0 +1,123 @@
+#!/bin/sh
+
+set -eu
+
+URL="$1"
+
+tool()
+{
+    ../qvarntool/qvarntool -a "$URL" --secrets "$secrets" "$@"
+}
+
+mksecrets()
+{
+    cat <<EOF
+[$URL]
+client_id = $1
+client_secret = hunter2
+EOF
+}
+
+msg()
+{
+    echo
+    echo "$@"
+    echo -------------------------------------------------------
+}
+
+
+person()
+{
+    cat <<EOF
+{
+    "names": [
+        { "full_name": "$1" }
+    ]
+}
+EOF
+}
+
+
+person_with_revision()
+{
+    cat <<EOF
+{
+    "revision": "$1",
+    "names": [
+        { "full_name": "$2" }
+    ]
+}
+EOF
+}
+
+
+secrets="$(mktemp)"
+
+mksecrets test-client > "$secrets"
+
+msg Add /allow rule for test-client
+token="$(tool get-token)"
+curl -k -H "Authorization: Bearer $token" -H "Content-Type: application/json" -d '{ 
+  "method": "GET",
+  "client_id": "test-client",
+  "user_id": "*",
+  "resource_type": "person",
+  "id": "*",
+  "subpath": "",
+  "resource_field": null,
+  "resource_value": null
+}' -X POST "$URL/allow"
+curl -k -H "Authorization: Bearer $token" -H "Content-Type: application/json" -d '{ 
+  "method": "PUT",
+  "client_id": "test-client",
+  "user_id": "*",
+  "resource_type": "person",
+  "id": "*",
+  "subpath": "",
+  "resource_field": null,
+  "resource_value": null
+}' -X POST "$URL/allow"
+
+msg Create person
+bond="$(tool POST /persons "$(person "James Bond")" | jq -r .id)"
+
+msg Getting its revision
+revision="$(tool GET "/persons/$bond" | jq -r .revision)"
+
+msg Show person
+cat "$secrets"
+tool GET "/persons/$bond"
+
+msg List persons
+tool GET /persons
+
+msg Search persons
+tool GET /persons/search/contains/full_name/James
+
+mksecrets other-client > "$secrets"
+
+msg List persons as other-client
+tool GET /persons
+
+msg Show person as other-client
+tool GET "/persons/$bond" || true
+
+msg Search persons as other-client
+tool GET /persons/search/contains/full_name/James
+
+msg Updating person
+tool PUT "/persons/$bond" "$(person_with_revision "$revision" "Agent 007")" || true
+
+msg Delete person as other-client
+tool DELETE "/persons/$bond" || true
+
+mksecrets test-client > "$secrets"
+
+msg List persons as test-client
+tool GET /persons
+
+msg Updating person as test-client
+tool PUT "/persons/$bond" "$(person_with_revision "$revision" "Agent 007")"
+
+msg Show person as test-client
+tool GET "/persons/$bond"
