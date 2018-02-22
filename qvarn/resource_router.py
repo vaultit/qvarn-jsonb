@@ -146,6 +146,9 @@ class ResourceRouter(qvarn.Router):
         return qvarn.created_response(result_body, location)
 
     def _update(self, content_type, body, *args, **kwargs):
+        claims = kwargs.get('claims')
+        params = self._get_access_params(claims)
+
         if content_type != 'application/json':
             raise qvarn.NotJson(content_type)
 
@@ -168,7 +171,8 @@ class ResourceRouter(qvarn.Router):
         if False and body['id'] != obj_id:
             raise qvarn.IdMismatch(body['id'], obj_id)
         try:
-            result_body = self._coll.put(body)
+            result_body = self._coll.put(
+                body, claims=claims, access_params=params)
         except qvarn.WrongRevision as e:
             return qvarn.conflict_response(str(e))
         except qvarn.NoSuchResource as e:

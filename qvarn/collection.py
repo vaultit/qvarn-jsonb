@@ -142,11 +142,11 @@ class CollectionAPI:
             ]
         }
 
-    def put(self, obj):
+    def put(self, obj, claims=None, access_params=None):
         v = qvarn.Validator()
         v.validate_resource_update(obj, self.get_type())
 
-        old = self.get(obj['id'])
+        old = self.get(obj['id'], claims=claims, access_params=access_params)
         if old['revision'] != obj['revision']:
             raise WrongRevision(obj['revision'], old['revision'])
 
