@@ -260,8 +260,16 @@ class ResourceRouter(qvarn.Router):
         return qvarn.ok_response({'resources': result})
 
     def _delete(self, *args, **kwargs):
+        claims = kwargs.get('claims')
+        params = self._get_access_params(claims)
+        qvarn.log.log(
+            'trace', msg_text='_delete callback', claims=claims, params=params)
+
         obj_id = kwargs['id']
-        self._coll.delete(obj_id)
+        try:
+            self._coll.delete(obj_id, claims=claims, access_params=params)
+        except qvarn.NoSuchResource as e:
+            return qvarn.no_such_resource_response(str(e))
 
         self._notify(obj_id, None, 'deleted')
         self._log_access(

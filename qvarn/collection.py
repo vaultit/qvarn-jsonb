@@ -120,8 +120,8 @@ class CollectionAPI:
             return objs[0]
         raise NoSuchResource(**keys)
 
-    def delete(self, obj_id):
-        self.get(obj_id)
+    def delete(self, obj_id, claims=None, access_params=None):
+        self.get(obj_id, claims=claims, access_params=access_params)
         self._store.remove_objects(obj_id=obj_id)
 
     def list(self, claims=None, access_params=None):
