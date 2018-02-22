@@ -200,7 +200,7 @@ class CollectionAPI:
         self._create_object(obj, obj_id=obj_id, subpath='')
         return obj
 
-    def search(self, search_criteria):
+    def search(self, search_criteria, claims=None, access_params=None):
         if not search_criteria:
             raise NoSearchCriteria()
 
@@ -241,7 +241,8 @@ class CollectionAPI:
         # managed transition, and for now we can't just drop it.
         self._check_fields_are_allowed(sp.cond)
 
-        unsorted = self._find_matches(sp.cond)
+        unsorted = self._find_matches(
+            sp.cond, claims=claims, access_params=access_params)
         if sp.sort_keys:
             result = self._sort_objects(unsorted, sp.sort_keys)
         else:
@@ -293,12 +294,21 @@ class CollectionAPI:
             for name in t[0]:
                 yield name
 
-    def _find_matches(self, cond):
-        matches = self._store.get_matches(cond)
+    def _find_matches(self, cond, claims=None, access_params=None):
+        allow_cond = None
+        if self._store.have_fine_grained_access_control():  # pragma: no cover
+            assert claims is not None
+            assert access_params is not None
+            allow_cond = qvarn.AccessIsAllowed(
+                access_params, self._store.get_allow_rules())
+
+        matches = self._store.get_matches(cond=cond, allow_cond=allow_cond)
         qvarn.log.log('xxx', matches=matches)
         obj_ids = self._uniq(keys['obj_id'] for keys, _ in matches)
         objects = [
-            self._get_object(obj_id=obj_id, subpath='')
+            self._get_object(
+                obj_id=obj_id, subpath='', claims=claims,
+                access_params=access_params)
             for obj_id in obj_ids
         ]
         return [o for o in objects if o['type'] == self.get_type_name()]

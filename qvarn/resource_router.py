@@ -231,10 +231,14 @@ class ResourceRouter(qvarn.Router):
         return qvarn.ok_response(obj)
 
     def _search(self, *args, **kwargs):
+        claims = kwargs.get('claims')
+        params = self._get_access_params(claims)
+
         path = kwargs['raw_uri_path']
         search_criteria = path.split('/search/', 1)[1]
         try:
-            result = self._coll.search(search_criteria)
+            result = self._coll.search(
+                search_criteria, claims=claims, access_params=params)
         except qvarn.UnknownSearchField as e:
             return qvarn.unknown_search_field_response(e)
         except qvarn.NeedSortOperator:
