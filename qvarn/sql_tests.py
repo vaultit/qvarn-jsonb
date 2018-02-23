@@ -22,11 +22,11 @@ import qvarn
 class AllConditionTests(unittest.TestCase):
 
     def test_returns_true_without_subconditions(self):
-        self.assertTrue(qvarn.All().matches(None))
+        self.assertTrue(qvarn.All().matches(None, None))
 
     def test_returns_false_without_false_subcondition(self):
         cond = qvarn.All(qvarn.No())
-        self.assertFalse(cond.matches(None))
+        self.assertFalse(cond.matches(None, None))
 
     def test_returns_appended_subcondition(self):
         cond = qvarn.All()
@@ -38,7 +38,7 @@ class AllConditionTests(unittest.TestCase):
         cond = qvarn.All()
         yes = qvarn.Yes()
         cond.append_subcondition(yes)
-        self.assertTrue(cond.matches(None))
+        self.assertTrue(cond.matches(None, None))
 
 
 class CmpTests(unittest.TestCase):
@@ -105,4 +105,4 @@ class CmpTests(unittest.TestCase):
         restype = {
             'type': 'foo',
         }
-        self.assertEqual(qvarn.ResourceTypeIs('foo').matches(restype), True)
+        self.assertTrue(qvarn.ResourceTypeIs('foo').matches(restype, None))

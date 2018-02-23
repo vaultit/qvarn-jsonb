@@ -203,7 +203,7 @@ class Condition:  # pragma: no cover
     def get_subconditions(self):
         return []
 
-    def matches(self, obj):  # pragma: no cover
+    def matches(self, obj, keys):  # pragma: no cover
         raise NotImplementedError()
 
     def as_sql(self):  # pragma: no cover
@@ -221,9 +221,9 @@ class All(Condition):
     def get_subconditions(self):
         return self.conds
 
-    def matches(self, obj):
+    def matches(self, obj, keys):
         for cond in self.conds:
-            if not cond.matches(obj):
+            if not cond.matches(obj, keys):
                 return False
         return True
 
@@ -257,7 +257,7 @@ class Cmp(Condition):  # pragma: no cover
     def get_operator(self):
         raise NotImplementedError()
 
-    def matches(self, obj):
+    def matches(self, obj, keys):
         for key, actual in qvarn.flatten_object(obj):
             if key == self.name and self.cmp_py(actual):
                 return True
@@ -290,7 +290,7 @@ class ResourceTypeIs(Equal):
     def __init__(self, type_name):
         super().__init__('type', type_name)
 
-    def matches(self, obj):
+    def matches(self, obj, keys):
         return obj.get('type') == self.pattern
 
 
@@ -370,7 +370,7 @@ class Yes(Condition):
     def compare(self, a, b):  # pragma: no cover
         assert False
 
-    def matches(self, obj):
+    def matches(self, obj, keys):
         return True
 
     def as_sql(self):  # pragma: no cover
@@ -382,7 +382,7 @@ class No(Condition):
     def compare(self, a, b):  # pragma: no cover
         assert False
 
-    def matches(self, obj):
+    def matches(self, obj, keys):
         return False
 
     def as_sql(self):  # pragma: no cover
