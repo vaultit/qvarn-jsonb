@@ -14,19 +14,33 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import re
 import logging
+
+import yaml
 
 
 def get_rt(api, name):
-    token = api.get_token('resource_types')
-    r = api.GET(token, '/resource_types/{}'.format(name))
-    obj = r.json()
-    spec = obj['spec']
+    version = api.get_version()['api']['version']
+    version = tuple(map(int, re.findall(r'\d+', version)))
+    logging.debug('Qvarn version found: %s.%s', *version[:2])
+    if version[:2] > (0, 82):
+        token = api.get_token('resource_types')
+        r = api.GET(token, '/resource_types/{}'.format(name))
+        obj = r.json()
+        spec = obj['spec']
+    else:
+        token = api.get_token('resource_types', search=True)
+        r = api.GET(token, (
+            '/resource_types/search/exact/name/{}/show_all'.format(name)
+        ))
+        obj = r.json()
+        spec = yaml.safe_load(obj['resources'][0]['yaml'])
     rt = {
         'type': spec['type'],
         'plural': spec['path'].split('/')[1],
         'path': spec['path'],
-        'subpaths': list(spec['versions'][-1]['subpaths'].keys()),
+        'subpaths': list(spec['versions'][-1].get('subpaths', {}).keys()),
     }
     logging.debug('get_rt: %r', rt)
     return rt
