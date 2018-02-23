@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-def scopes_for_type(name, subpaths):
+def scopes_for_type(name, subpaths, search=False):
     scopes = []
 
     scopes.append('uapi_{}_post'.format(name))
@@ -33,6 +33,9 @@ def scopes_for_type(name, subpaths):
     scopes.append('uapi_{}_listeners_id_notifications_post'.format(name))
     scopes.append('uapi_{}_listeners_id_notifications_id_get'.format(name))
     scopes.append('uapi_{}_listeners_id_notifications_id_delete'.format(name))
+
+    if search:
+        scopes.append('uapi_{}_search_id_get'.format(name))
 
     for subtype in subpaths:
         scopes.append('uapi_{}_id_{}_get'.format(name, subtype))

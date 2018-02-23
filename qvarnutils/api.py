@@ -53,18 +53,19 @@ class QvarnAPI:
     def set_token(self, token):
         self._forced_token = token
 
-    def get_token(self, type_name, subpaths=None):
+    def get_token(self, type_name, subpaths=None, search=False):
         if self._forced_token:
             logging.info('Using forced token')
             return self._forced_token
         logging.info('Getting token for resource type %s', type_name)
-        token = self._tokens.get(type_name)
+        cache_key = (type_name, search)
+        token = self._tokens.get(cache_key)
         if token is None:
             if subpaths is None:
                 subpaths = []
-            token = self._httpapi.get_token(type_name, subpaths)
-            logging.info('Got NEW token for %s', type_name)
-            self._tokens.add(type_name, token)
+            token = self._httpapi.get_token(type_name, subpaths, search)
+            logging.info('Got NEW token for %s, search=%r', type_name, search)
+            self._tokens.add(cache_key, token)
         else:
             logging.info('Reusing old token for %s', type_name)
         return token
@@ -143,6 +144,14 @@ class QvarnAPI:
         obj = resp.json()
         return [r['id'] for r in obj['resources']]
 
+    def get_version(self):
+        resp = self.GET(None, '/version')
+        if not resp.ok:
+            # pylint: disable=protected-access
+            raise Error('GET', self._httpapi._api_url, '/version',
+                        resp.status_code, resp.text)
+        return resp.json()
+
     def GET(self, token, path):
         return self._httpapi.GET(token, path)
 
@@ -174,12 +183,12 @@ class HttpAPI:
         self._client_id = cp[self._api_url]['client_id']
         self._client_secret = cp[self._api_url]['client_secret']
 
-    def get_token(self, type_name, subpaths):
+    def get_token(self, type_name, subpaths, search=False):
         auth = (self._client_id, self._client_secret)
 
         data = {
             u'grant_type': u'client_credentials',
-            u'scope': qvarnutils.scopes_for_type(type_name, subpaths),
+            u'scope': qvarnutils.scopes_for_type(type_name, subpaths, search),
         }
         logging.debug('Getting token with scopes %r', data['scope'])
 
@@ -249,20 +258,20 @@ class TokenCache:
     def __init__(self):
         self._cache = {}
 
-    def __contains__(self, type_name):
-        if type_name in self._cache:
-            token = self._cache[type_name]
+    def __contains__(self, cache_key):
+        if cache_key in self._cache:
+            token = self._cache[cache_key]
             obj = jwt.decode(token, verify=False)
             if obj['exp'] > time.time():
                 return True
         return False
 
-    def add(self, type_name, token):
-        self._cache[type_name] = token
+    def add(self, cache_key, token):
+        self._cache[cache_key] = token
 
-    def get(self, type_name):
-        if type_name in self:
-            return self._cache[type_name]
+    def get(self, cache_key):
+        if cache_key in self:
+            return self._cache[cache_key]
         return None
 
 
