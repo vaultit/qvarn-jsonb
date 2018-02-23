@@ -170,7 +170,7 @@ class Transaction:  # pragma: no cover
 
     def keys_values(self, keys):
         return {
-            placeholder(key): keys[key]
+            quote(key): keys[key]
             for key in keys
         }
 
@@ -408,3 +408,47 @@ class No(Condition):
 
     def as_sql(self):  # pragma: no cover
         return 'FALSE', {}
+
+
+class AccessIsAllowed(Condition):  # pragma: no cover
+
+    def __init__(self, req_params, allow):
+        self._params = req_params
+        self._allow = allow or []
+
+    def matches(self, obj, keys):  # pragma: no cover
+
+        def rule_allows(r):
+            qvarn.log.log('zzz', obj=obj, r=r, params=self._params)
+            p = self._params
+            return (
+                r['method'] == p['method'] and
+                r['client_id'] in ('*', p['client_id']) and
+                r['user_id'] in ('*', p['user_id']) and
+                r['resource_id'] in ('*', keys['obj_id']) and
+                ('type' not in obj or
+                 r['resource_type'] in (None, obj['type'])) and
+                (r['resource_field'] is None or r['resource_field'] in obj) and
+                (r['resource_value'] in ('*', obj.get(r['resource_field'])))
+            )
+
+        qvarn.log.log('yyy', allow=self._allow)
+        return any(rule_allows(r) for r in self._allow)
+
+    def as_sql(self):  # pragma: no cover
+        placeholders = {
+            key: placeholder(key)
+            for key in self._params
+        }
+        values = {
+            quote(key): self._params[key]
+            for key in self._params
+        }
+        query = ' AND '.join([
+            "_allow.method = {method}",
+            "_allow.subpath = _objects.subpath",
+            "(_allow.client_id = '*' OR _allow.client_id = {client_id})",
+            "(_allow.user_id = '*' OR _allow.user_id = {user_id})",
+            "(_allow.id = '*' OR _allow.id = _objects.obj_id)",
+        ]).format(**placeholders)
+        return query, values

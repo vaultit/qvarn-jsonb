@@ -29,6 +29,7 @@ from .sql import (
     quote,
     placeholder,
     get_unique_name,
+    AccessIsAllowed,
     All,
     Cmp,
     Contains,
