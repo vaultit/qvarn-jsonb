@@ -89,21 +89,28 @@ class CollectionAPI:
     def _invent_id(self, resource_type):
         return self._idgen.new_id(resource_type)
 
-    def get(self, obj_id, claims=None, access_params=None):
+    def get(self, obj_id, claims=None, access_params=None, allow_cond=None):
         obj = self._get_object(
-            obj_id, '', claims=claims, access_params=access_params)
+            obj_id, '', claims=claims, access_params=access_params,
+            allow_cond=allow_cond)
         if obj and obj.get('type') == self.get_type_name():
             return obj
         raise NoSuchResource(obj_id=obj_id)
 
     def get_subresource(
-            self, obj_id, subpath, claims=None, access_params=None):
+            self, obj_id, subpath, claims=None, access_params=None,
+            allow_cond=None):
         return self._get_object(
-            obj_id, subpath, claims=claims, access_params=access_params)
+            obj_id, subpath, claims=claims, access_params=access_params,
+            allow_cond=allow_cond)
 
-    def _get_object(self, obj_id, subpath, claims=None, access_params=None):
-        allow_cond = None
-        if self._store.have_fine_grained_access_control():  # pragma: no cover
+    def _get_object(
+            self, obj_id, subpath, claims=None, access_params=None,
+            allow_cond=None):
+        need_allow_cond = (
+            allow_cond is None and
+            self._store.have_fine_grained_access_control())
+        if need_allow_cond:  # pragma: no cover
             assert claims is not None
             assert access_params is not None
             allow_cond = qvarn.AccessIsAllowed(
@@ -157,20 +164,26 @@ class CollectionAPI:
 
         return new_obj
 
-    def put_subresource(self, sub_obj, subpath=None, **keys):
+    def put_subresource(
+            self, sub_obj, subpath=None, claims=None, access_params=None,
+            **keys):
         new_sub = self.put_subresource_no_new_revision(
-            sub_obj, subpath=subpath, **keys)
+            sub_obj, subpath=subpath, claims=claims,
+            access_params=access_params, **keys)
 
         obj_id = keys.pop('obj_id')
-        parent = self._update_revision(obj_id)
+        parent = self._update_revision(
+            obj_id, claims=claims, access_params=access_params)
         new_sub['revision'] = parent['revision']
         return new_sub
 
-    def put_subresource_no_new_revision(self, sub_obj, subpath=None, **keys):
+    def put_subresource_no_new_revision(
+            self, sub_obj, subpath=None, claims=None, access_params=None,
+            **keys):
         assert subpath is not None
         obj_id = keys.pop('obj_id')
         revision = keys.pop('revision')
-        parent = self.get(obj_id)
+        parent = self.get(obj_id, claims=claims, access_params=access_params)
         if parent['revision'] != revision:
             raise WrongRevision(revision, parent['revision'])
 
@@ -190,8 +203,8 @@ class CollectionAPI:
         subproto = subprotos[subpath]
         return qvarn.add_missing_fields(subproto, sub_obj)
 
-    def _update_revision(self, obj_id):
-        obj = self.get(obj_id)
+    def _update_revision(self, obj_id, claims=None, access_params=None):
+        obj = self.get(obj_id, claims=claims, access_params=access_params)
         obj['revision'] = self._invent_id('revision')
         qvarn.log.log(
             'debug', msg_text='new revision after updating subresource',

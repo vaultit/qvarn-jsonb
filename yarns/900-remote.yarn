@@ -1,0 +1,68 @@
+# Step implementations for a remote Qvarn
+
+This chapter shows the scenario step implementations for testing a
+remote Qvarn.
+
+## Start and stop Qvarn
+
+Start a Qvarn running in the background.
+
+    IMPLEMENTS GIVEN a running Qvarn instance
+    qvarn_vars = {
+        'url': os.environ['QVARN_URL']
+    }
+    save_qvarn('default', qvarn_vars)
+    if remote_qvarn_enables_fine_grained:
+        scopes = [
+            'uapi_allow_post',
+        ]
+        token = new_token_for_user('default', '', scopes, force=True)
+        for method in ['GET', 'PUT', 'DELETE']:
+            for subpath in ['', 'blob', 'sub']:
+                allow = {
+                    'method': method,
+                    'client_id': '*',
+                    'subpath': subpath,
+                    'user_id': '*',
+                    'resource_id': '*',
+                    'resource_type': None,
+                    'resource_field': None,
+                    'resource_value': None,
+                }
+                add_allow_rule('default', allow, token)
+
+
+    IMPLEMENTS GIVEN a Qvarn with fine-grained access enabled
+    qvarn_vars = {
+        'url': os.environ['QVARN_URL']
+    }
+    save_qvarn('default', qvarn_vars)
+        
+
+## Stop a Qvarn we started
+
+    IMPLEMENTS FINALLY qvarn is stopped
+    # Delete any resources we've created
+    types = ['persons', 'orgs', 'subjects']
+    patterns = [
+        'uapi_{}_id_delete',
+        'uapi_{}_listeners_id_delete',
+        'uapi_{}_listeners_id_notifications_id_delete',
+        'uapi_allow_delete',
+    ]
+    scopes = []
+    for name in types:
+        for pat in patterns:
+            scopes.append(pat.format(name))
+    scopes = ' '.join(scopes)
+    paths = V['created']
+    for qvarn_name, _ in paths:
+        token = new_token_for_user(qvarn_name, '', scopes, force=True)
+    for qvarn_name, path in paths:
+        token = new_token_for_user(qvarn_name, '', scopes)
+        delete_from_qvarn(qvarn_name, path, token=token)
+    print 'delete allow rules', repr(V['allowed'])
+    for allow in V['allowed'] or []:
+        token = new_token_for_user('default', '', scopes, force=True)
+        print 'remove rule', allow
+        remove_allow_rule('default', allow, token)

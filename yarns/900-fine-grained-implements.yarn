@@ -6,19 +6,6 @@ fine-grained access control scenarios.
     IMPLEMENTS GIVEN a Qvarn with fine-grained access disabled
     start_qvarn('default')
 
-    IMPLEMENTS GIVEN a Qvarn with fine-grained access enabled
-    print 'starting temp'
-    start_qvarn('temp')
-    print 'copying to temp'
-    qvarn_copy('default', 'temp', ['person'])
-    print 'stopping default'
-    stop_qvarn('default')
-    print 'starting default with ftac'
-    start_qvarn('default', fine_grained=True)
-    print 'copying to default'
-    qvarn_copy('temp', 'default', ['person'])
-    forget_all_tokens()
-
     IMPLEMENTS GIVEN user (\S+) with access to Qvarn person resources
     V['scopes'] = ' '.join([
         'uapi_resource_types_id_get',
@@ -28,13 +15,14 @@ fine-grained access control scenarios.
         'uapi_persons_listeners_get',
         'uapi_allow_post',
         'uapi_set_meta_fields',
+        'uapi_trusted_client',
     ])
 
     IMPLEMENTS GIVEN a person resource for (\S+)
     name = get_next_match()
-    token = create_token_for_user('default', '', V['scopes'])
+    token = new_token_for_user('default', '', V['scopes'])
     person = {
-        'names': [name],
+        'names': [{ 'full_name': name }],
     }
     request(post_to_qvarn, 'default', '/persons', token=token, body=person)
     assertEqual(get_status(), 201)
@@ -52,8 +40,13 @@ fine-grained access control scenarios.
 
     IMPLEMENTS WHEN user (\S+) lists all persons in Qvarn
     user = get_next_match()
-    token = create_token_for_user('default', user, V['scopes'])
-    request(get_from_qvarn, 'default', '/persons', token=token)
+    token = new_token_for_user('default', '', V['scopes'])
+    fake_token = fake_token(user)
+    headers = {
+        'Qvarn-Access-By': fake_token,
+    }
+    request(
+        get_from_qvarn, 'default', '/persons', token=token, headers=headers)
 
     IMPLEMENTS THEN they see resources? (.+)
     names = [s.strip() for s in get_next_match().split(',')]
@@ -71,9 +64,13 @@ fine-grained access control scenarios.
     person_name = get_next_match()
     key = '{}_id'.format(person_name)
     person_id = V[key]
-    token = create_token_for_user('default', user, V['scopes'])
+    token = new_token_for_user('default', user, V['scopes'])
+    fake_token = fake_token(user)
+    headers = {
+        'Qvarn-Access-By': fake_token,
+    }
     path = '/persons/{}'.format(person_id)
-    request(get_from_qvarn, 'default', path, token=token)
+    request(get_from_qvarn, 'default', path, token=token, headers=headers)
 
     IMPLEMENTS THEN they see that person resource
     assertEqual(get_status(), 200)
@@ -93,15 +90,15 @@ fine-grained access control scenarios.
         'resource_field': None,
         'resource_value': None,
     }
-    token = create_token_for_user('default', '', V['scopes'])
-    request(post_to_qvarn, 'default', '/allow', body=allow, token=token)
+    token = new_token_for_user('default', '', V['scopes'])
+    add_allow_rule('default', allow, token)
 
     IMPLEMENTS GIVEN rules that allow (\S+) to see (.+) resources
     user = get_next_match()
     names = [s.strip() for s in get_next_match().split(',')]
     keys = ['{}_id'.format(s) for s in names]
     ids = [V[key] for key in keys]
-    token = create_token_for_user('default', '', V['scopes'])
+    token = new_token_for_user('default', '', V['scopes'])
     for resource_id in ids:
         allow = {
             'method': 'GET',
@@ -113,7 +110,7 @@ fine-grained access control scenarios.
             'resource_field': None,
             'resource_value': None,
         }
-        request(post_to_qvarn, 'default', '/allow', body=allow, token=token)
+        add_allow_rule('default', allow, token)
 
     IMPLEMENTS THEN the resource is not found
     assertEqual(get_status(), 404)

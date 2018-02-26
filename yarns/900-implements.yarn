@@ -1,18 +1,29 @@
-# Step implementations
+# Step implementations (local and remote)
 
-This chapter shows the scenario step implementations.
+This chapter shows the scenario step implementations regardless of
+whether we're testing a local or remote Qvarn.
 
-## Start and stop Qvarn
 
-Start a Qvarn running in the background.
+## Are we running locally or remotely?
 
-    IMPLEMENTS GIVEN a running qvarn instance
-    start_qvarn('default')
+    IMPLEMENTS ASSUMING we are using a local Qvarn
+    assertTrue(not use_remote_qvarn())
 
-## Stop a Qvarn we started
+    IMPLEMENTS ASSUMING we are using a remote Qvarn
+    assertTrue(use_remote_qvarn())
 
-    IMPLEMENTS FINALLY qvarn is stopped
-    stop_qvarn('default')
+    IMPLEMENTS ASSUMING remote Qvarn has fine-grained access control enabled
+    assertEqual(os.environ.get('QVARN_REMOTE_FINE_GRAINED'), 'yes')
+
+
+## API access token creation
+
+    IMPLEMENTS WHEN client gets an authorization token with scope "(.+)"
+    scopes = get_next_match()
+    scopes = scopes.split()
+    scopes.append('uapi_trusted_client')
+    scopes = ' '.join(scopes)
+    V['token'] = new_token_for_user('default', '', scopes, force=True)
 
 ## API requests of various kinds
 
@@ -39,6 +50,8 @@ Start a Qvarn running in the background.
     path = get_next_match()
     body = json.loads(get_next_match())
     token = V['token']
+    print 'token', token
+    print 'scopes', V['scopes']
     request(post_to_qvarn, 'default', path, token=token, body=body)
 
     IMPLEMENTS WHEN client requests PUT (/.+) with token and body (.+)
@@ -90,12 +103,6 @@ Start a Qvarn running in the background.
     body = json.loads(body)
     token = V['token']
     request(delete_from_qvarn, 'default', path, token=token, body=body)
-
-## API access token creation
-
-    IMPLEMENTS WHEN client gets an authorization token with scope "(.+)"
-    scopes = get_next_match()
-    V['token'] = create_token_for_user('default', '', scopes, force=True)
 
 ## UUID creation
 

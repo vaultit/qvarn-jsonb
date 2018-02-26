@@ -62,7 +62,7 @@ updated (no `PUT`).
 
     SCENARIO manage access control rules
 
-    GIVEN a running Qvarn instance
+    GIVEN a Qvarn with fine-grained access enabled
 
     WHEN client gets an authorization token with scope
     ... "uapi_allow_post uapi_allow_get uapi_allow_delete"
@@ -137,9 +137,11 @@ updated (no `PUT`).
 
 # Fine-grained access control
 
-Let's see if rules in `/allow` actually work.
+## Local Qvarn
 
-    SCENARIO fine-grained access
+    SCENARIO fine-grained access with local Qvarn
+
+    ASSUMING we are using a local Qvarn
 
     GIVEN a Qvarn with fine-grained access disabled
 
@@ -170,6 +172,48 @@ Let's see if rules in `/allow` actually work.
 
     GIVEN a Qvarn with fine-grained access enabled
     AND rule that allows A to see the A person resource
+    AND rule that allows B to see the B person resource
+    AND rules that allow HR to see A, HR resources
+
+    WHEN user A lists all persons in Qvarn
+    THEN they see resource A
+
+    WHEN user A looks at person A in Qvarn
+    THEN they see that person resource
+
+    WHEN user A looks at person B in Qvarn
+    THEN the resource is not found
+
+    WHEN user A looks at person HR in Qvarn
+    THEN the resource is not found
+
+    WHEN user HR lists all persons in Qvarn
+    THEN they see only A, HR, but not B
+
+    FINALLY Qvarn is stopped
+
+## Remote Qvarn
+
+Let's see if rules in `/allow` actually work.
+
+    SCENARIO fine-grained access with remote Qvarn
+
+    ASSUMING we are using a remote Qvarn
+    ASSUMING remote Qvarn has fine-grained access control enabled
+
+    GIVEN a Qvarn with fine-grained access enabled
+
+    GIVEN user A with access to Qvarn person resources
+    AND user B with access to Qvarn person resources
+    AND user HR with access to Qvarn person resources
+
+    GIVEN a person resource for A
+    AND a person resource for B
+    AND a person resource for HR
+    AND an organisation resource for BIGCORP
+    AND an employment contract resource between A and BIGCORP
+
+    GIVEN rule that allows A to see the A person resource
     AND rule that allows B to see the B person resource
     AND rules that allow HR to see A, HR resources
 

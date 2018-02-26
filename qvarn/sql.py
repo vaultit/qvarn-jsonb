@@ -187,6 +187,34 @@ class Transaction:  # pragma: no cover
             query += ' WHERE {}'.format(' AND '.join(conditions))
         return query
 
+    def has_allow_rule(self, table_name, rule):
+        conditions = [
+            '{} = {}'.format(self._q(key), self._placeholder(key))
+            for key in rule if rule[key] is not None
+        ] + [
+            '{} IS NULL'.format(self._q(key))
+            for key in rule if rule[key] is None
+        ]
+        query = 'SELECT * FROM {} WHERE {}'.format(
+            self._q(table_name),
+            ' AND '.join(conditions),
+        )
+        return query
+
+    def remove_allow_rule(self, table_name, rule):
+        conditions = [
+            '{} = {}'.format(self._q(key), self._placeholder(key))
+            for key in rule if rule[key] is not None
+        ] + [
+            '{} IS NULL'.format(self._q(key))
+            for key in rule if rule[key] is None
+        ]
+        query = 'DELETE FROM {} WHERE {}'.format(
+            self._q(table_name),
+            ' AND '.join(conditions),
+        )
+        return query
+
     def _condition(self, cond):
         return cond.as_sql()
 
@@ -449,6 +477,7 @@ class AccessIsAllowed(Condition):  # pragma: no cover
             "_allow.subpath = _objects.subpath",
             "(_allow.client_id = '*' OR _allow.client_id = {client_id})",
             "(_allow.user_id = '*' OR _allow.user_id = {user_id})",
-            "(_allow.id = '*' OR _allow.id = _objects.obj_id)",
+            ("(_allow.resource_id = '*' OR _"
+             "allow.resource_id = _objects.obj_id)"),
         ]).format(**placeholders)
         return query, values

@@ -95,14 +95,6 @@ class ResourceRouter(qvarn.Router):
 
         return routes
 
-    def _get_access_params(self, claims):
-        return {
-            'method': bottle.request.method,
-            'client_id': claims['aud'],
-            'user_id': claims['sub'],
-            'resource_type': self._coll.get_type_name(),
-        }
-
     def _create(self, content_type, body, *args, **kwargs):
         if content_type != 'application/json':
             raise qvarn.NotJson(content_type)
@@ -146,8 +138,9 @@ class ResourceRouter(qvarn.Router):
         return qvarn.created_response(result_body, location)
 
     def _update(self, content_type, body, *args, **kwargs):
+        qvarn.log.log('trace', msg_text='_update', kwargs=kwargs)
         claims = kwargs.get('claims')
-        params = self._get_access_params(claims)
+        params = self.get_access_params(self._coll.get_type_name(), claims)
 
         if content_type != 'application/json':
             raise qvarn.NotJson(content_type)
@@ -195,8 +188,9 @@ class ResourceRouter(qvarn.Router):
         return qvarn.ok_response(result_body)
 
     def _list(self, *args, **kwargs):
+        qvarn.log.log('trace', msg_text='_list', kwargs=kwargs)
         claims = kwargs.get('claims')
-        params = self._get_access_params(claims)
+        params = self.get_access_params(self._coll.get_type_name(), claims)
         body = self._coll.list(claims=claims, access_params=params)
 
         for obj in body.get('resources', []):
@@ -214,7 +208,7 @@ class ResourceRouter(qvarn.Router):
 
     def _get(self, *args, **kwargs):
         claims = kwargs.get('claims')
-        params = self._get_access_params(claims)
+        params = self.get_access_params(self._coll.get_type_name(), claims)
 
         try:
             obj = self._coll.get(
@@ -236,7 +230,7 @@ class ResourceRouter(qvarn.Router):
 
     def _search(self, *args, **kwargs):
         claims = kwargs.get('claims')
-        params = self._get_access_params(claims)
+        params = self.get_access_params(self._coll.get_type_name(), claims)
 
         path = kwargs['raw_uri_path']
         search_criteria = path.split('/search/', 1)[1]
@@ -265,7 +259,7 @@ class ResourceRouter(qvarn.Router):
 
     def _delete(self, *args, **kwargs):
         claims = kwargs.get('claims')
-        params = self._get_access_params(claims)
+        params = self.get_access_params(self._coll.get_type_name(), claims)
         qvarn.log.log(
             'trace', msg_text='_delete callback', claims=claims, params=params)
 

@@ -30,7 +30,7 @@ This chapter shows the scenario step implementations for the
         'uapi_persons_listeners_id_notifications_id_get',
         'uapi_set_meta_fields',
     ])
-    token = create_token_for_user('source', '', V['scopes'])
+    token = new_token_for_user('source', '', V['scopes'])
     listener = {
         'type': 'listener',
         'notify_of_new': True,
@@ -51,7 +51,7 @@ This chapter shows the scenario step implementations for the
     V[name] = body['revision']
 
     IMPLEMENTS WHEN user creates person in source Qvarn
-    token = create_token_for_user('source', '', V['scopes'])
+    token = new_token_for_user('source', '', V['scopes'])
     person = {
         'names': ['James Bond'],
     }
@@ -59,7 +59,7 @@ This chapter shows the scenario step implementations for the
     V['ID'] = get_json()['id']
 
     IMPLEMENTS THEN there is a notification for person listener LID notification id NID in source Qvarn
-    token = create_token_for_user('source', '', V['scopes'])
+    token = new_token_for_user('source', '', V['scopes'])
     path = '/persons/listeners/{}/notifications'.format(V['LID'])
     request(get_from_qvarn, 'source', path, token=token)
     assertEqual(get_status(), 200)
@@ -72,8 +72,8 @@ This chapter shows the scenario step implementations for the
     dump_qvarn('target', 'target.dump0', ['person'])
 
     IMPLEMENTS THEN person ID in source and target Qvarns are identical
-    stoken = create_token_for_user('source', '', V['scopes'])
-    ttoken = create_token_for_user('target', '', V['scopes'])
+    stoken = new_token_for_user('source', '', V['scopes'])
+    ttoken = new_token_for_user('target', '', V['scopes'])
     path = '/persons/{}'.format(V['ID'])
     src = request_resource('source', path, stoken)
     tgt = request_resource('target', path, ttoken)
@@ -81,16 +81,16 @@ This chapter shows the scenario step implementations for the
 
     IMPLEMENTS THEN person listener LID in source and target Qvarns are identical
     path = '/persons/listeners/{}'.format(V['LID'])
-    stoken = create_token_for_user('source', '', V['scopes'])
-    ttoken = create_token_for_user('target', '', V['scopes'])
+    stoken = new_token_for_user('source', '', V['scopes'])
+    ttoken = new_token_for_user('target', '', V['scopes'])
     src = request_resource('source', path, stoken)
     tgt = request_resource('target', path, ttoken)
     assertEqual(src, tgt)
 
     IMPLEMENTS THEN notification NID in person listener LID in source and target Qvarns are identical
     path = '/persons/listeners/{}/notifications/{}'.format(V['LID'], V['NID'])
-    stoken = create_token_for_user('source', '', V['scopes'])
-    ttoken = create_token_for_user('target', '', V['scopes'])
+    stoken = new_token_for_user('source', '', V['scopes'])
+    ttoken = new_token_for_user('target', '', V['scopes'])
     src = request_resource('source', path, stoken)
     tgt = request_resource('target', path, ttoken)
     assertEqual(src, tgt)

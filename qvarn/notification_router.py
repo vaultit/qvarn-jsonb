@@ -138,15 +138,24 @@ class NotificationRouter(qvarn.Router):
             resource['id'])
 
     def _get_listener_list(self, content_type, body, *args, **kwargs):
+        claims = kwargs.get('claims')
+        params = self.get_access_params(
+            self._listener_coll.get_type_name(), claims)
         rtype = self._parent_coll.get_type_name()
-        listener_list = self._listener_coll.list()['resources']
+        resources = self._listener_coll.list(
+            claims=claims, access_params=params)
+        listener_list = resources['resources']
         listener_ids = [listener['id'] for listener in listener_list]
-        listeners = [self._listener_coll.get(lid) for lid in listener_ids]
+        listeners = [
+            self._listener_coll.get(
+                lid, claims=claims, access_params=params)
+            for lid in listener_ids
+        ]
         qvarn.log.log('trace', msg_text='xxx', listeners=listeners)
         correct_ids = [
             {"id": listener['id']}
             for listener in listeners
-            if listener['listen_on_type'] == rtype
+            if listener.get('listen_on_type') == rtype
         ]
         body = {
             'resources': correct_ids,
@@ -154,13 +163,21 @@ class NotificationRouter(qvarn.Router):
         return qvarn.ok_response(body)
 
     def _get_a_listener(self, *args, **kwargs):
+        claims = kwargs.get('claims')
+        params = self.get_access_params(
+            self._listener_coll.get_type_name(), claims)
         try:
-            obj = self._listener_coll.get(kwargs['listener_id'])
+            obj = self._listener_coll.get(
+                kwargs['listener_id'], claims=claims, access_params=params)
         except qvarn.NoSuchResource as e:
             return qvarn.no_such_resource_response(str(e))
         return qvarn.ok_response(obj)
 
     def _update_listener(self, content_type, body, *args, **kwargs):
+        claims = kwargs.get('claims')
+        params = self.get_access_params(
+            self._listener_coll.get_type_name(), claims)
+
         if content_type != 'application/json':
             raise qvarn.NotJson(content_type)
 
@@ -180,7 +197,8 @@ class NotificationRouter(qvarn.Router):
             return qvarn.bad_request_response(str(e))
 
         try:
-            result_body = self._listener_coll.put(body)
+            result_body = self._listener_coll.put(
+                body, claims=claims, access_params=params)
         except qvarn.WrongRevision as e:
             return qvarn.conflict_response(str(e))
         except qvarn.NoSuchResource as e:
@@ -192,8 +210,12 @@ class NotificationRouter(qvarn.Router):
         return qvarn.ok_response(result_body)
 
     def _delete_listener(self, *args, **kwargs):
+        claims = kwargs.get('claims')
+        params = self.get_access_params(
+            self._listener_coll.get_type_name(), claims)
         listener_id = kwargs['listener_id']
-        self._listener_coll.delete(listener_id)
+        self._listener_coll.delete(
+            listener_id, claims=claims, access_params=params)
         for obj_id in self._find_notifications(listener_id):
             self._store.remove_objects(obj_id=obj_id)
         return qvarn.ok_response({})

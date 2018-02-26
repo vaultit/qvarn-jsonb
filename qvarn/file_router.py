@@ -55,10 +55,18 @@ class FileRouter(qvarn.Router):
         ]
 
     def _get_file(self, *args, **kwargs):
+        qvarn.log.log('trace', msg_text='_get_file', kwargs=kwargs)
+        claims = kwargs.get('claims')
+        assert claims is not None
+        params = self.get_access_params(
+            self._parent_coll.get_type_name(), claims)
+
         obj_id = kwargs['id']
         try:
-            obj = self._parent_coll.get(obj_id)
-            sub_obj = self._parent_coll.get_subresource(obj_id, self._subpath)
+            obj = self._parent_coll.get(
+                obj_id, claims=claims, access_params=params)
+            sub_obj = self._parent_coll.get_subresource(
+                obj_id, self._subpath, claims=claims, access_params=params)
             blob = self._store.get_blob(obj_id=obj_id, subpath=self._subpath)
         except (qvarn.NoSuchResource, qvarn.NoSuchObject) as e:
             return qvarn.no_such_resource_response(str(e))
@@ -69,6 +77,10 @@ class FileRouter(qvarn.Router):
         return qvarn.ok_response(blob, headers)
 
     def _put_file(self, content_type, body, *args, **kwargs):
+        claims = kwargs.get('claims')
+        params = self.get_access_params(
+            self._parent_coll.get_type_name(), claims)
+
         obj_id = kwargs['id']
 
         # FIXME: add header getting to apifw
@@ -77,7 +89,7 @@ class FileRouter(qvarn.Router):
 
         id_allowed = self._api.is_id_allowed(kwargs.get('claims', {}))
 
-        obj = self._parent_coll.get(obj_id)
+        obj = self._parent_coll.get(obj_id, allow_cond=qvarn.Yes())
         if not id_allowed and obj['revision'] != revision:
             qvarn.log.log(
                 'error',
@@ -87,16 +99,20 @@ class FileRouter(qvarn.Router):
             return qvarn.conflict_response(
                 'Bad revision {}'.format(revision))
 
-        sub_obj = self._parent_coll.get_subresource(obj_id, self._subpath)
+        sub_obj = self._parent_coll.get_subresource(
+            obj_id, self._subpath, allow_cond=qvarn.Yes())
         sub_obj['content_type'] = content_type
+        qvarn.log.log(
+            'trace', msg_text='_put_file', claims=claims,
+            access_params=params)
         if id_allowed:
             new_sub = self._parent_coll.put_subresource_no_revision(
                 sub_obj, subpath=self._subpath, obj_id=obj_id,
-                revision=revision)
+                revision=revision, claims=claims, access_params=params)
         else:
             new_sub = self._parent_coll.put_subresource(
                 sub_obj, subpath=self._subpath, obj_id=obj_id,
-                revision=revision)
+                revision=revision, claims=claims, access_params=params)
 
         try:
             self._store.remove_blob(obj_id=obj_id, subpath=self._subpath)

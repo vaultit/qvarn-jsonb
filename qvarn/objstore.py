@@ -259,7 +259,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             'client_id': str,
             'user_id': str,
             'subpath': str,
-            'id': str,
+            'resource_id': str,
             'resource_type': str,
             'resource_field': str,
             'resource_value': str,
@@ -408,7 +408,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
 
     def has_allow_rule(self, rule):
         with self._sql.transaction() as t:
-            query = t.has_allow_rule(self._allowtable)
+            query = t.has_allow_rule(self._allowtable, rule)
             for row in t.execute(query, rule):
                 return True
         return False
@@ -417,12 +417,15 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         with self._sql.transaction() as t:
             column_names = list(rule.keys())
             query = t.insert_object(self._allowtable, *column_names)
+            qvarn.log.log(
+                'trace', msg_text='add_allow_rule, SQL',
+                query=query, rule=rule)
             t.execute(query, rule)
 
     def remove_allow_rule(self, rule):
         column_names = list(rule.keys())
         with self._sql.transaction() as t:
-            query = t.remove_objects(self._allowtable, *column_names)
+            query = t.remove_allow_rule(self._allowtable, rule)
             t.execute(query, rule)
 
 

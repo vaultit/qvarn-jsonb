@@ -30,13 +30,25 @@ title()
 }
 
 
+most_yarns()
+{
+    find yarns -name '*.yarn' \
+         ! -name '*-access-log.yarn' \
+         ! -name '*-migration.yarn' \
+         ! -name '*-local.yarn' \
+         ! -name '*-remote.yarn' |
+        sort
+}
+
+
 run_yarns()
 {
-    yarn yarns/*.yarn \
+    yarn $(most_yarns) \
          -s yarns/lib.py --shell python2 --shell-arg '' --cd-datadir "$@"
 }
 
 
+url=''
 unit_tests=yes
 style=yes
 yarns=yes
@@ -49,6 +61,13 @@ then
             style=yes
             yarns=no
             shift 1
+            ;;
+        remote)
+            url="$2"
+            unit_tests=no
+            style=no
+            yarns=yes
+            shift 2
             ;;
         yarns)
             unit_tests=no
@@ -89,12 +108,13 @@ fi
 if [ "$yarns" = yes ]
 then
     title "Yarns"
-    if [ "${QVARN_POSTGRES:-no}" = no ]
+
+    if [ "${url:-no}" = no ]
     then
-        # Run yarns without Postgres. For speed.
-        run_yarns "$@"
+        run_yarns yarns/900-local.yarn "$@"
     else
-        scripts/pgempty
-        run_yarns --env "QVARN_POSTGRES=$QVARN_POSTGRES" "$@"
-    fi
+        conf="$HOME/.config/qvarn/createtoken.conf"
+        run_yarns yarns/900-remote.yarn \
+                  --env "QVARN_CREATETOKEN_CONF=$conf" --env "QVARN_URL=$url" "$@"
+   fi
 fi

@@ -55,14 +55,23 @@ class SubresourceRouter(qvarn.Router):
         ]
 
     def _get_subresource(self, *args, **kwargs):
+        claims = kwargs.get('claims')
+        params = self.get_access_params(
+            self._parent_coll.get_type_name(), claims)
+
         obj_id = kwargs['id']
         try:
-            obj = self._parent_coll.get_subresource(obj_id, self._subpath)
+            obj = self._parent_coll.get_subresource(
+                obj_id, self._subpath, claims=claims, access_params=params)
         except qvarn.NoSuchResource as e:
             return qvarn.no_such_resource_response(str(e))
         return qvarn.ok_response(obj)
 
     def _put_subresource(self, content_type, body, *args, **kwargs):
+        claims = kwargs.get('claims')
+        params = self.get_access_params(
+            self._parent_coll.get_type_name(), claims)
+
         if content_type != 'application/json':
             raise qvarn.NotJson(content_type)
 
@@ -89,7 +98,7 @@ class SubresourceRouter(qvarn.Router):
                 func = self._parent_coll.put_subresource
             result_body = func(
                 body, subpath=self._subpath, obj_id=obj_id,
-                revision=revision)
+                revision=revision, claims=claims, access_params=params)
         except qvarn.WrongRevision as e:
             return qvarn.conflict_response(str(e))
         except qvarn.NoSuchResource as e:

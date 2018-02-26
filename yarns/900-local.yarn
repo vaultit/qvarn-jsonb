@@ -1,0 +1,34 @@
+# Step implementations for a locally run Qvarn
+
+This chapter shows the scenario step implementations for a locally run
+Qvarn.
+
+## Start and stop Qvarn
+
+Start a Qvarn running in the background.
+
+    IMPLEMENTS GIVEN a running qvarn instance
+    start_qvarn('default')
+
+    IMPLEMENTS GIVEN a Qvarn with fine-grained access enabled
+    source = get_qvarn('default')
+    if source is not None:
+        print 'starting temp'
+        start_qvarn('temp')
+        print 'copying to temp'
+        qvarn_copy('default', 'temp', ['person'])
+        print 'stopping default'
+        stop_qvarn('default')
+        print 'starting default with ftac'
+        start_qvarn('default', fine_grained=True)
+        print 'copying to default'
+        qvarn_copy('temp', 'default', ['person'])
+        forget_all_tokens()
+    else:
+        print 'starting default with ftac'
+        start_qvarn('default', fine_grained=True)
+
+## Stop a Qvarn we started
+
+    IMPLEMENTS FINALLY qvarn is stopped
+    stop_qvarn('default')
