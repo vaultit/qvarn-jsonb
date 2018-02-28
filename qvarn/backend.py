@@ -135,7 +135,7 @@ else:
     sql = qvarn.PostgresAdapter()
     sql.connect(**config['database'])
     store = qvarn.PostgresObjectStore(sql)
-if config['enable-fine-grained-access-control']:
+if config.get('enable-fine-grained-access-control'):
     store.enable_fine_grained_access_control()
 qvarn.log.log(
     'info', msg_text='Fine grained access control?',
