@@ -6,6 +6,13 @@ This file has release notes for Qvarn (the JSONB version).
 Version 0.90.1+git, not yet released
 ------------------------------------
 
+* Qvarn can now do fine-grained access control. Needs to be enabled
+  with the `enable-fine-grained-access-control` configuration
+  variable. (No documentation yet.)
+
+* `./check` can now optionally only ran unit and style tests, yarns,
+  or yarns against a remote Qvarn.
+
 * A bug in how files get stored via the API was fixed. The bug caused
   resource types with multiple files to get them confused.
 
