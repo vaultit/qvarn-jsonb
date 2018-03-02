@@ -43,8 +43,8 @@ most_yarns()
 
 run_yarns()
 {
-    yarn $(most_yarns) \
-         -s yarns/lib.py --shell python2 --shell-arg '' --cd-datadir "$@"
+    env2/bin/yarn $(most_yarns) \
+         -s yarns/lib.py --shell $PWD/env2/bin/python --shell-arg '' --cd-datadir "$@" --env=PATH=$PWD/env/bin:$PATH
 }
 
 
@@ -85,7 +85,7 @@ fi
 if [ "$unit_tests" = yes ]
 then
     title "Unit tests"
-    python3 -m CoverageTestRunner --ignore-missing-from=without-tests \
+    env/bin/python -m CoverageTestRunner --ignore-missing-from=without-tests \
             qvarn qvarnutils
 fi
 
@@ -93,14 +93,14 @@ fi
 if [ "$style" = yes ]
 then
     title "Code style"
-    pycodestyle qvarn qvarnutils qvarn-copy qvarn-dump qvarn-stats qvarn-access
+    env/bin/pycodestyle qvarn qvarnutils qvarn-copy qvarn-dump qvarn-stats qvarn-access
 
     title "Pylint3"
-    pylint3 -j0 --rcfile pylint.conf \
+    env/bin/pylint -j0 --rcfile pylint.conf \
             qvarn qvarnutils qvarn-copy qvarn-dump qvarn-stats qvarn-access
 
     title "Pylint (yarns/*.py)"
-    pylint -j0 --rcfile pylint.conf \
+    env2/bin/pylint -j0 --rcfile pylint.conf \
            -d wildcard-import,unused-wildcard-import,locally-disabled yarns/*.py
 fi
 

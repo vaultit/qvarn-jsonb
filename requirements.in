@@ -1,0 +1,12 @@
+apifw
+bottle
+cliapp
+cryptography
+gunicorn
+psycopg2
+pycryptodome
+pyjwt
+pyyaml
+requests
+slog
+ttystatus

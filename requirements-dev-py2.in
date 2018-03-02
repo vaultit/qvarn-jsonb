@@ -1,0 +1,6 @@
+requests
+pycryptodome
+gunicorn
+cmdtest
+pyjwt
+pylint==1.6.5

@@ -18,8 +18,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import importlib.machinery
-
 from setuptools import setup
+
+
+def read_requirements(filename):
+    with open(filename) as f:
+        return [req for req in (req.partition('#')[0].strip() for req in f) if req]
+
+
 
 version = (
     importlib.machinery.
@@ -40,18 +46,5 @@ setup(
         'qvarn-dump',
         'qvarn-stats',
     ],
-    install_requires=[
-        'apifw',
-        'bottle',
-        'cliapp',
-        'cryptography',
-        'gunicorn',
-        'psycopg2',
-        'pycryptodome',
-        'pyjwt',
-        'pyyaml',
-        'requests',
-        'slog',
-        'ttystatus',
-    ],
+    install_requires=read_requirements('requirements.in'),
 )
