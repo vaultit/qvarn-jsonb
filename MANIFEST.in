@@ -1,0 +1,4 @@
+include NEWS
+include README
+include requirements.in
+include setup.cfg
