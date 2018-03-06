@@ -279,23 +279,17 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
 
             for index_col in col_dict:
                 index_name = self._index_name(name, index_col, '')
-                query = t.create_index(name, index_name, index_col)
-                t.execute(query, {})
+                t.create_index(name, index_name, index_col)
 
             if index:
                 index_name = self._index_name(name, col_name, '')
-                query = t.create_index(name, index_name, col_name)
-                t.execute(query, {})
+                t.create_index(name, index_name, col_name)
             elif jsonb_index:
                 index_name = self._index_name(name, col_name, 'name')
-                query = t.create_jsonb_index(
-                    name, index_name, col_name, 'name')
-                t.execute(query, {})
+                t.create_jsonb_index(name, index_name, col_name, 'name')
 
                 index_name = self._index_name(name, col_name, 'value')
-                query = t.create_jsonb_index(
-                    name, index_name, col_name, 'value')
-                t.execute(query, {})
+                t.create_jsonb_index(name, index_name, col_name, 'value')
 
     def _index_name(self, table_name, column_name, field_name):
         name = '_'.join([table_name, column_name, field_name])

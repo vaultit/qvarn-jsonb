@@ -106,16 +106,34 @@ class Transaction:  # pragma: no cover
             self._q(table_name),
             columns)
 
+    def index_exists(self, table_name, index_name):
+        query = """
+            SELECT COUNT(*)
+            FROM pg_indexes
+            WHERE tablename = %(table_name)s AND
+                  indexname = %(index_name)s
+        """
+        cursor = self.execute(query, {
+            'table_name': table_name,
+            'index_name': index_name,
+        })
+        with cursor:
+            return cursor.fetchone()['count'] > 0
+
     def create_index(self, table_name, index_name, column_name):
-        return 'CREATE INDEX IF NOT EXISTS {} ON {} ({})'.format(
+        query = 'CREATE INDEX {} ON {} ({})'.format(
             self._q(index_name), self._q(table_name), self._q(column_name))
+        if not self.index_exists(table_name, index_name):
+            self.execute(query, {})
 
     def create_jsonb_index(
             self, table_name, index_name, column_name, field_name):
-        sql = "CREATE INDEX IF NOT EXISTS {} ON {} (lower({} ->> '{}'))"
-        return sql.format(
+        sql = "CREATE INDEX {} ON {} (lower({} ->> '{}'))"
+        query = sql.format(
             self._q(index_name), self._q(table_name), self._q(column_name),
             self._q(field_name))
+        if not self.index_exists(table_name, index_name):
+            self.execute(query, {})
 
     def _sqltype(self, col_type):
         types = [
