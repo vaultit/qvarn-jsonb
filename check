@@ -44,7 +44,7 @@ most_yarns()
 run_yarns()
 {
     env2/bin/yarn $(most_yarns) \
-         -s yarns/lib.py --shell $PWD/env2/bin/python --shell-arg '' --cd-datadir "$@" --env=PATH=$PWD/env/bin:$PATH
+         -s yarns/lib.py --shell $PWD/env2/bin/python --shell-arg '' --cd-datadir --env=PATH=$PWD/env/bin:$PATH "$@"
 }
 
 
