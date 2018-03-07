@@ -32,17 +32,6 @@ def drop_get_message(log_obj):
 gunicorn_loggers = ['gunicorn.access', 'gunicorn.error']
 
 
-# This sets up a global log variable that doesn't actually log
-# anything anywhere. This is useful so that code can unconditionally
-# call log.log(...) from anywhere. See setup_logging() for setting up
-# actual logging to somewhere persistent.
-
-log = slog.StructuredLog()
-log.add_log_writer(slog.NullSlogWriter(), slog.FilterAllow())
-log.add_log_massager(drop_get_message)
-slog.hijack_logging(log, logger_names=gunicorn_loggers)
-
-
 def setup_logging(config):
     for target in config.get('log', []):
         setup_logging_to_target(target)
@@ -97,3 +86,14 @@ class StdoutSlogWriter(slog.slog.SlogWriter):  # pragma: no cover
 def setup_logging_to_stdout(target, rule):
     writer = StdoutSlogWriter(target.get('pretty', False))
     log.add_log_writer(writer, rule)
+
+
+# This sets up a global log variable that doesn't actually log
+# anything anywhere. This is useful so that code can unconditionally
+# call log.log(...) from anywhere. See setup_logging() for setting up
+# actual logging to somewhere persistent.
+
+log = slog.StructuredLog()
+log.add_log_writer(StdoutSlogWriter(), slog.FilterAllow())
+log.add_log_massager(drop_get_message)
+slog.hijack_logging(log, logger_names=gunicorn_loggers)
