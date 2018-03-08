@@ -22,6 +22,10 @@ import jwt
 import qvarn
 
 
+def noop_fn(*args, **kwargs):  # pragma: no cover
+    pass
+
+
 class QvarnAPI:
 
     def __init__(self):
@@ -31,9 +35,13 @@ class QvarnAPI:
         self._rt_coll = None
         self._notifs = None
         self._alog = None
+        self._access_log_enabled = True
 
     def set_base_url(self, baseurl):  # pragma: no cover
         self._baseurl = baseurl
+
+    def set_access_log_enabled(self, access_log_enabled):  # pragma: no cover
+        self._access_log_enabled = access_log_enabled
 
     def set_object_store(self, store):
         self._store = store
@@ -148,7 +156,10 @@ class QvarnAPI:
         router.set_baseurl(self._baseurl)
         router.set_collection(coll)
         router.set_notifier(self.notify)
-        router.set_access_logger(self.log_access)
+        access_log_fn = (self.log_access
+                         if self._access_log_enabled
+                         else noop_fn)
+        router.set_access_logger(access_log_fn)
         routes = router.get_routes()
 
         files = rt.get_files()

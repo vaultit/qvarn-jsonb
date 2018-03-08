@@ -63,6 +63,7 @@ default_config = {
     'log': [],
     'resource-type-dir': None,
     'enable-fine-grained-access-control': None,
+    'enable-access-log': True,
     'memory-database': True,
     'database': {
         'host': None,
@@ -140,9 +141,14 @@ if config.get('enable-fine-grained-access-control'):
 qvarn.log.log(
     'info', msg_text='Fine grained access control?',
     enabled=store.have_fine_grained_access_control())
+qvarn.log.log(
+    'info', msg_text='Access log enabled?',
+    enabled=config.get('enable-access-log'))
+
 
 api = qvarn.QvarnAPI()
 api.set_base_url(config['baseurl'])
+api.set_access_log_enabled(config.get('enable-access-log'))
 api.set_object_store(store)
 api.add_resource_type(subject)
 for rt in resource_types:
