@@ -39,7 +39,7 @@ class PostgresAdapter:  # pragma: no cover
     def get_conn(self):
         return self._pool.getconn()
 
-    def put_conn(self, conn):
+    def put_conn(self, conn, close=False):
         self._pool.putconn(conn)
 
 
@@ -66,8 +66,11 @@ class Transaction:  # pragma: no cover
                 commit_ms = time.time() - t
             else:  # pragma: no cover
                 self._conn.rollback()
-        except BaseException:  # pragma: no cover
-            self._sql.put_conn(self._conn)
+        except BaseException:
+            # If an exception was raised inside the transaction the
+            # connection may be in an invalid state and should not be
+            # reused, hence close=True.
+            self._sql.put_conn(self._conn, close=True)
             self._conn = None
             raise
         self._sql.put_conn(self._conn)
