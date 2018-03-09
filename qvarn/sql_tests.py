@@ -17,6 +17,7 @@
 import unittest
 
 import qvarn
+from qvarn.sql import Transaction
 
 
 class AllConditionTests(unittest.TestCase):
@@ -106,3 +107,84 @@ class CmpTests(unittest.TestCase):
             'type': 'foo',
         }
         self.assertTrue(qvarn.ResourceTypeIs('foo').matches(restype, None))
+
+
+class DummySQL:
+
+    class DummyConnection:
+        def __init__(self, sql, fail_on_commit, fail_on_rollback):
+            self.sql = sql
+            self._fail_on_commit = fail_on_commit
+            self._fail_on_rollback = fail_on_rollback
+
+        def commit(self):
+            self.sql.commits += 1
+            if self._fail_on_commit:
+                raise RuntimeError
+            return True
+
+        def rollback(self):
+            self.sql.rollbacks += 1
+            if self._fail_on_rollback:
+                raise RuntimeError
+            return True
+
+    def __init__(self, fail_on_commit=False, fail_on_rollback=False):
+        self._fail_on_commit = fail_on_commit
+        self._fail_on_rollback = fail_on_rollback
+        self.returned_conns = 0
+        self.closed_conns = 0
+        self.rollbacks = 0
+        self.commits = 0
+
+    def get_conn(self):
+        return self.DummyConnection(self,
+                                    self._fail_on_commit,
+                                    self._fail_on_rollback)
+
+    def put_conn(self, conn, close=False):
+        self.returned_conns += 1
+        if close:
+            self.closed_conns += 1
+
+
+class TransactionErrorHandlingTestCase(unittest.TestCase):
+
+    def test_transaction_returns_conn_after_transaction(self):
+        sql = DummySQL()
+        with Transaction(sql):
+            pass
+        self.assertEqual(sql.returned_conns, 1)
+        self.assertEqual(sql.closed_conns, 0)
+        self.assertEqual(sql.commits, 1)
+        self.assertEqual(sql.rollbacks, 0)
+
+    def test_conn_closed_after_error_in_rollback(self):
+        sql = DummySQL(fail_on_rollback=True)
+        with self.assertRaises(RuntimeError):
+            with Transaction(sql):
+                raise ValueError
+        self.assertEqual(sql.returned_conns, 1)
+        self.assertEqual(sql.closed_conns, 1)
+        self.assertEqual(sql.commits, 0)
+        self.assertEqual(sql.rollbacks, 1)
+
+    def test_conn_closed_after_error_in_commit(self):
+        sql = DummySQL(fail_on_commit=True)
+        with self.assertRaises(RuntimeError):
+            with Transaction(sql):
+                pass
+        self.assertEqual(sql.returned_conns, 1)
+        self.assertEqual(sql.closed_conns, 1)
+        self.assertEqual(sql.commits, 1)
+        self.assertEqual(sql.rollbacks, 0)
+
+    def test_conn_intact_after_code_error(self):
+        sql = DummySQL()
+        with self.assertRaises(ValueError):
+            with Transaction(sql):
+                raise ValueError
+        self.assertEqual(sql.returned_conns, 1)
+        self.assertEqual(sql.closed_conns, 0)
+        self.assertEqual(sql.commits, 0)
+        self.assertEqual(sql.rollbacks, 1)
