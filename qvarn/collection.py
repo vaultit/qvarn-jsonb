@@ -336,7 +336,7 @@ class CollectionAPI:
     def _sort_objects(self, objects, sort_keys):
         def object_sort_key(obj, fields):
             return [
-                (key, value)
+                (key, value or '')
                 for key, value in qvarn.flatten_object(obj)
                 if key in fields
             ]
