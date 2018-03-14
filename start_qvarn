@@ -19,7 +19,7 @@ set -eu
 export QVARN_CONFIG="/etc/qvarn/qvarn.conf"
 
 gunicorn3 \
-    --bind 127.0.0.1:12765 \
+    --bind 0.0.0.0:12765 \
     -w1 \
     --log-file /var/log/qvarn/gunicorn3.log \
     --log-level debug \
