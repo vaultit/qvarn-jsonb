@@ -62,13 +62,16 @@ class QvarnAPI:
                 msg_text='There is no resource type for path',
                 path=path)
             raise qvarn.NoSuchResourceType(path)
-        elif len(objs) > 1:  # pragma: no cover
-            qvarn.log.log(
-                'error',
-                msg_text='There are more than one resource types for path',
-                path=path,
-                objs=objs)
-            raise qvarn.TooManyResourceTypes(path)
+        # This is disabled until we solve the problem of having multiple
+        # Qvarn instances creating the same resource types at startup
+        # (or, later, via the API).
+        # elif len(objs) > 1:  # pragma: no cover
+        #     qvarn.log.log(
+        #         'error',
+        #         msg_text='There are more than one resource types for path',
+        #         path=path,
+        #         objs=objs)
+        #     raise qvarn.TooManyResourceTypes(path)
         rt = qvarn.ResourceType()
         rt.from_spec(objs[0]['spec'])
         return rt
