@@ -55,6 +55,7 @@ class QvarnAPI:
         self._store.create_object(obj, **keys, auxtable=True)
 
     def get_resource_type(self, path):
+        path = self._canonical_path(path)
         objs = self._get_resource_type_given_path(path)
         if not objs:
             qvarn.log.log(
@@ -75,6 +76,12 @@ class QvarnAPI:
         rt = qvarn.ResourceType()
         rt.from_spec(objs[0]['spec'])
         return rt
+
+    def _canonical_path(self, path):  # pragma: no cover
+        parts = path.split('/')
+        if not path.startswith('/') or not parts:
+            return path
+        return '/{}'.format(parts[1])
 
     def _get_resource_type_given_path(self, path):
         cond = qvarn.All(
