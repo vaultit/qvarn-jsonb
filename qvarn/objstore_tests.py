@@ -33,11 +33,13 @@ class ObjectStoreTests(unittest.TestCase):
 
     def create_store(self, **keys):
         store = qvarn.MemoryObjectStore()
-        store.create_store(**keys)
+        with store.transaction() as t:
+            store.create_store(t, **keys)
         return store
 
     def get_all_objects(self, store):
-        return [obj for _, obj in store.get_matches(qvarn.Yes())]
+        with store.transaction() as t:
+            return [obj for _, obj in store.get_matches(t, qvarn.Yes())]
 
     def sorted_dicts(self, dicts):
         return sorted(dicts, key=lambda d: sorted(d.items()))
@@ -55,59 +57,67 @@ class ObjectStoreTests(unittest.TestCase):
 
     def test_adds_object(self):
         store = self.create_store(key=str)
-        store.create_object(self.obj1, key='1st')
+        with store.transaction() as t:
+            store.create_object(t, self.obj1, key='1st')
         self.assertEqual(self.get_all_objects(store), [self.obj1])
 
     def test_adds_object_with_binary_data(self):
         store = self.create_store(key=str)
         self.obj1['data'] = bytes(range(0, 256))
-        store.create_object(self.obj1, key='1st')
+        with store.transaction() as t:
+            store.create_object(t, self.obj1, key='1st')
         self.assertEqual(self.get_all_objects(store), [self.obj1])
 
     def test_raises_error_for_surprising_keys(self):
         store = self.create_store(key=str)
         with self.assertRaises(qvarn.UnknownKey):
-            store.create_object(self.obj1, surprise='1st')
+            with store.transaction() as t:
+                store.create_object(t, self.obj1, surprise='1st')
 
     def test_raises_error_adding_object_with_existing_keys(self):
         store = self.create_store(key=str)
-        store.create_object(self.obj1, key='1st')
-        with self.assertRaises(qvarn.KeyCollision):
-            store.create_object(self.obj1, key='1st')
+        with store.transaction() as t:
+            store.create_object(t, self.obj1, key='1st')
+            with self.assertRaises(qvarn.KeyCollision):
+                store.create_object(t, self.obj1, key='1st')
 
     def test_raises_error_adding_object_with_keys_of_wrong_type(self):
         store = self.create_store(key=str)
         with self.assertRaises(qvarn.KeyValueError):
-            store.create_object(self.obj1, key=1)
+            with store.transaction() as t:
+                store.create_object(t, self.obj1, key=1)
 
     def test_adds_objects_with_two_keys_with_one_key_the_same(self):
         store = self.create_store(key1=str, key2=str)
-        store.create_object(self.obj1, key1='same', key2='1st')
-        store.create_object(self.obj2, key1='same', key2='2nd')
+        with store.transaction() as t:
+            store.create_object(t, self.obj1, key1='same', key2='1st')
+            store.create_object(t, self.obj2, key1='same', key2='2nd')
         self.assertEqual(self.get_all_objects(store), [self.obj1, self.obj2])
 
     def test_removes_only_object(self):
         store = self.create_store(key=str)
-        store.create_object(self.obj1, key='1st')
-        store.remove_objects(key='1st')
+        with store.transaction() as t:
+            store.create_object(t, self.obj1, key='1st')
+            store.remove_objects(t, key='1st')
         self.assertEqual(self.get_all_objects(store), [])
 
     def test_gets_objects(self):
         store = self.create_store(key=str)
-        store.create_object(self.obj1, key='1st')
-        store.create_object(self.obj2, key='2nd')
-        self.assertEqual(
-            store.get_matches(key='1st'),
-            [
-                ({'key': '1st'}, self.obj1)
-            ]
-        )
-        self.assertEqual(
-            store.get_matches(key='2nd'),
-            [
-                ({'key': '2nd'}, self.obj2)
-            ]
-        )
+        with store.transaction() as t:
+            store.create_object(t, self.obj1, key='1st')
+            store.create_object(t, self.obj2, key='2nd')
+            self.assertEqual(
+                store.get_matches(t, key='1st'),
+                [
+                    ({'key': '1st'}, self.obj1)
+                ]
+            )
+            self.assertEqual(
+                store.get_matches(t, key='2nd'),
+                [
+                    ({'key': '2nd'}, self.obj2)
+                ]
+            )
 
     def test_gets_objects_using_only_one_key(self):
         keys1 = {
@@ -123,70 +133,79 @@ class ObjectStoreTests(unittest.TestCase):
         match2 = (keys2, self.obj2)
 
         store = self.create_store(key1=str, key2=str)
-        store.create_object(self.obj1, **keys1)
-        store.create_object(self.obj2, **keys2)
-        self.assertEqual(store.get_matches(key1='1st'), [match1])
-        self.assertEqual(store.get_matches(key1='2nd'), [match2])
+        with store.transaction() as t:
+            store.create_object(t, self.obj1, **keys1)
+            store.create_object(t, self.obj2, **keys2)
+            self.assertEqual(store.get_matches(t, key1='1st'), [match1])
+            self.assertEqual(store.get_matches(t, key1='2nd'), [match2])
 
-        matches = store.get_matches(key2='foo')
-        expected = [match1, match2]
-        self.assertEqual(
-            self.sorted_matches(matches),
-            self.sorted_matches(expected)
-        )
+            matches = store.get_matches(t, key2='foo')
+            expected = [match1, match2]
+            self.assertEqual(
+                self.sorted_matches(matches),
+                self.sorted_matches(expected)
+            )
 
     def test_removes_only_one_object(self):
         store = self.create_store(key=str)
-        store.create_object(self.obj1, key='1st')
-        store.create_object(self.obj2, key='2nd')
-        store.remove_objects(key='1st')
+        with store.transaction() as t:
+            store.create_object(t, self.obj1, key='1st')
+            store.create_object(t, self.obj2, key='2nd')
+            store.remove_objects(t, key='1st')
         self.assertEqual(self.get_all_objects(store), [self.obj2])
 
     def test_finds_objects(self):
         store = self.create_store(key=str)
-        store.create_object(self.obj1, key='1st')
-        store.create_object(self.obj2, key='2nd')
+        with store.transaction() as t:
+            store.create_object(t, self.obj1, key='1st')
+            store.create_object(t, self.obj2, key='2nd')
 
-        cond = qvarn.Equal('name', self.obj1['name'])
-        objs = store.get_matches(cond)
-        self.assertEqual(
-            objs,
-            [({'key': '1st'}, self.obj1)]
-        )
+            cond = qvarn.Equal('name', self.obj1['name'])
+            objs = store.get_matches(t, cond)
+            self.assertEqual(
+                objs,
+                [({'key': '1st'}, self.obj1)]
+            )
 
     def test_has_no_blob_initially(self):
         store = self.create_store(key=str)
-        store.create_object(self.obj1, key='1st')
-        with self.assertRaises(qvarn.NoSuchObject):
-            store.get_blob(key='1st', subpath='blob')
+        with store.transaction() as t:
+            store.create_object(t, self.obj1, key='1st')
+            with self.assertRaises(qvarn.NoSuchObject):
+                store.get_blob(t, key='1st', subpath='blob')
 
     def test_add_blob_to_nonexistent_parent_fails(self):
         store = self.create_store(key=str)
-        store.create_object(self.obj1, key='1st')
+        with store.transaction() as t:
+            store.create_object(t, self.obj1, key='1st')
         with self.assertRaises(qvarn.NoSuchObject):
-            store.create_blob(self.blob1, key='2nd', subpath='blob')
+            with store.transaction() as t:
+                store.create_blob(t, self.blob1, key='2nd', subpath='blob')
 
     def test_adds_blob(self):
         store = self.create_store(key=str)
-        store.create_object(self.obj1, key='1st')
-        store.create_blob(self.blob1, key='1st', subpath='blob')
-        blob = store.get_blob(key='1st', subpath='blob')
+        with store.transaction() as t:
+            store.create_object(t, self.obj1, key='1st')
+            store.create_blob(t, self.blob1, key='1st', subpath='blob')
+            blob = store.get_blob(t, key='1st', subpath='blob')
         self.assertEqual(blob, self.blob1)
 
     def test_add_blob_twice_fails(self):
         store = self.create_store(key=str)
-        store.create_object(self.obj1, key='1st')
-        store.create_blob(self.blob1, key='1st', subpath='blob')
-        with self.assertRaises(qvarn.BlobKeyCollision):
-            store.create_blob(self.blob1, key='1st', subpath='blob')
+        with store.transaction() as t:
+            store.create_object(t, self.obj1, key='1st')
+            store.create_blob(t, self.blob1, key='1st', subpath='blob')
+            with self.assertRaises(qvarn.BlobKeyCollision):
+                store.create_blob(t, self.blob1, key='1st', subpath='blob')
 
     def test_removes_blob(self):
         store = self.create_store(key=str)
-        store.create_object(self.obj1, key='1st')
-        store.create_blob(self.blob1, key='1st', subpath='blob')
-        store.remove_blob(key='1st', subpath='blob')
-        with self.assertRaises(qvarn.NoSuchObject):
-            store.get_blob(key='1st', subpath='blob')
+        with store.transaction() as t:
+            store.create_object(t, self.obj1, key='1st')
+            store.create_blob(t, self.blob1, key='1st', subpath='blob')
+            store.remove_blob(t, key='1st', subpath='blob')
+            with self.assertRaises(qvarn.NoSuchObject):
+                store.get_blob(t, key='1st', subpath='blob')
 
 
 class FlattenObjectsTests(unittest.TestCase):
@@ -231,7 +250,8 @@ class FindObjectsTests(unittest.TestCase):
 
     def create_store(self, **keys):
         store = qvarn.MemoryObjectStore()
-        store.create_store(**keys)
+        with store.transaction() as t:
+            store.create_store(t, **keys)
         return store
 
     def test_finds_objects_matching_deeply_in_object(self):
@@ -265,12 +285,13 @@ class FindObjectsTests(unittest.TestCase):
         }
 
         store = self.create_store(key=str)
-        store.create_object(obj1, **keys1)
-        store.create_object(obj2, **keys2)
+        with store.transaction() as t:
+            store.create_object(t, obj1, **keys1)
+            store.create_object(t, obj2, **keys2)
 
-        cond = qvarn.Equal('bar', 'yo')
-        objs = store.get_matches(cond)
-        self.assertEqual(objs, [(keys1, obj1)])
+            cond = qvarn.Equal('bar', 'yo')
+            objs = store.get_matches(t, cond)
+            self.assertEqual(objs, [(keys1, obj1)])
 
 
 class AllowRuleTests(unittest.TestCase):
@@ -288,7 +309,8 @@ class AllowRuleTests(unittest.TestCase):
 
     def create_store(self, **keys):
         store = qvarn.MemoryObjectStore()
-        store.create_store(**keys)
+        with store.transaction() as t:
+            store.create_store(t, **keys)
         return store
 
     def test_has_no_rules_initially(self):
@@ -306,15 +328,18 @@ class AllowRuleTests(unittest.TestCase):
 
     def test_doesnt_have_allow_rule_initially(self):
         store = self.create_store(obj_id=str)
-        self.assertFalse(store.has_allow_rule(self.rule))
+        with store.transaction() as t:
+            self.assertFalse(store.has_allow_rule(t, self.rule))
 
     def test_adds_allow_rule(self):
         store = self.create_store(obj_id=str)
-        store.add_allow_rule(self.rule)
-        self.assertTrue(store.has_allow_rule(self.rule))
+        with store.transaction() as t:
+            store.add_allow_rule(t, self.rule)
+            self.assertTrue(store.has_allow_rule(t, self.rule))
 
     def test_removes_allow_rule(self):
         store = self.create_store(obj_id=str)
-        store.add_allow_rule(self.rule)
-        store.remove_allow_rule(self.rule)
-        self.assertFalse(store.has_allow_rule(self.rule))
+        with store.transaction() as t:
+            store.add_allow_rule(t, self.rule)
+            store.remove_allow_rule(t, self.rule)
+            self.assertFalse(store.has_allow_rule(t, self.rule))

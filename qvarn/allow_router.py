@@ -46,24 +46,30 @@ class AllowRouter(qvarn.Router):
             },
         ]
 
+    def _transaction(self):
+        return self._store.transaction()
+
     def _add_rule(self, content_type, body, *args, **kwargs):
         if content_type != 'application/json':
             raise qvarn.NotJson(content_type)
 
-        self._store.add_allow_rule(body)
+        with self._transaction() as t:
+            self._store.add_allow_rule(t, body)
         return qvarn.ok_response(None)
 
     def _has_rule(self, content_type, body, *args, **kwargs):
         if content_type != 'application/json':
             raise qvarn.NotJson(content_type)
 
-        if self._store.has_allow_rule(body):
-            return qvarn.ok_response(None)
+        with self._transaction() as t:
+            if self._store.has_allow_rule(t, body):
+                return qvarn.ok_response(None)
         return qvarn.no_such_resource_response('')
 
     def _remove_rule(self, content_type, body, *args, **kwargs):
         if content_type != 'application/json':
             raise qvarn.NotJson(content_type)
 
-        self._store.remove_allow_rule(body)
+        with self._transaction() as t:
+            self._store.remove_allow_rule(t, body)
         return qvarn.ok_response(None)

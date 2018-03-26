@@ -141,12 +141,13 @@ qvarn.log.log(
     'info', msg_text='Fine grained access control?',
     enabled=store.have_fine_grained_access_control())
 
-api = qvarn.QvarnAPI()
-api.set_base_url(config['baseurl'])
-api.set_object_store(store)
-api.add_resource_type(subject)
-for rt in resource_types:
-    api.add_resource_type(rt)
+with store.transaction() as t:
+    api = qvarn.QvarnAPI()
+    api.set_base_url(config['baseurl'])
+    api.set_object_store(t, store)
+    api.add_resource_type(t, subject)
+    for rt in resource_types:
+        api.add_resource_type(t, rt)
 
 app = apifw.create_bottle_application(
     api, counter, dict_logger, config, resource_types)
