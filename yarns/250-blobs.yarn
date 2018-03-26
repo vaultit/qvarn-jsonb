@@ -8,15 +8,19 @@ JSON.
     GIVEN a running qvarn instance
 
     WHEN client gets an authorization token with scope
-    ... "uapi_subjects_post uapi_subjects_id_put
+    ... "uapi_subjects_post uapi_subjects_id_get uapi_subjects_id_put
     ... uapi_subjects_id_blob_put uapi_subjects_id_blob_get"
 
 Create a subject.
 
     WHEN client requests POST /subjects with token and body
     ... { "type": "subject", "names": [ { "full_name": "Alfred" } ] }
-    THEN resource id is ID
+    THEN HTTP status code is 201 Created
+    AND resource id is ID
     AND revision is REV1
+
+    WHEN client requests GET /subjects/${ID} using token
+    THEN HTTP status code is 200 OK
 
 Newly created subject does not have a blob.
 

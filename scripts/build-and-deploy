@@ -45,7 +45,6 @@ set -eux
 [ -e qvarn/__init__.py ]
 
 host="$1"
-cleandb="$2"
 
 debian_version="$(dpkg-parsechangelog | sed -n '/^Version: /s///p')"
 upstream_version="$(echo "$debian_version" | sed 's/-.*//')"
@@ -71,11 +70,4 @@ fi
 ssh "$host" sudo systemctl stop qvarn || true
 ssh "$host" sudo apt install python3-cliapp python3-ttystatus
 ssh "$host" sudo dpkg -i $packages
-if [ "$cleandb" = true ]
-then
-    ssh "$host" sudo -u postgres dropdb qvarn || true
-    ssh "$host" sudo -u postgres createdb -O qvarn -E UTF8 -T template0 qvarn
-    ssh "$host" sudo find /var/log/qvarn -mindepth 1 -type f -delete
-fi
-ssh "$host" sudo systemctl restart haproxy
 ssh "$host" sudo systemctl restart qvarn
