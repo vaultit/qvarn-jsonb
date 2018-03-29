@@ -132,7 +132,8 @@ class ResourceRouter(qvarn.Router):
                 t, result_body['id'], result_body['revision'], 'created')
             self._log_access(
                 t,
-                result_body,
+                [result_body['id']],
+                result_body['revision'],
                 result_body.get('type'),
                 'POST',
                 # FIXME: add header getting to apifw
@@ -185,7 +186,8 @@ class ResourceRouter(qvarn.Router):
                 t, result_body['id'], result_body['revision'], 'updated')
             self._log_access(
                 t,
-                result_body,
+                [result_body['id']],
+                result_body['revision'],
                 result_body.get('type'),
                 'PUT',
                 # FIXME: add header getting to apifw
@@ -204,17 +206,19 @@ class ResourceRouter(qvarn.Router):
         with self._transaction() as t:
             body = self._coll.list(t, claims=claims, access_params=params)
 
-            for obj in body.get('resources', []):
-                self._log_access(
-                    t,
-                    obj,
-                    self._coll.get_type_name(),
-                    'GET',
-                    # FIXME: add header getting to apifw
-                    bottle.request.get_header('Authorization', ''),
-                    bottle.request.get_header('Qvarn-Token', ''),
-                    bottle.request.get_header('Qvarn-Access-By', ''),
-                    bottle.request.get_header('Qvarn-Why', None))
+            objs = body.get('resources', [])
+            ids = [obj['id'] for obj in objs]
+            self._log_access(
+                t,
+                ids,
+                None,
+                self._coll.get_type_name(),
+                'GET',
+                # FIXME: add header getting to apifw
+                bottle.request.get_header('Authorization', ''),
+                bottle.request.get_header('Qvarn-Token', ''),
+                bottle.request.get_header('Qvarn-Access-By', ''),
+                bottle.request.get_header('Qvarn-Why', None))
 
         return qvarn.ok_response(body)
 
@@ -231,7 +235,8 @@ class ResourceRouter(qvarn.Router):
 
             self._log_access(
                 t,
-                obj,
+                [obj['id']],
+                obj.get('revision'),
                 obj.get('type'),
                 'GET',
                 # FIXME: add header getting to apifw
@@ -263,7 +268,8 @@ class ResourceRouter(qvarn.Router):
             for obj in result:
                 self._log_access(
                     t,
-                    obj,
+                    [obj['id']],
+                    obj.get('revision'),
                     self._coll.get_type_name(),
                     'SEARCH',
                     # FIXME: add header getting to apifw
@@ -291,7 +297,8 @@ class ResourceRouter(qvarn.Router):
             self._notify(t, obj_id, None, 'deleted')
             self._log_access(
                 t,
-                {'id': obj_id},
+                [obj_id],
+                None,
                 self._coll.get_type_name(),
                 'DELETE',
                 # FIXME: add header getting to apifw

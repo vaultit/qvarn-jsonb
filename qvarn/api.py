@@ -239,8 +239,11 @@ class QvarnAPI:
             return True
         return False
 
-    def log_access(self, t, res, rtype, op,
+    def log_access(self, t, ids, revision, rtype, op,
                    ahead, qhead, ohead, whead):  # pragma: no cover
+        assert isinstance(ids, list)
+        assert all(isinstance(id, str) for id in ids)
+
         if rtype in [
                 'access', 'notification', 'listener', 'resource_type']:
             return
@@ -275,18 +278,26 @@ class QvarnAPI:
             }
             for t in re.findall(r',?\s*Other (.+?)(?:,|\Z)', ohead) if t]
 
-        self.create_access_entry(
-            t,
-            {
-                'type': 'access',
-                'resource_type': rtype,
-                'resource_id': res.get('id'),
-                'resource_revision': res.get('revision'),
-                'operation': op,
-                'accessors': [*persons, *clients, *orgs, *others],
-                'why': whead,
-                'timestamp': qvarn.get_current_timestamp(),
-            })
+        max_ids = 40
+        for some_ids in self.split(max_ids, ids):
+            self.create_access_entry(
+                t,
+                {
+                    'type': 'access',
+                    'resource_type': rtype,
+                    'resource_ids': some_ids,
+                    'resource_revision': revision,
+                    'operation': op,
+                    'accessors': [*persons, *clients, *orgs, *others],
+                    'why': whead,
+                    'timestamp': qvarn.get_current_timestamp(),
+                })
+
+    def split(self, n, ids):  # pragma: no cover
+        while len(ids) > n:
+            yield ids[:n]
+            ids = ids[n:]
+        yield ids
 
     def create_access_entry(self, t, entry):  # pragma: no cover
         qvarn.log.log('info', msg_text='Log access', access_entry=entry)

@@ -84,7 +84,13 @@ class Transaction:  # pragma: no cover
     def execute(self, query, values):
         started = time.time()
         c = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        c.execute(query, values)
+        try:
+            c.execute(query, values)
+        except:
+            qvarn.log.log(
+                'error', msg_text='SQL execution error', query=query,
+                values=values)
+            raise
         duration = 1000.0 * (time.time() - started)
         self._queries.append({
             'query': query,
