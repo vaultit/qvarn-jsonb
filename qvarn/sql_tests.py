@@ -24,10 +24,6 @@ class AllConditionTests(unittest.TestCase):
     def test_returns_true_without_subconditions(self):
         self.assertTrue(qvarn.All().matches(None, None))
 
-    def test_returns_false_without_false_subcondition(self):
-        cond = qvarn.All(qvarn.No())
-        self.assertFalse(cond.matches(None, None))
-
     def test_returns_appended_subcondition(self):
         cond = qvarn.All()
         yes = qvarn.Yes()
