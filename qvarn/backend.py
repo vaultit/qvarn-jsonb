@@ -132,9 +132,7 @@ resource_types = qvarn.load_resource_types(config['resource-type-dir'])
 if config['memory-database']:
     store = qvarn.MemoryObjectStore()
 else:
-    sql = qvarn.PostgresAdapter()
-    sql.connect(**config['database'])
-    store = qvarn.PostgresObjectStore(sql)
+    store = qvarn.MongoObjectStore()
 if config.get('enable-fine-grained-access-control'):
     store.enable_fine_grained_access_control()
 qvarn.log.log(

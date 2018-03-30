@@ -13,8 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from collections import namedtuple
+
 
 import qvarn
+
+
+ObjWithKeys = namedtuple('ObjWithKeys', ['obj', 'keys'])
 
 
 class CollectionAPI:
@@ -63,25 +68,34 @@ class CollectionAPI:
         }
 
         new_obj = self._new_object(self._proto, obj)
-        with qvarn.Stopwatch('post helper: create object in db'):
-            for key in meta_fields:
-                if not new_obj.get(key):
-                    new_obj[key] = meta_fields[key]
-            self._create_object(new_obj, obj_id=new_obj['id'], subpath='')
+        for key in meta_fields:
+            if not new_obj.get(key):
+                new_obj[key] = meta_fields[key]
 
-        with qvarn.Stopwatch('post helper: create subpaths in db'):
-            rt = self.get_type()
-            subprotos = rt.get_subpaths()
-            for subpath, subproto in subprotos.items():
-                empty = self._new_object(subproto, {})
-                self._create_object(
-                    empty, obj_id=new_obj['id'], subpath=subpath)
+        objs = [ObjWithKeys(new_obj, dict(obj_id=new_obj['id'],
+                                          subpath=''))]
+
+        rt = self.get_type()
+        subprotos = rt.get_subpaths()
+        for subpath, subproto in subprotos.items():
+            empty = self._new_object(subproto, {})
+            empty['type'] = self.get_type_name()
+            objs.append(ObjWithKeys(empty, dict(obj_id=new_obj['id'],
+                                                subpath=subpath)))
+
+        with qvarn.Stopwatch('post helper: create object and subpaths in db'):
+            self._create_multiple_objects(objs)
 
         return new_obj
 
     def _create_object(self, obj, **keys):
         assert set(keys.keys()) == set(self.object_keys.keys())
         self._store.create_object(obj, **keys)
+
+    def _create_multiple_objects(self, objs_with_keys):
+        for obj, keys in objs_with_keys:
+            assert set(keys.keys()) == set(self.object_keys.keys())
+        self._store.create_multiple(objs_with_keys)
 
     def _new_object(self, proto, obj):
         return qvarn.add_missing_fields(proto, obj)
@@ -140,12 +154,11 @@ class CollectionAPI:
             allowed = qvarn.AccessIsAllowed(
                 access_params, self._store.get_allow_rules())
         matches = self._store.get_matches(
-            oftype, allow_cond=allowed, subpath='')
+            oftype, allow_cond=allowed, subpath='', _only_fields=['id'])
         return {
             'resources': [
                 {'id': obj['id']}
                 for _, obj in matches
-                if obj['type'] == self.get_type_name()
             ]
         }
 
@@ -159,23 +172,27 @@ class CollectionAPI:
 
         new_obj = dict(obj)
         new_obj['revision'] = self._invent_id('revision')
+        new_obj['type'] = self.get_type_name()
         self._store.remove_objects(obj_id=new_obj['id'], subpath='')
         self._create_object(new_obj, obj_id=new_obj['id'], subpath='')
+        new_obj.pop('type')
 
         return new_obj
 
     def put_subresource(
             self, sub_obj, subpath=None, claims=None, access_params=None,
             **keys):
-        new_sub = self.put_subresource_no_new_revision(
-            sub_obj, subpath=subpath, claims=claims,
-            access_params=access_params, **keys)
 
-        obj_id = keys.pop('obj_id')
-        parent = self._update_revision(
-            obj_id, claims=claims, access_params=access_params)
-        new_sub['revision'] = parent['revision']
-        return new_sub
+        with qvarn.Stopwatch('put subresource: total time spent'):
+            new_sub = self.put_subresource_no_new_revision(
+                sub_obj, subpath=subpath, claims=claims,
+                access_params=access_params, **keys)
+
+            obj_id = keys.pop('obj_id')
+            parent = self._update_revision(
+                obj_id, claims=claims, access_params=access_params)
+            new_sub['revision'] = parent['revision']
+            return new_sub
 
     def put_subresource_no_new_revision(
             self, sub_obj, subpath=None, claims=None, access_params=None,
@@ -188,6 +205,7 @@ class CollectionAPI:
             raise WrongRevision(revision, parent['revision'])
 
         new_sub = self._new_subresource(sub_obj, subpath)
+        new_sub['type'] = self.get_type_name()
         keys = {
             'obj_id': obj_id,
             'subpath': subpath,
@@ -314,17 +332,23 @@ class CollectionAPI:
             assert access_params is not None
             allow_cond = qvarn.AccessIsAllowed(
                 access_params, self._store.get_allow_rules())
-
-        matches = self._store.get_matches(cond=cond, allow_cond=allow_cond)
-        qvarn.log.log('xxx', matches=matches)
-        obj_ids = self._uniq(keys['obj_id'] for keys, _ in matches)
-        objects = [
-            self._get_object(
-                obj_id=obj_id, subpath='', claims=claims,
-                access_params=access_params)
-            for obj_id in obj_ids
-        ]
-        return [o for o in objects if o['type'] == self.get_type_name()]
+        rt = self.get_type()
+        proto = rt.get_latest_prototype()
+        subprotos = rt.get_subpaths()
+        protos = [proto] + [subproto for subproto in subprotos.values()]
+        matches = self._store.get_matches(cond, allow_cond=allow_cond,
+                                          _protos=protos,
+                                          _type=self.get_type_name(),
+                                          _only_fields=['obj_id'])
+        obj_ids = list(self._uniq(keys['obj_id'] for keys, _ in matches))
+        objects = self._store.get_matches(_obj_ids=obj_ids, subpath='')
+        # objects = [
+        #     self._get_object(
+        #         obj_id=obj_id, subpath='', claims=claims,
+        #         access_params=access_params)
+        #     for obj_id in obj_ids
+        # ]
+        return [o for _, o in objects if o['type'] == self.get_type_name()]
 
     def _uniq(self, items):
         seen = set()

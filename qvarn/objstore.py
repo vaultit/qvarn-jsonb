@@ -15,9 +15,13 @@
 
 
 import json
+from contextlib import closing
 
+import pymongo
+import gridfs
 
 import qvarn
+from qvarn.mongo import flat_query_to_mongo
 
 
 class ObjectStoreInterface:  # pragma: no cover
@@ -80,10 +84,14 @@ class ObjectStoreInterface:  # pragma: no cover
     def create_object(self, obj, auxtable=True, **keys):
         raise NotImplementedError()
 
+    def create_multiple(self, objects_with_keys, auxtable=True):
+        for obj, keys in objects_with_keys:
+            self.create_object(obj, auxtable=auxtable, **keys)
+
     def remove_objects(self, **keys):
         raise NotImplementedError()
 
-    def get_matches(self, cond=None, allow_cond=None, **keys):
+    def get_matches(self, cond=None, allow_cond=None, _only_fields=None, _proto=None, **keys):
         raise NotImplementedError()
 
     def create_blob(self, blob, subpath=None, **keys):
@@ -187,7 +195,7 @@ class MemoryObjectStore(ObjectStoreInterface):
         self._objs = [
             (o, k) for o, k in self._objs if not self._keys_match(k, keys)]
 
-    def get_matches(self, cond=None, allow_cond=None, **keys):
+    def get_matches(self, cond=None, allow_cond=None, _only_fields=None, _proto=None, **keys):
         assert cond is not None or len(keys) > 0
         self.check_all_keys_are_allowed(**keys)
         if cond is None:
@@ -423,7 +431,6 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             t.execute(query, rule)
 
     def remove_allow_rule(self, rule):
-        column_names = list(rule.keys())
         with self._sql.transaction() as t:
             query = t.remove_allow_rule(self._allowtable, rule)
             t.execute(query, rule)
@@ -494,3 +501,170 @@ def _flatten(obj, obj_key=None):
                 yield x
     else:
         yield obj_key, obj
+
+
+class MongoObjectStore(ObjectStoreInterface):
+
+    def __init__(self):
+        super().__init__()
+        self._known_keys = {}
+        self._collection = None
+        self._client = None
+        self._gridfs = None
+
+    def create_store(self, **keys):
+        self._known_keys = keys
+        qvarn.log.log(
+            'debug', msg_text='Creating object store', keys=keys)
+        self.collection.ensure_index('type')
+        self.collection.ensure_index('obj_id')
+
+    def get_client(self):
+        if self._client is None:
+            self._client = pymongo.MongoClient()
+        return self._client
+
+    @property
+    def collection(self):
+        if self._collection is None:
+            self._collection = self.get_client().db.objstore
+        return self._collection
+
+    def get_known_keys(self):
+        return self._known_keys
+
+    def check_all_keys_are_allowed(self, **keys):
+        known_keys = self.get_known_keys()
+        for key in keys:
+            if key not in known_keys:
+                raise UnknownKey(key)
+
+    def check_value_types(self, **keys):
+        known_keys = self.get_known_keys()
+        for key in keys:
+            if type(keys[key]) is not known_keys[key]:
+                raise KeyValueError(key, keys[key])
+
+    # Objects
+    def create_object(self, obj, auxtable=True, **keys):
+        qvarn.log.log(
+            'trace', msg_text='Creating object', object=repr(obj), keys=keys)
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+        for key, val in keys.items():
+            obj[key] = val
+        with qvarn.Stopwatch('Mongo create_object insert_one'):
+            self.collection.insert_one(obj)
+        # MongoClient modifies existing resources for perf, so we op
+        # the field it added
+        obj.pop('_id')
+
+    def create_multiple(self, objects_with_keys):
+        for obj, keys in objects_with_keys:
+            self.check_all_keys_are_allowed(**keys)
+            self.check_value_types(**keys)
+            for key, val in keys.items():
+                obj[key] = val
+        objs = [obj for obj, _ in objects_with_keys]
+        with qvarn.Stopwatch('Mongo create_object insert_many'):
+            self.collection.insert_many(objs, ordered=False)
+        for obj in objs:
+            obj.pop('_id')
+
+    def remove_objects(self, **keys):
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+        with qvarn.Stopwatch('Mongo remove_objects delete_many'):
+            self.collection.delete_many(keys)
+
+    def get_matches(self, cond=None, allow_cond=None, _protos=None,
+                    _only_fields=None, _explain=False, _type=None,
+                    _obj_ids=None, **keys):
+        assert cond is not None or len(keys) > 0 or _obj_ids
+        self.check_all_keys_are_allowed(**keys)
+        if cond is None:
+            cond = qvarn.Yes()
+        # XXX Translate conds to queries
+        if _protos:
+            q = flat_query_to_mongo(cond.as_fieldquery(), _protos)
+        elif _obj_ids is not None:
+            q = {'obj_id': {'$in': _obj_ids}}
+        else:
+            q = cond.as_mongo()
+        q.update(keys)
+        if _type:
+            q.update({'type': _type})
+        if _only_fields is not None:
+            projection = {
+                field: 1
+                for field in _only_fields + list(self.get_known_keys().keys())
+            }
+        else:
+            projection = None
+        qvarn.log.log(
+            'trace', msg_text='MongoObjectStore.get_matches',
+            query=q,
+        )
+        results = []
+        with qvarn.Stopwatch('Mongo get_matches find', query=q,
+                             projection=projection):
+            with self.collection.find(q, projection) as cursor:
+                for item in cursor:
+                    item.pop('_id')
+                    results.append((
+                        {key: item.pop(key) for key in self.get_known_keys()},
+                        item,
+                    ))
+        return results
+
+    # Blobls
+    @property
+    def gridfs(self):
+        if self._gridfs is None:
+            client = self.get_client()
+            self._gridfs = gridfs.GridFSBucket(client.db)
+        return self._gridfs
+
+    def _generate_name(self, keys):
+        vals = [str(keys[k]) for k in sorted(keys.keys())]
+        return '_'.join(vals)
+
+    def create_blob(self, blob, subpath=None, **keys):
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+        name = self._generate_name(dict(subpath=subpath, **keys))
+        fd = self.gridfs.open_upload_stream(name, metadata=keys)
+        with closing(fd):
+            fd.write(blob)
+
+    def get_blob(self, subpath=None, **keys):
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+        name = self._generate_name(dict(subpath=subpath, **keys))
+        fd = self.gridfs.open_download_stream_by_name(name)
+        with closing(fd):
+            data = fd.read()
+        return data
+
+    def remove_blob(self, subpath=None, **keys):
+        keys['subpath'] = subpath
+        self.check_all_keys_are_allowed(**keys)
+        self.check_value_types(**keys)
+        name = self._generate_name(keys)
+        with self.gridfs.find({'filename': name}) as cursor:
+            file_ids = [file._id for file in cursor]
+        for file_id in file_ids:
+            self.gridfs.delete(file_id)
+
+    # Allow rules
+    def get_allow_rules(self):
+        raise NotImplementedError()
+
+    def has_allow_rule(self, rule):
+        raise NotImplementedError()
+
+    def add_allow_rule(self, rule):
+        raise NotImplementedError()
+
+    def remove_allow_rule(self, rule):
+        raise NotImplementedError()
