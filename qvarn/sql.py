@@ -6,6 +6,7 @@
 '''Communicate with a PostgreSQL server.'''
 
 
+from collections import namedtuple
 import time
 
 import psycopg2
@@ -15,6 +16,9 @@ import psycopg2.extensions
 import slog
 
 import qvarn
+
+
+FieldQuery = namedtuple('FieldQuery', ['field', 'operator', 'predicate'])
 
 
 class PostgresAdapter:  # pragma: no cover
@@ -258,6 +262,9 @@ class Condition:  # pragma: no cover
     def as_sql(self):  # pragma: no cover
         raise NotImplementedError()
 
+    def as_mongo(self):
+        raise NotImplementedError()
+
 
 class All(Condition):
 
@@ -283,6 +290,12 @@ class All(Condition):
         for _, value in pairs:
             values.update(value)
         return '( {} )'.format(conds), values
+
+    def as_mongo(self):
+        return {'$and': [cond.as_mongo() for cond in self.conds]}
+
+    def as_fieldquery(self):
+        return sum([cond.as_fieldquery() for cond in self.conds], [])
 
 
 class Cmp(Condition):  # pragma: no cover
@@ -333,6 +346,12 @@ class Equal(Cmp):
     def get_operator(self):  # pragma: no cover
         return '='
 
+    def as_mongo(self):
+        return {self.name: self.pattern}
+
+    def as_fieldquery(self):
+        return [FieldQuery(self.name, None, self.pattern)]
+
 
 class ResourceTypeIs(Equal):
 
@@ -351,6 +370,12 @@ class NotEqual(Cmp):
     def get_operator(self):  # pragma: no cover
         return '!='
 
+    def as_mongo(self):
+        return {self.name: {'$ne': self.pattern}}
+
+    def as_fieldquery(self):
+        return [FieldQuery(self.name, '$ne', self.pattern)]
+
 
 class GreaterThan(Cmp):
 
@@ -359,6 +384,12 @@ class GreaterThan(Cmp):
 
     def get_operator(self):  # pragma: no cover
         return '>'
+
+    def as_mongo(self):
+        return {self.name: {'$gt': self.pattern}}
+
+    def as_fieldquery(self):
+        return [FieldQuery(self.name, '$gt', self.pattern)]
 
 
 class GreaterOrEqual(Cmp):
@@ -369,6 +400,12 @@ class GreaterOrEqual(Cmp):
     def get_operator(self):  # pragma: no cover
         return '>='
 
+    def as_mongo(self):
+        return {self.name: {'$gte': self.pattern}}
+
+    def as_fieldquery(self):
+        return [FieldQuery(self.name, '$gte', self.pattern)]
+
 
 class LessThan(Cmp):
 
@@ -378,6 +415,12 @@ class LessThan(Cmp):
     def get_operator(self):  # pragma: no cover
         return '<'
 
+    def as_mongo(self):
+        return {self.name: {'$lt': self.pattern}}
+
+    def as_fieldquery(self):
+        return [FieldQuery(self.name, '$lt', self.pattern)]
+
 
 class LessOrEqual(Cmp):
 
@@ -386,6 +429,12 @@ class LessOrEqual(Cmp):
 
     def get_operator(self):  # pragma: no cover
         return '<='
+
+    def as_mongo(self):
+        return {self.name: {'$lte': self.pattern}}
+
+    def as_fieldquery(self):
+        return [FieldQuery(self.name, '$lte', self.pattern)]
 
 
 class Contains(Cmp):
@@ -400,6 +449,12 @@ class Contains(Cmp):
     def get_operator(self):  # pragma: no cover
         pass
 
+    def as_mongo(self):
+        return {self.name: {'$regex': '.*{}.*'.format(self.pattern)}}
+
+    def as_fieldquery(self):
+        return [FieldQuery(self.name, '$regex', '.*{}.*'.format(self.pattern))]
+
 
 class Startswith(Cmp):
 
@@ -413,6 +468,12 @@ class Startswith(Cmp):
     def get_operator(self):  # pragma: no cover
         pass
 
+    def as_mongo(self):
+        return {self.name: {'$regex': '^{}.*'.format(self.pattern)}}
+
+    def as_fieldquery(self):
+        return [FieldQuery(self.name, '$regex', '^{}.*'.format(self.pattern))]
+
 
 class Yes(Condition):
 
@@ -425,17 +486,11 @@ class Yes(Condition):
     def as_sql(self):  # pragma: no cover
         return 'TRUE', {}
 
+    def as_mongo(self):
+        return {}
 
-class No(Condition):
-
-    def compare(self, a, b):  # pragma: no cover
-        assert False
-
-    def matches(self, obj, keys):
-        return False
-
-    def as_sql(self):  # pragma: no cover
-        return 'FALSE', {}
+    def as_fieldquery(self):
+        return []
 
 
 class AccessIsAllowed(Condition):  # pragma: no cover
