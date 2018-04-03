@@ -64,6 +64,7 @@ default_config = {
     'resource-type-dir': None,
     'enable-fine-grained-access-control': None,
     'memory-database': True,
+    'enable-access-log': True,
     'database': {
         'host': None,
         'port': 5432,
@@ -146,6 +147,8 @@ with store.transaction() as t:
     api.set_base_url(config['baseurl'])
     api.set_object_store(t, store)
     api.add_resource_type(t, subject)
+    if config['enable-access-log']:
+        api.enable_access_log()
     for rt in resource_types:
         api.add_resource_type(t, rt)
 

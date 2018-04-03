@@ -30,6 +30,7 @@ class QvarnAPI:
         self._rt_coll = None
         self._notifs = None
         self._alog = None
+        self._use_access_log = False
 
     def set_base_url(self, baseurl):  # pragma: no cover
         self._baseurl = baseurl
@@ -41,6 +42,9 @@ class QvarnAPI:
     def get_object_store(self):  # pragma: no cover
         assert self._store is not None
         return self._store
+
+    def enable_access_log(self):  # pragma: no cover
+        self._use_access_log = True
 
     def add_resource_type(self, t, rt):
         path = rt.get_path()
@@ -241,6 +245,10 @@ class QvarnAPI:
 
     def log_access(self, t, ids, revision, rtype, op,
                    ahead, qhead, ohead, whead):  # pragma: no cover
+
+        if not self._use_access_log:
+            return
+
         assert isinstance(ids, list)
         assert all(isinstance(id, str) for id in ids)
 
