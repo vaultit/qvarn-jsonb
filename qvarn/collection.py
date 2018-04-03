@@ -273,11 +273,6 @@ class CollectionAPI:
             chosen = result[sp.offset:sp.offset+sp.limit]
 
         picked = [pick_fields(o) for o in chosen]
-
-        qvarn.log.log(
-            'trace', msg_text='Collection.search, sorted',
-            result=picked)
-
         return picked
 
     def _check_fields_are_allowed(self, cond):

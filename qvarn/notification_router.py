@@ -159,7 +159,6 @@ class NotificationRouter(qvarn.Router):
                 for lid in listener_ids
             ]
 
-        qvarn.log.log('trace', msg_text='xxx', listeners=listeners)
         correct_ids = [
             {"id": listener['id']}
             for listener in listeners
@@ -241,9 +240,6 @@ class NotificationRouter(qvarn.Router):
             keys['obj_id']
             for keys, _ in self._store.get_matches(t, cond)
         ]
-        qvarn.log.log(
-            'trace', msg_text='Found notifications',
-            notifications=obj_ids)
         return obj_ids
 
     def _get_notifications_list(self, t, *args, **kwargs):

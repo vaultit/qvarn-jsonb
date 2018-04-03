@@ -58,7 +58,6 @@ class FileRouter(qvarn.Router):
         return self._api.get_object_store().transaction()
 
     def _get_file(self, *args, **kwargs):
-        qvarn.log.log('trace', msg_text='_get_file', kwargs=kwargs)
         claims = kwargs.get('claims')
         assert claims is not None
         params = self.get_access_params(
@@ -109,9 +108,6 @@ class FileRouter(qvarn.Router):
             sub_obj = self._parent_coll.get_subresource(
                 t, obj_id, self._subpath, allow_cond=qvarn.Yes())
             sub_obj['content_type'] = content_type
-            qvarn.log.log(
-                'trace', msg_text='_put_file', claims=claims,
-                access_params=params)
             if id_allowed:
                 new_sub = self._parent_coll.put_subresource_no_revision(
                     t, sub_obj, subpath=self._subpath, obj_id=obj_id,

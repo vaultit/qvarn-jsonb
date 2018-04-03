@@ -145,7 +145,6 @@ class ResourceRouter(qvarn.Router):
         return qvarn.created_response(result_body, location)
 
     def _update(self, content_type, body, *args, **kwargs):
-        qvarn.log.log('trace', msg_text='_update', kwargs=kwargs)
         claims = kwargs.get('claims')
         params = self.get_access_params(self._coll.get_type_name(), claims)
 
@@ -199,7 +198,6 @@ class ResourceRouter(qvarn.Router):
         return qvarn.ok_response(result_body)
 
     def _list(self, *args, **kwargs):
-        qvarn.log.log('trace', msg_text='_list', kwargs=kwargs)
         claims = kwargs.get('claims')
         params = self.get_access_params(self._coll.get_type_name(), claims)
 
@@ -283,8 +281,6 @@ class ResourceRouter(qvarn.Router):
     def _delete(self, *args, **kwargs):
         claims = kwargs.get('claims')
         params = self.get_access_params(self._coll.get_type_name(), claims)
-        qvarn.log.log(
-            'trace', msg_text='_delete callback', claims=claims, params=params)
 
         obj_id = kwargs['id']
         with self._transaction() as t:

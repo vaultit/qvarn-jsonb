@@ -98,9 +98,6 @@ class QvarnAPI:
             qvarn.Equal('type', 'resource_type'),
         )
         results = self._store.get_matches(t, cond=cond)
-        qvarn.log.log(
-            'trace', msg_text='_get_resource_type_given_path',
-            results=results, path=path)
         return [obj for _, obj in results]
 
     def get_listener_resource_type(self, t):
@@ -118,9 +115,6 @@ class QvarnAPI:
             qvarn.Equal('type', 'resource_type'),
         )
         results = self._store.get_matches(t, cond=cond)
-        qvarn.log.log(
-            'trace', msg_text='_get_resource_type_given_type',
-            results=results, type_name=type_name)
         objs = [obj for _, obj in results]
 
         if not objs:  # pragma: no cover
@@ -310,7 +304,6 @@ class QvarnAPI:
     def create_access_entry(self, t, entry):  # pragma: no cover
         qvarn.log.log('info', msg_text='Log access', access_entry=entry)
         alog = self._create_alog_collection(t)
-        qvarn.log.log('trace', msg_text='create_access_entry', entry=entry)
         alog.post_with_id(t, entry)
 
     def _create_alog_collection(self, t):  # pragma: no cover

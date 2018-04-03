@@ -145,12 +145,12 @@ class MemoryObjectStore(ObjectStoreInterface):
     def create_store(self, t, **keys):
         self.check_keys_have_str_type(**keys)
         qvarn.log.log(
-            'trace', msg_text='Creating store', keys=repr(keys), exc_info=True)
+            'info', msg_text='Creating store', keys=repr(keys), exc_info=True)
         self._known_keys = keys
 
     def create_object(self, t, obj, auxtable=True, **keys):
         qvarn.log.log(
-            'trace', msg_text='Creating object', object=repr(obj), keys=keys)
+            'info', msg_text='Creating object', object=repr(obj), keys=keys)
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         self._check_unique_object(**keys)
@@ -162,7 +162,7 @@ class MemoryObjectStore(ObjectStoreInterface):
                 raise KeyCollision(k)
 
     def create_blob(self, t, blob, subpath=None, **keys):
-        qvarn.log.log('trace', msg_text='Creating blob', keys=keys)
+        qvarn.log.log('info', msg_text='Creating blob', keys=keys)
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         self._check_unique_blob(subpath, **keys)
@@ -268,7 +268,8 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
 
             # Create helper table for fields at all depths. Needed by searches.
             self._create_table(
-                t, self._auxtable, self._keys, '_field', dict, jsonb_index=True)
+                t, self._auxtable, self._keys, '_field', dict,
+                jsonb_index=True)
 
             # Create helper table for blobs.
             self._create_table(t, self._blobtable, self._keys, '_blob', bytes)
@@ -324,7 +325,6 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         return '{}_idx'.format(name)
 
     def create_object(self, t, obj, auxtable=True, **keys):
-        qvarn.log.log('trace', msg_text='create_object', obj=obj, keys=keys)
         self._remove_objects_in_transaction(t, **keys)
         self._insert_into_object_table(t, self._table, obj, **keys)
         if auxtable:
@@ -337,8 +337,6 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         t.execute(query, keys)
 
     def _insert_into_helper(self, t, table_name, obj, **keys):
-        qvarn.log.log(
-            'trace', msg_text='_insert_into_helper', obj=obj, keys=keys)
         for field, value in flatten_object(obj):
             x = {
                 'name': field,
@@ -347,9 +345,6 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             keys['_field'] = json.dumps(x)
             column_names = list(keys.keys())
             query = t.insert_object(table_name, *column_names)
-            qvarn.log.log(
-                'trace', msg_text='_insert field', query=query, keys=keys, x=x,
-                field=field, value=value)
             t.execute(query, dict(keys))
 
     def remove_objects(self, t, **keys):
@@ -438,7 +433,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         column_names = list(rule.keys())
         query = t.insert_object(self._allowtable, *column_names)
         qvarn.log.log(
-            'trace', msg_text='add_allow_rule, SQL',
+            'info', msg_text='add_allow_rule, SQL',
             query=query, rule=rule)
         t.execute(query, rule)
 
