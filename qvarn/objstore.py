@@ -245,6 +245,7 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
 
     def __init__(self, sql):
         super().__init__()
+        self._tables_created = False
         self._sql = sql
         self._keys = None
 
@@ -258,19 +259,22 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         self.check_keys_have_str_type(**keys)
         self._keys = dict(keys)
 
-        # Create main table for objects.
-        self._create_table(
-            t, self._table, self._keys, '_obj', dict, index=True)
+        if not self._tables_created:
+            self._tables_created = True
 
-        # Create helper table for fields at all depths. Needed by searches.
-        self._create_table(
-            t, self._auxtable, self._keys, '_field', dict, jsonb_index=True)
+            # Create main table for objects.
+            self._create_table(
+                t, self._table, self._keys, '_obj', dict, index=True)
 
-        # Create helper table for blobs.
-        self._create_table(t, self._blobtable, self._keys, '_blob', bytes)
+            # Create helper table for fields at all depths. Needed by searches.
+            self._create_table(
+                t, self._auxtable, self._keys, '_field', dict, jsonb_index=True)
 
-        # Create table for fine-grained access control rules.
-        self._create_allow_table(t)
+            # Create helper table for blobs.
+            self._create_table(t, self._blobtable, self._keys, '_blob', bytes)
+
+            # Create table for fine-grained access control rules.
+            self._create_allow_table(t)
 
     def _create_allow_table(self, t):
         columns = {
