@@ -242,7 +242,8 @@ class NotificationRouter(qvarn.Router):
         ]
         return obj_ids
 
-    def _get_notifications_list(self, t, *args, **kwargs):
+    def _get_notifications_list(self, content_type, body, *args, **kwargs):
+
         def timestamp(pair):
             _, obj = pair
             return obj['timestamp']
@@ -252,7 +253,10 @@ class NotificationRouter(qvarn.Router):
             qvarn.Equal('type', 'notification'),
             qvarn.Equal('listener_id', listener_id)
         )
-        pairs = self._store.get_matches(t, cond)
+
+        with self._transaction() as t:
+            pairs = self._store.get_matches(t, cond)
+
         ordered = sorted(pairs, key=timestamp)
         body = {
             'resources': [

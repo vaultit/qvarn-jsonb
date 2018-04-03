@@ -263,18 +263,18 @@ class ResourceRouter(qvarn.Router):
             except qvarn.SearchParserError as e:
                 return qvarn.search_parser_error_response(e)
 
-            for obj in result:
-                self._log_access(
-                    t,
-                    [obj['id']],
-                    obj.get('revision'),
-                    self._coll.get_type_name(),
-                    'SEARCH',
-                    # FIXME: add header getting to apifw
-                    bottle.request.get_header('Authorization', ''),
-                    bottle.request.get_header('Qvarn-Token', ''),
-                    bottle.request.get_header('Qvarn-Access-By', ''),
-                    bottle.request.get_header('Qvarn-Why', None))
+            ids = [obj['id'] for obj in result]
+            self._log_access(
+                t,
+                ids,
+                None,
+                self._coll.get_type_name(),
+                'SEARCH',
+                # FIXME: add header getting to apifw
+                bottle.request.get_header('Authorization', ''),
+                bottle.request.get_header('Qvarn-Token', ''),
+                bottle.request.get_header('Qvarn-Access-By', ''),
+                bottle.request.get_header('Qvarn-Why', None))
 
         return qvarn.ok_response({'resources': result})
 
