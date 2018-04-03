@@ -63,19 +63,17 @@ class CollectionAPI:
         }
 
         new_obj = self._new_object(self._proto, obj)
-        with qvarn.Stopwatch('post helper: create object in db'):
-            for key in meta_fields:
-                if not new_obj.get(key):
-                    new_obj[key] = meta_fields[key]
-            self._create_object(t, new_obj, obj_id=new_obj['id'], subpath='')
+        for key in meta_fields:
+            if not new_obj.get(key):
+                new_obj[key] = meta_fields[key]
+        self._create_object(t, new_obj, obj_id=new_obj['id'], subpath='')
 
-        with qvarn.Stopwatch('post helper: create subpaths in db'):
-            rt = self.get_type()
-            subprotos = rt.get_subpaths()
-            for subpath, subproto in subprotos.items():
-                empty = self._new_object(subproto, {})
-                self._create_object(
-                    t, empty, obj_id=new_obj['id'], subpath=subpath)
+        rt = self.get_type()
+        subprotos = rt.get_subpaths()
+        for subpath, subproto in subprotos.items():
+            empty = self._new_object(subproto, {})
+            self._create_object(
+                t, empty, obj_id=new_obj['id'], subpath=subpath)
 
         return new_obj
 
