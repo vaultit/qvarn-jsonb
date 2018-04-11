@@ -30,9 +30,9 @@ class CollectionAPI:
         self._proto = None
         self._idgen = qvarn.ResourceIdGenerator()
 
-    def set_object_store(self, store):
+    def set_object_store(self, t, store):
         self._store = store
-        store.create_store(**self.object_keys)
+        store.create_store(t, **self.object_keys)
 
     def set_resource_type(self, rt):
         assert isinstance(rt, qvarn.ResourceType)
@@ -45,43 +45,41 @@ class CollectionAPI:
     def get_type_name(self):
         return self._type.get_type()
 
-    def post(self, obj):
+    def post(self, t, obj):
         v = qvarn.Validator()
         v.validate_new_resource(obj, self.get_type())
-        return self._post_helper(obj)
+        return self._post_helper(t, obj)
 
-    def post_with_id(self, obj):  # pragma: no cover
+    def post_with_id(self, t, obj):  # pragma: no cover
         v = qvarn.Validator()
         v.validate_new_resource_with_id(obj, self.get_type())
-        result = self._post_helper(obj)
+        result = self._post_helper(t, obj)
         return result
 
-    def _post_helper(self, obj):
+    def _post_helper(self, t, obj):
         meta_fields = {
             'id': self._invent_id(obj['type']),
             'revision': self._invent_id('revision'),
         }
 
         new_obj = self._new_object(self._proto, obj)
-        with qvarn.Stopwatch('post helper: create object in db'):
-            for key in meta_fields:
-                if not new_obj.get(key):
-                    new_obj[key] = meta_fields[key]
-            self._create_object(new_obj, obj_id=new_obj['id'], subpath='')
+        for key in meta_fields:
+            if not new_obj.get(key):
+                new_obj[key] = meta_fields[key]
+        self._create_object(t, new_obj, obj_id=new_obj['id'], subpath='')
 
-        with qvarn.Stopwatch('post helper: create subpaths in db'):
-            rt = self.get_type()
-            subprotos = rt.get_subpaths()
-            for subpath, subproto in subprotos.items():
-                empty = self._new_object(subproto, {})
-                self._create_object(
-                    empty, obj_id=new_obj['id'], subpath=subpath)
+        rt = self.get_type()
+        subprotos = rt.get_subpaths()
+        for subpath, subproto in subprotos.items():
+            empty = self._new_object(subproto, {})
+            self._create_object(
+                t, empty, obj_id=new_obj['id'], subpath=subpath)
 
         return new_obj
 
-    def _create_object(self, obj, **keys):
+    def _create_object(self, t, obj, **keys):
         assert set(keys.keys()) == set(self.object_keys.keys())
-        self._store.create_object(obj, **keys)
+        self._store.create_object(t, obj, **keys)
 
     def _new_object(self, proto, obj):
         return qvarn.add_missing_fields(proto, obj)
@@ -89,23 +87,23 @@ class CollectionAPI:
     def _invent_id(self, resource_type):
         return self._idgen.new_id(resource_type)
 
-    def get(self, obj_id, claims=None, access_params=None, allow_cond=None):
+    def get(self, t, obj_id, claims=None, access_params=None, allow_cond=None):
         obj = self._get_object(
-            obj_id, '', claims=claims, access_params=access_params,
+            t, obj_id, '', claims=claims, access_params=access_params,
             allow_cond=allow_cond)
         if obj and obj.get('type') == self.get_type_name():
             return obj
         raise NoSuchResource(obj_id=obj_id)
 
     def get_subresource(
-            self, obj_id, subpath, claims=None, access_params=None,
+            self, t, obj_id, subpath, claims=None, access_params=None,
             allow_cond=None):
         return self._get_object(
-            obj_id, subpath, claims=claims, access_params=access_params,
+            t, obj_id, subpath, claims=claims, access_params=access_params,
             allow_cond=allow_cond)
 
     def _get_object(
-            self, obj_id, subpath, claims=None, access_params=None,
+            self, t, obj_id, subpath, claims=None, access_params=None,
             allow_cond=None):
         need_allow_cond = (
             allow_cond is None and
@@ -120,18 +118,18 @@ class CollectionAPI:
             'obj_id': obj_id,
             'subpath': subpath,
         }
-        matches = self._store.get_matches(allow_cond=allow_cond, **keys)
+        matches = self._store.get_matches(t, allow_cond=allow_cond, **keys)
         objs = [o for k, o in matches]
         assert len(objs) <= 1
         if objs:
             return objs[0]
         raise NoSuchResource(**keys)
 
-    def delete(self, obj_id, claims=None, access_params=None):
-        self.get(obj_id, claims=claims, access_params=access_params)
-        self._store.remove_objects(obj_id=obj_id)
+    def delete(self, t, obj_id, claims=None, access_params=None):
+        self.get(t, obj_id, claims=claims, access_params=access_params)
+        self._store.remove_objects(t, obj_id=obj_id)
 
-    def list(self, claims=None, access_params=None):
+    def list(self, t, claims=None, access_params=None):
         oftype = qvarn.Equal('type', self.get_type_name())
         allowed = None
         if self._store.have_fine_grained_access_control():  # pragma: no cover
@@ -140,7 +138,7 @@ class CollectionAPI:
             allowed = qvarn.AccessIsAllowed(
                 access_params, self._store.get_allow_rules())
         matches = self._store.get_matches(
-            oftype, allow_cond=allowed, subpath='')
+            t, oftype, allow_cond=allowed, subpath='')
         return {
             'resources': [
                 {'id': obj['id']}
@@ -149,41 +147,43 @@ class CollectionAPI:
             ]
         }
 
-    def put(self, obj, claims=None, access_params=None):
+    def put(self, t, obj, claims=None, access_params=None):
         v = qvarn.Validator()
         v.validate_resource_update(obj, self.get_type())
 
-        old = self.get(obj['id'], claims=claims, access_params=access_params)
+        old = self.get(
+            t, obj['id'], claims=claims, access_params=access_params)
         if old['revision'] != obj['revision']:
             raise WrongRevision(obj['revision'], old['revision'])
 
         new_obj = dict(obj)
         new_obj['revision'] = self._invent_id('revision')
-        self._store.remove_objects(obj_id=new_obj['id'], subpath='')
-        self._create_object(new_obj, obj_id=new_obj['id'], subpath='')
+        self._store.remove_objects(t, obj_id=new_obj['id'], subpath='')
+        self._create_object(t, new_obj, obj_id=new_obj['id'], subpath='')
 
         return new_obj
 
     def put_subresource(
-            self, sub_obj, subpath=None, claims=None, access_params=None,
+            self, t, sub_obj, subpath=None, claims=None, access_params=None,
             **keys):
         new_sub = self.put_subresource_no_new_revision(
-            sub_obj, subpath=subpath, claims=claims,
+            t, sub_obj, subpath=subpath, claims=claims,
             access_params=access_params, **keys)
 
         obj_id = keys.pop('obj_id')
         parent = self._update_revision(
-            obj_id, claims=claims, access_params=access_params)
+            t, obj_id, claims=claims, access_params=access_params)
         new_sub['revision'] = parent['revision']
         return new_sub
 
     def put_subresource_no_new_revision(
-            self, sub_obj, subpath=None, claims=None, access_params=None,
+            self, t, sub_obj, subpath=None, claims=None, access_params=None,
             **keys):
         assert subpath is not None
         obj_id = keys.pop('obj_id')
         revision = keys.pop('revision')
-        parent = self.get(obj_id, claims=claims, access_params=access_params)
+        parent = self.get(
+            t, obj_id, claims=claims, access_params=access_params)
         if parent['revision'] != revision:
             raise WrongRevision(revision, parent['revision'])
 
@@ -192,8 +192,8 @@ class CollectionAPI:
             'obj_id': obj_id,
             'subpath': subpath,
         }
-        self._store.remove_objects(**keys)
-        self._create_object(new_sub, **keys)
+        self._store.remove_objects(t, **keys)
+        self._create_object(t, new_sub, **keys)
 
         return dict(new_sub)
 
@@ -203,17 +203,17 @@ class CollectionAPI:
         subproto = subprotos[subpath]
         return qvarn.add_missing_fields(subproto, sub_obj)
 
-    def _update_revision(self, obj_id, claims=None, access_params=None):
-        obj = self.get(obj_id, claims=claims, access_params=access_params)
+    def _update_revision(self, t, obj_id, claims=None, access_params=None):
+        obj = self.get(t, obj_id, claims=claims, access_params=access_params)
         obj['revision'] = self._invent_id('revision')
         qvarn.log.log(
             'debug', msg_text='new revision after updating subresource',
             obj_id=obj_id, revision=obj['revision'])
-        self._store.remove_objects(obj_id=obj_id, subpath='')
-        self._create_object(obj, obj_id=obj_id, subpath='')
+        self._store.remove_objects(t, obj_id=obj_id, subpath='')
+        self._create_object(t, obj, obj_id=obj_id, subpath='')
         return obj
 
-    def search(self, search_criteria, claims=None, access_params=None):
+    def search(self, t, search_criteria, claims=None, access_params=None):
         if not search_criteria:
             raise NoSearchCriteria()
 
@@ -255,7 +255,7 @@ class CollectionAPI:
         self._check_fields_are_allowed(sp.cond)
 
         unsorted = self._find_matches(
-            sp.cond, claims=claims, access_params=access_params)
+            t, sp.cond, claims=claims, access_params=access_params)
         if sp.sort_keys:
             result = self._sort_objects(unsorted, sp.sort_keys)
         else:
@@ -271,11 +271,6 @@ class CollectionAPI:
             chosen = result[sp.offset:sp.offset+sp.limit]
 
         picked = [pick_fields(o) for o in chosen]
-
-        qvarn.log.log(
-            'trace', msg_text='Collection.search, sorted',
-            result=picked)
-
         return picked
 
     def _check_fields_are_allowed(self, cond):
@@ -307,7 +302,7 @@ class CollectionAPI:
             for name in t[0]:
                 yield name
 
-    def _find_matches(self, cond, claims=None, access_params=None):
+    def _find_matches(self, t, cond, claims=None, access_params=None):
         allow_cond = None
         if self._store.have_fine_grained_access_control():  # pragma: no cover
             assert claims is not None
@@ -315,12 +310,12 @@ class CollectionAPI:
             allow_cond = qvarn.AccessIsAllowed(
                 access_params, self._store.get_allow_rules())
 
-        matches = self._store.get_matches(cond=cond, allow_cond=allow_cond)
+        matches = self._store.get_matches(t, cond=cond, allow_cond=allow_cond)
         qvarn.log.log('xxx', matches=matches)
         obj_ids = self._uniq(keys['obj_id'] for keys, _ in matches)
         objects = [
             self._get_object(
-                obj_id=obj_id, subpath='', claims=claims,
+                t, obj_id=obj_id, subpath='', claims=claims,
                 access_params=access_params)
             for obj_id in obj_ids
         ]

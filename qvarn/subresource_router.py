@@ -54,17 +54,22 @@ class SubresourceRouter(qvarn.Router):
             },
         ]
 
+    def _transaction(self):
+        return self._api.get_object_store().transaction()
+
     def _get_subresource(self, *args, **kwargs):
         claims = kwargs.get('claims')
         params = self.get_access_params(
             self._parent_coll.get_type_name(), claims)
 
         obj_id = kwargs['id']
-        try:
-            obj = self._parent_coll.get_subresource(
-                obj_id, self._subpath, claims=claims, access_params=params)
-        except qvarn.NoSuchResource as e:
-            return qvarn.no_such_resource_response(str(e))
+        with self._transaction() as t:
+            try:
+                obj = self._parent_coll.get_subresource(
+                    t, obj_id, self._subpath, claims=claims,
+                    access_params=params)
+            except qvarn.NoSuchResource as e:
+                return qvarn.no_such_resource_response(str(e))
         return qvarn.ok_response(obj)
 
     def _put_subresource(self, content_type, body, *args, **kwargs):
@@ -91,17 +96,18 @@ class SubresourceRouter(qvarn.Router):
             qvarn.log.log('error', msg_text=str(e), body=body)
             return qvarn.bad_request_response(str(e))
 
-        try:
-            if id_allowed:
-                func = self._parent_coll.put_subresource_no_new_revision
-            else:
-                func = self._parent_coll.put_subresource
-            result_body = func(
-                body, subpath=self._subpath, obj_id=obj_id,
-                revision=revision, claims=claims, access_params=params)
-        except qvarn.WrongRevision as e:
-            return qvarn.conflict_response(str(e))
-        except qvarn.NoSuchResource as e:
-            return qvarn.no_such_resource_response(str(e))
+        with self._transaction() as t:
+            try:
+                if id_allowed:
+                    func = self._parent_coll.put_subresource_no_new_revision
+                else:
+                    func = self._parent_coll.put_subresource
+                result_body = func(
+                    t, body, subpath=self._subpath, obj_id=obj_id,
+                    revision=revision, claims=claims, access_params=params)
+            except qvarn.WrongRevision as e:
+                return qvarn.conflict_response(str(e))
+            except qvarn.NoSuchResource as e:
+                return qvarn.no_such_resource_response(str(e))
 
         return qvarn.ok_response(result_body)

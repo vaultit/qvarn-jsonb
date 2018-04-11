@@ -30,21 +30,29 @@ class QvarnAPI:
         self._rt_coll = None
         self._notifs = None
         self._alog = None
+        self._use_access_log = False
 
     def set_base_url(self, baseurl):  # pragma: no cover
         self._baseurl = baseurl
 
-    def set_object_store(self, store):
+    def set_object_store(self, t, store):
         self._store = store
-        self._store.create_store(obj_id=str, subpath=str)
+        self._store.create_store(t, obj_id=str, subpath=str)
 
-    def add_resource_type(self, rt):
+    def get_object_store(self):  # pragma: no cover
+        assert self._store is not None
+        return self._store
+
+    def enable_access_log(self):  # pragma: no cover
+        self._use_access_log = True
+
+    def add_resource_type(self, t, rt):
         path = rt.get_path()
         keys = {
             'obj_id': rt.get_type(),
             'subpath': '',
         }
-        self._store.remove_objects(**keys)
+        self._store.remove_objects(t, **keys)
 
         obj = {
             'id': rt.get_type(),
@@ -52,11 +60,12 @@ class QvarnAPI:
             'path': path,
             'spec': rt.as_dict(),
         }
-        self._store.create_object(obj, **keys, auxtable=True)
 
-    def get_resource_type(self, path):
+        self._store.create_object(t, obj, **keys, auxtable=True)
+
+    def get_resource_type(self, t, path):
         path = self._canonical_path(path)
-        objs = self._get_resource_type_given_path(path)
+        objs = self._get_resource_type_given_path(t, path)
         if not objs:
             qvarn.log.log(
                 'error',
@@ -83,35 +92,29 @@ class QvarnAPI:
             return path
         return '/{}'.format(parts[1])
 
-    def _get_resource_type_given_path(self, path):
+    def _get_resource_type_given_path(self, t, path):
         cond = qvarn.All(
             qvarn.Equal('path', path),
             qvarn.Equal('type', 'resource_type'),
         )
-        results = self._store.get_matches(cond=cond)
-        qvarn.log.log(
-            'trace', msg_text='_get_resource_type_given_path',
-            results=results, path=path)
+        results = self._store.get_matches(t, cond=cond)
         return [obj for _, obj in results]
 
-    def get_listener_resource_type(self):
-        return self._get_resource_type_given_type('listener')
+    def get_listener_resource_type(self, t):
+        return self._get_resource_type_given_type(t, 'listener')
 
-    def get_notification_resource_type(self):  # pragma: no cover
-        return self._get_resource_type_given_type('notification')
+    def get_notification_resource_type(self, t):  # pragma: no cover
+        return self._get_resource_type_given_type(t, 'notification')
 
-    def get_access_log_resource_type(self):  # pragma: no cover
-        return self._get_resource_type_given_type('access')
+    def get_access_log_resource_type(self, t):  # pragma: no cover
+        return self._get_resource_type_given_type(t, 'access')
 
-    def _get_resource_type_given_type(self, type_name):
+    def _get_resource_type_given_type(self, t, type_name):
         cond = qvarn.All(
             qvarn.Equal('id', type_name),
             qvarn.Equal('type', 'resource_type'),
         )
-        results = self._store.get_matches(cond=cond)
-        qvarn.log.log(
-            'trace', msg_text='_get_resource_type_given_type',
-            results=results, type_name=type_name)
+        results = self._store.get_matches(t, cond=cond)
         objs = [obj for _, obj in results]
 
         if not objs:  # pragma: no cover
@@ -137,19 +140,19 @@ class QvarnAPI:
             a.set_store(self._store)
             return a.get_routes()
 
-        try:
-            rt = self.get_resource_type(path)
-        except qvarn.NoSuchResourceType:
-            qvarn.log.log('warning', msg_text='No such route', path=path)
-            return []
-
-        routes = self.resource_routes(path, rt)
+        with self._store.transaction() as t:
+            try:
+                rt = self.get_resource_type(t, path)
+            except qvarn.NoSuchResourceType:
+                qvarn.log.log('warning', msg_text='No such route', path=path)
+                return []
+            routes = self.resource_routes(t, path, rt)
         qvarn.log.log('info', msg_text='Found missing routes', routes=routes)
         return routes
 
-    def resource_routes(self, path, rt):  # pragma: no cover
+    def resource_routes(self, t, path, rt):  # pragma: no cover
         coll = qvarn.CollectionAPI()
-        coll.set_object_store(self._store)
+        coll.set_object_store(t, self._store)
         coll.set_resource_type(rt)
 
         router = qvarn.ResourceRouter()
@@ -177,12 +180,12 @@ class QvarnAPI:
                 more = file_router.get_routes()
             routes.extend(more)
 
-        listener_rt = self.get_listener_resource_type()
+        listener_rt = self.get_listener_resource_type(t)
         notif_router = qvarn.NotificationRouter()
         notif_router.set_api(self)
         notif_router.set_baseurl(self._baseurl)
         notif_router.set_parent_collection(coll)
-        notif_router.set_object_store(self._store, listener_rt)
+        notif_router.set_object_store(t, self._store, listener_rt)
         routes.extend(notif_router.get_routes())
 
         return routes
@@ -191,7 +194,7 @@ class QvarnAPI:
         scopes = claims.get('scope', '').split()
         return 'uapi_set_meta_fields' in scopes
 
-    def notify(self, rid, rrev, change):  # pragma: no cover
+    def notify(self, t, rid, rrev, change):  # pragma: no cover
         obj = {
             'type': 'notification',
             'resource_id': rid,
@@ -199,28 +202,28 @@ class QvarnAPI:
             'resource_change': change,
             'timestamp': qvarn.get_current_timestamp(),
         }
-        for listener in self.find_listeners(rid, change):
+        for listener in self.find_listeners(t, rid, change):
             obj['listener_id'] = listener['id']
-            self.create_notification(obj)
+            self.create_notification(t, obj)
 
-    def create_notification(self, notif):  # pragma: no cover
+    def create_notification(self, t, notif):  # pragma: no cover
         qvarn.log.log(
             'info', msg_text='Create notification',
             notification=notif)
-        notifs = self._create_notifs_collection()
-        notifs.post_with_id(notif)
+        notifs = self._create_notifs_collection(t)
+        notifs.post_with_id(t, notif)
 
-    def _create_notifs_collection(self):  # pragma: no cover
+    def _create_notifs_collection(self, t):  # pragma: no cover
         if self._notifs is None:
-            rt = self.get_notification_resource_type()
+            rt = self.get_notification_resource_type(t)
             self._notifs = qvarn.CollectionAPI()
-            self._notifs.set_object_store(self._store)
+            self._notifs.set_object_store(t, self._store)
             self._notifs.set_resource_type(rt)
         return self._notifs
 
-    def find_listeners(self, rid, change):  # pragma: no cover
+    def find_listeners(self, t, rid, change):  # pragma: no cover
         cond = qvarn.Equal('type', 'listener')
-        pairs = self._store.get_matches(cond)
+        pairs = self._store.get_matches(t, cond)
         for _, obj in pairs:
             if self.listener_matches(obj, rid, change):
                 yield obj
@@ -234,8 +237,15 @@ class QvarnAPI:
             return True
         return False
 
-    def log_access(self, res, rtype, op,
+    def log_access(self, t, ids, revision, rtype, op,
                    ahead, qhead, ohead, whead):  # pragma: no cover
+
+        if not self._use_access_log:
+            return
+
+        assert isinstance(ids, list)
+        assert all(isinstance(id, str) for id in ids)
+
         if rtype in [
                 'access', 'notification', 'listener', 'resource_type']:
             return
@@ -270,27 +280,36 @@ class QvarnAPI:
             }
             for t in re.findall(r',?\s*Other (.+?)(?:,|\Z)', ohead) if t]
 
-        self.create_access_entry(
-            {
-                'type': 'access',
-                'resource_type': rtype,
-                'resource_id': res.get('id'),
-                'resource_revision': res.get('revision'),
-                'operation': op,
-                'accessors': [*persons, *clients, *orgs, *others],
-                'why': whead,
-                'timestamp': qvarn.get_current_timestamp(),
-            })
+        max_ids = 40
+        for some_ids in self.split(max_ids, ids):
+            self.create_access_entry(
+                t,
+                {
+                    'type': 'access',
+                    'resource_type': rtype,
+                    'resource_ids': some_ids,
+                    'resource_revision': revision,
+                    'operation': op,
+                    'accessors': [*persons, *clients, *orgs, *others],
+                    'why': whead,
+                    'timestamp': qvarn.get_current_timestamp(),
+                })
 
-    def create_access_entry(self, entry):  # pragma: no cover
+    def split(self, n, ids):  # pragma: no cover
+        while len(ids) > n:
+            yield ids[:n]
+            ids = ids[n:]
+        yield ids
+
+    def create_access_entry(self, t, entry):  # pragma: no cover
         qvarn.log.log('info', msg_text='Log access', access_entry=entry)
-        alog = self._create_alog_collection()
-        alog.post_with_id(entry)
+        alog = self._create_alog_collection(t)
+        alog.post_with_id(t, entry)
 
-    def _create_alog_collection(self):  # pragma: no cover
+    def _create_alog_collection(self, t):  # pragma: no cover
         if self._alog is None:
-            rt = self.get_access_log_resource_type()
+            rt = self.get_access_log_resource_type(t)
             self._alog = qvarn.CollectionAPI()
-            self._alog.set_object_store(self._store)
+            self._alog.set_object_store(t, self._store)
             self._alog.set_resource_type(rt)
         return self._alog

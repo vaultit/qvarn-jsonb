@@ -7,9 +7,12 @@ Version 0.91+git, not yet released
 ----------------------------------
 
 * The recommended deployment architecture has changed. There no longer
-  any read-only Qvarn instances (due to the access log feature).
-  Instead multiple Qvarn instances should share one PostgreSQL
-  instance. This release contains changes to support that.
+  any read-only Qvarn instances (due to the access log feature, which
+  makes every read also do writes). Instead multiple Qvarn instances
+  should share one PostgreSQL instance. This release contains changes
+  to support that.
+
+* The access log feature has been sped up a bit.
 
 Version 0.91, released 2018-02-28
 ------------------------------------

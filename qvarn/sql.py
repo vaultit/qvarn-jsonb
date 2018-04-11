@@ -84,7 +84,13 @@ class Transaction:  # pragma: no cover
     def execute(self, query, values):
         started = time.time()
         c = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        c.execute(query, values)
+        try:
+            c.execute(query, values)
+        except:
+            qvarn.log.log(
+                'error', msg_text='SQL execution error', query=query,
+                values=values)
+            raise
         duration = 1000.0 * (time.time() - started)
         self._queries.append({
             'query': query,
@@ -477,7 +483,7 @@ class AccessIsAllowed(Condition):  # pragma: no cover
             "_allow.subpath = _objects.subpath",
             "(_allow.client_id = '*' OR _allow.client_id = {client_id})",
             "(_allow.user_id = '*' OR _allow.user_id = {user_id})",
-            ("(_allow.resource_id = '*' OR _"
-             "allow.resource_id = _objects.obj_id)"),
+            ("(_allow.resource_id = '*' OR"
+             " _allow.resource_id = _objects.obj_id)"),
         ]).format(**placeholders)
         return query, values

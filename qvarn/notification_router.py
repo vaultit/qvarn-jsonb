@@ -36,10 +36,10 @@ class NotificationRouter(qvarn.Router):
     def set_parent_collection(self, parent_coll):
         self._parent_coll = parent_coll
 
-    def set_object_store(self, store, listener_rt):
+    def set_object_store(self, t, store, listener_rt):
         self._store = store
         listeners = qvarn.CollectionAPI()
-        listeners.set_object_store(self._store)
+        listeners.set_object_store(t, self._store)
         listeners.set_resource_type(listener_rt)
         self._listener_coll = listeners
 
@@ -99,6 +99,9 @@ class NotificationRouter(qvarn.Router):
             },
         ]
 
+    def _transaction(self):
+        return self._api.get_object_store().transaction()
+
     def _create_listener(self, content_type, body, *args, **kwargs):
         if content_type != 'application/json':
             raise qvarn.NotJson(content_type)
@@ -121,11 +124,13 @@ class NotificationRouter(qvarn.Router):
                 'listen_on_type does not have value {}'.format(rtype))
         body['listen_on_type'] = rtype
 
-        id_allowed = self._api.is_id_allowed(kwargs.get('claims', {}))
-        if id_allowed:
-            result_body = self._listener_coll.post_with_id(body)
-        else:
-            result_body = self._listener_coll.post(body)
+        with self._transaction() as t:
+            id_allowed = self._api.is_id_allowed(kwargs.get('claims', {}))
+            if id_allowed:
+                result_body = self._listener_coll.post_with_id(t, body)
+            else:
+                result_body = self._listener_coll.post(t, body)
+
         location = self._get_new_resource_location(result_body)
         qvarn.log.log(
             'debug', msg_text='POST a new listener, result',
@@ -142,16 +147,18 @@ class NotificationRouter(qvarn.Router):
         params = self.get_access_params(
             self._listener_coll.get_type_name(), claims)
         rtype = self._parent_coll.get_type_name()
-        resources = self._listener_coll.list(
-            claims=claims, access_params=params)
-        listener_list = resources['resources']
-        listener_ids = [listener['id'] for listener in listener_list]
-        listeners = [
-            self._listener_coll.get(
-                lid, claims=claims, access_params=params)
-            for lid in listener_ids
-        ]
-        qvarn.log.log('trace', msg_text='xxx', listeners=listeners)
+
+        with self._transaction() as t:
+            resources = self._listener_coll.list(
+                t, claims=claims, access_params=params)
+            listener_list = resources['resources']
+            listener_ids = [listener['id'] for listener in listener_list]
+            listeners = [
+                self._listener_coll.get(
+                    t, lid, claims=claims, access_params=params)
+                for lid in listener_ids
+            ]
+
         correct_ids = [
             {"id": listener['id']}
             for listener in listeners
@@ -166,11 +173,13 @@ class NotificationRouter(qvarn.Router):
         claims = kwargs.get('claims')
         params = self.get_access_params(
             self._listener_coll.get_type_name(), claims)
-        try:
-            obj = self._listener_coll.get(
-                kwargs['listener_id'], claims=claims, access_params=params)
-        except qvarn.NoSuchResource as e:
-            return qvarn.no_such_resource_response(str(e))
+        with self._transaction() as t:
+            try:
+                obj = self._listener_coll.get(
+                    t, kwargs['listener_id'], claims=claims,
+                    access_params=params)
+            except qvarn.NoSuchResource as e:
+                return qvarn.no_such_resource_response(str(e))
         return qvarn.ok_response(obj)
 
     def _update_listener(self, content_type, body, *args, **kwargs):
@@ -196,16 +205,17 @@ class NotificationRouter(qvarn.Router):
             qvarn.log.log('error', msg_text=str(e), body=body)
             return qvarn.bad_request_response(str(e))
 
-        try:
-            result_body = self._listener_coll.put(
-                body, claims=claims, access_params=params)
-        except qvarn.WrongRevision as e:
-            return qvarn.conflict_response(str(e))
-        except qvarn.NoSuchResource as e:
-            # We intentionally say bad request, instead of not found.
-            # This is to be compatible with old Qvarn. This may get
-            # changed later.
-            return qvarn.bad_request_response(str(e))
+        with self._transaction() as t:
+            try:
+                result_body = self._listener_coll.put(
+                    t, body, claims=claims, access_params=params)
+            except qvarn.WrongRevision as e:
+                return qvarn.conflict_response(str(e))
+            except qvarn.NoSuchResource as e:
+                # We intentionally say bad request, instead of not found.
+                # This is to be compatible with old Qvarn. This may get
+                # changed later.
+                return qvarn.bad_request_response(str(e))
 
         return qvarn.ok_response(result_body)
 
@@ -214,27 +224,26 @@ class NotificationRouter(qvarn.Router):
         params = self.get_access_params(
             self._listener_coll.get_type_name(), claims)
         listener_id = kwargs['listener_id']
-        self._listener_coll.delete(
-            listener_id, claims=claims, access_params=params)
-        for obj_id in self._find_notifications(listener_id):
-            self._store.remove_objects(obj_id=obj_id)
+        with self._transaction() as t:
+            self._listener_coll.delete(
+                t, listener_id, claims=claims, access_params=params)
+            for obj_id in self._find_notifications(t, listener_id):
+                self._store.remove_objects(t, obj_id=obj_id)
         return qvarn.ok_response({})
 
-    def _find_notifications(self, listener_id):
+    def _find_notifications(self, t, listener_id):
         cond = qvarn.All(
             qvarn.Equal('type', 'notification'),
             qvarn.Equal('listener_id', listener_id),
         )
         obj_ids = [
             keys['obj_id']
-            for keys, _ in self._store.get_matches(cond)
+            for keys, _ in self._store.get_matches(t, cond)
         ]
-        qvarn.log.log(
-            'trace', msg_text='Found notifications',
-            notifications=obj_ids)
         return obj_ids
 
-    def _get_notifications_list(self, *args, **kwargs):
+    def _get_notifications_list(self, content_type, body, *args, **kwargs):
+
         def timestamp(pair):
             _, obj = pair
             return obj['timestamp']
@@ -244,7 +253,10 @@ class NotificationRouter(qvarn.Router):
             qvarn.Equal('type', 'notification'),
             qvarn.Equal('listener_id', listener_id)
         )
-        pairs = self._store.get_matches(cond)
+
+        with self._transaction() as t:
+            pairs = self._store.get_matches(t, cond)
+
         ordered = sorted(pairs, key=timestamp)
         body = {
             'resources': [
@@ -264,7 +276,8 @@ class NotificationRouter(qvarn.Router):
             qvarn.Equal('listener_id', listener_id),
             qvarn.Equal('id', notification_id),
         )
-        pairs = self._store.get_matches(cond)
+        with self._transaction() as t:
+            pairs = self._store.get_matches(t, cond)
         if not pairs:
             return qvarn.no_such_resource_response(notification_id)
         if len(pairs) > 1:
@@ -282,7 +295,9 @@ class NotificationRouter(qvarn.Router):
         assert 'id' in notif
         assert 'listener_id' in notif
         assert 'revision' in notif
-        self._api.create_notification(notif)
+
+        with self._transaction() as t:
+            self._api.create_notification(t, notif)
 
         return qvarn.created_response(notif, '')
 
@@ -294,11 +309,12 @@ class NotificationRouter(qvarn.Router):
             qvarn.Equal('listener_id', listener_id),
             qvarn.Equal('id', notification_id),
         )
-        for keys, _ in self._store.get_matches(cond):
-            values = {
-                key: keys[key]
-                for key in keys
-                if isinstance(keys[key], str)
-            }
-            self._store.remove_objects(**values)
+        with self._transaction() as t:
+            for keys, _ in self._store.get_matches(t, cond):
+                values = {
+                    key: keys[key]
+                    for key in keys
+                    if isinstance(keys[key], str)
+                }
+                self._store.remove_objects(t, **values)
         return qvarn.ok_response({})

@@ -33,7 +33,7 @@ class Router:
         if not user_id and self.is_trusted_client(claims):
             user_id = self.get_user_id_from_headers()
             qvarn.log.log(
-                'trace', msg_text='user_id from headers', user_id=user_id)
+                'info', msg_text='user_id from headers', user_id=user_id)
 
         params = {
             'method': bottle.request.method,
@@ -42,27 +42,18 @@ class Router:
             'resource_type': type_name,
         }
         qvarn.log.log(
-            'trace', msg_text='get_access_params', params=params,
+            'info', msg_text='get_access_params', params=params,
             claims=claims, user_id=user_id)
         return params
 
     def is_trusted_client(self, claims):
         scopes = claims.get('scope', '').split()
         is_trusted = 'uapi_trusted_client' in scopes
-        qvarn.log.log(
-            'trace', msg_text='is trusted?', scopes=scopes,
-            is_trusted=is_trusted)
         return is_trusted
 
     def get_user_id_from_headers(self):
         headers = bottle.request.headers
-        qvarn.log.log(
-            'trace', msg_text='access params headers',
-            headers=dict(headers))
         token = headers.get('Qvarn-Access-By')
-        qvarn.log.log(
-            'trace', msg_text='Qvarn-Access-By token',
-            token=token)
         if token:
             c = self.parse_token(token)
             return c.get('sub', '')

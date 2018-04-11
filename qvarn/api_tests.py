@@ -45,7 +45,8 @@ class QvarnAPITests(unittest.TestCase):
     def test_returns_no_routes_for_unknown_resource_type(self):
         store = qvarn.MemoryObjectStore()
         api = qvarn.QvarnAPI()
-        api.set_object_store(store)
+        with store.transaction() as t:
+            api.set_object_store(t, store)
         self.assertEqual(api.find_missing_route('/subjects'), [])
 
     def test_returns_routes_for_known_resource_type(self):
@@ -76,24 +77,27 @@ class QvarnAPITests(unittest.TestCase):
 
         store = qvarn.MemoryObjectStore()
         api = qvarn.QvarnAPI()
-        api.set_object_store(store)
-        api.add_resource_type(rt)
-        api.set_base_url('https://qvarn.example.com')
 
-        dirname = os.path.dirname(qvarn.__file__)
-        dirname = os.path.join(dirname, '../resource_type')
-        resource_types = qvarn.load_resource_types(dirname)
-        for rt in resource_types:
-            api.add_resource_type(rt)
+        with store.transaction() as t:
+            api.set_object_store(t, store)
+            api.add_resource_type(t, rt)
+            api.set_base_url('https://qvarn.example.com')
 
-        self.assertNotEqual(api.find_missing_route('/subjects'), [])
+            dirname = os.path.dirname(qvarn.__file__)
+            dirname = os.path.join(dirname, '../resource_type')
+            resource_types = qvarn.load_resource_types(dirname)
+            for rt in resource_types:
+                api.add_resource_type(t, rt)
+
+            self.assertNotEqual(api.find_missing_route('/subjects'), [])
 
     def test_get_resource_type_raises_error_for_unknown_path(self):
         store = qvarn.MemoryObjectStore()
         api = qvarn.QvarnAPI()
-        api.set_object_store(store)
-        with self.assertRaises(qvarn.NoSuchResourceType):
-            api.get_resource_type('/subjects')
+        with store.transaction() as t:
+            api.set_object_store(t, store)
+            with self.assertRaises(qvarn.NoSuchResourceType):
+                api.get_resource_type(t, '/subjects')
 
     def test_get_resource_type_returns_it_when_it_is_known(self):
         spec = {
@@ -116,11 +120,12 @@ class QvarnAPITests(unittest.TestCase):
 
         store = qvarn.MemoryObjectStore()
         api = qvarn.QvarnAPI()
-        api.set_object_store(store)
-        api.add_resource_type(rt)
-        rt2 = api.get_resource_type(spec['path'])
-        self.assertTrue(isinstance(rt2, qvarn.ResourceType))
-        self.assertEqual(rt2.as_dict(), spec)
+        with store.transaction() as t:
+            api.set_object_store(t, store)
+            api.add_resource_type(t, rt)
+            rt2 = api.get_resource_type(t, spec['path'])
+            self.assertTrue(isinstance(rt2, qvarn.ResourceType))
+            self.assertEqual(rt2.as_dict(), spec)
 
     def test_add_resource_type_is_ok_adding_type_again(self):
         spec = {
@@ -143,9 +148,10 @@ class QvarnAPITests(unittest.TestCase):
 
         store = qvarn.MemoryObjectStore()
         api = qvarn.QvarnAPI()
-        api.set_object_store(store)
-        api.add_resource_type(rt)
-        self.assertEqual(api.add_resource_type(rt), None)
+        with store.transaction() as t:
+            api.set_object_store(t, store)
+            api.add_resource_type(t, rt)
+            self.assertEqual(api.add_resource_type(t, rt), None)
 
     def test_updating_resource_type_with_new_version_works(self):
         spec1 = {
@@ -176,15 +182,17 @@ class QvarnAPITests(unittest.TestCase):
 
         store = qvarn.MemoryObjectStore()
         api = qvarn.QvarnAPI()
-        api.set_object_store(store)
 
-        rt1 = qvarn.ResourceType()
-        rt1.from_spec(spec1)
-        api.add_resource_type(rt1)
+        with store.transaction() as t:
+            api.set_object_store(t, store)
 
-        rt2 = qvarn.ResourceType()
-        rt2.from_spec(spec2)
-        api.add_resource_type(rt2)
+            rt1 = qvarn.ResourceType()
+            rt1.from_spec(spec1)
+            api.add_resource_type(t, rt1)
 
-        rt = api.get_resource_type(spec1['path'])
-        self.assertEqual(rt.as_dict(), spec2)
+            rt2 = qvarn.ResourceType()
+            rt2.from_spec(spec2)
+            api.add_resource_type(t, rt2)
+
+            rt = api.get_resource_type(t, spec1['path'])
+            self.assertEqual(rt.as_dict(), spec2)

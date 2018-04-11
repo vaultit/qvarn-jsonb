@@ -54,7 +54,10 @@ class ObjectStoreInterface:  # pragma: no cover
     def __init__(self):
         self._fine_grained_access_control = False
 
-    def create_store(self, **keys):
+    def transaction(self):
+        raise NotImplementedError()
+
+    def create_store(self, t, **keys):
         raise NotImplementedError()
 
     def check_keys_have_str_type(self, **keys):
@@ -77,22 +80,22 @@ class ObjectStoreInterface:  # pragma: no cover
             if type(keys[key]) is not known_keys[key]:
                 raise KeyValueError(key, keys[key])
 
-    def create_object(self, obj, auxtable=True, **keys):
+    def create_object(self, t, obj, auxtable=True, **keys):
         raise NotImplementedError()
 
-    def remove_objects(self, **keys):
+    def remove_objects(self, t, **keys):
         raise NotImplementedError()
 
-    def get_matches(self, cond=None, allow_cond=None, **keys):
+    def get_matches(self, t, cond=None, allow_cond=None, **keys):
         raise NotImplementedError()
 
-    def create_blob(self, blob, subpath=None, **keys):
+    def create_blob(self, t, blob, subpath=None, **keys):
         raise NotImplementedError()
 
-    def get_blob(self, subpath=None, **keys):
+    def get_blob(self, t, subpath=None, **keys):
         raise NotImplementedError()
 
-    def remove_blob(self, subpath=None, **keys):
+    def remove_blob(self, t, subpath=None, **keys):
         raise NotImplementedError()
 
     def have_fine_grained_access_control(self):
@@ -104,14 +107,23 @@ class ObjectStoreInterface:  # pragma: no cover
     def get_allow_rules(self):
         raise NotImplementedError()
 
-    def has_allow_rule(self, rule):
+    def has_allow_rule(self, t, rule):
         raise NotImplementedError()
 
-    def add_allow_rule(self, rule):
+    def add_allow_rule(self, t, rule):
         raise NotImplementedError()
 
-    def remove_allow_rule(self, rule):
+    def remove_allow_rule(self, t, rule):
         raise NotImplementedError()
+
+
+class DummyTransaction:
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
 
 
 class MemoryObjectStore(ObjectStoreInterface):
@@ -124,18 +136,21 @@ class MemoryObjectStore(ObjectStoreInterface):
         self._fine_grained_access_control = False
         self._allow = []
 
+    def transaction(self):
+        return DummyTransaction()
+
     def get_known_keys(self):
         return self._known_keys
 
-    def create_store(self, **keys):
+    def create_store(self, t, **keys):
         self.check_keys_have_str_type(**keys)
         qvarn.log.log(
-            'trace', msg_text='Creating store', keys=repr(keys), exc_info=True)
+            'info', msg_text='Creating store', keys=repr(keys), exc_info=True)
         self._known_keys = keys
 
-    def create_object(self, obj, auxtable=True, **keys):
+    def create_object(self, t, obj, auxtable=True, **keys):
         qvarn.log.log(
-            'trace', msg_text='Creating object', object=repr(obj), keys=keys)
+            'info', msg_text='Creating object', object=repr(obj), keys=keys)
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         self._check_unique_object(**keys)
@@ -146,12 +161,12 @@ class MemoryObjectStore(ObjectStoreInterface):
             if self._keys_match(k, keys):
                 raise KeyCollision(k)
 
-    def create_blob(self, blob, subpath=None, **keys):
-        qvarn.log.log('trace', msg_text='Creating blob', keys=keys)
+    def create_blob(self, t, blob, subpath=None, **keys):
+        qvarn.log.log('info', msg_text='Creating blob', keys=keys)
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         self._check_unique_blob(subpath, **keys)
-        if not self.get_matches(**keys):
+        if not self.get_matches(t, **keys):
             raise NoSuchObject(keys)
         self._blobs.append((blob, subpath, keys))
 
@@ -160,7 +175,7 @@ class MemoryObjectStore(ObjectStoreInterface):
             if self._keys_match(k, keys) and s == subpath:
                 raise BlobKeyCollision(subpath, k)
 
-    def get_blob(self, subpath=None, **keys):
+    def get_blob(self, t, subpath=None, **keys):
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         blobs = [
@@ -173,7 +188,7 @@ class MemoryObjectStore(ObjectStoreInterface):
             raise NoSuchObject(keys)
         return blobs[0]
 
-    def remove_blob(self, subpath=None, **keys):
+    def remove_blob(self, t, subpath=None, **keys):
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         self._blobs = [
@@ -182,12 +197,12 @@ class MemoryObjectStore(ObjectStoreInterface):
             if not self._keys_match(k, keys) or s != subpath
         ]
 
-    def remove_objects(self, **keys):
+    def remove_objects(self, t, **keys):
         self.check_all_keys_are_allowed(**keys)
         self._objs = [
             (o, k) for o, k in self._objs if not self._keys_match(k, keys)]
 
-    def get_matches(self, cond=None, allow_cond=None, **keys):
+    def get_matches(self, t, cond=None, allow_cond=None, **keys):
         assert cond is not None or len(keys) > 0
         self.check_all_keys_are_allowed(**keys)
         if cond is None:
@@ -211,13 +226,13 @@ class MemoryObjectStore(ObjectStoreInterface):
     def get_allow_rules(self):
         return list(self._allow)
 
-    def has_allow_rule(self, rule):
+    def has_allow_rule(self, t, rule):
         return rule in self._allow
 
-    def add_allow_rule(self, rule):
+    def add_allow_rule(self, t, rule):
         self._allow.append(dict(rule))
 
-    def remove_allow_rule(self, rule):
+    def remove_allow_rule(self, t, rule):
         self._allow = [r for r in self._allow if r != rule]
 
 
@@ -230,30 +245,39 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
 
     def __init__(self, sql):
         super().__init__()
+        self._tables_created = False
         self._sql = sql
         self._keys = None
+
+    def transaction(self):
+        return self._sql.transaction()
 
     def get_known_keys(self):
         return self._keys
 
-    def create_store(self, **keys):
+    def create_store(self, t, **keys):
         self.check_keys_have_str_type(**keys)
         self._keys = dict(keys)
 
-        # Create main table for objects.
-        self._create_table(self._table, self._keys, '_obj', dict, index=True)
+        if not self._tables_created:
+            self._tables_created = True
 
-        # Create helper table for fields at all depths. Needed by searches.
-        self._create_table(
-            self._auxtable, self._keys, '_field', dict, jsonb_index=True)
+            # Create main table for objects.
+            self._create_table(
+                t, self._table, self._keys, '_obj', dict, index=True)
 
-        # Create helper table for blobs.
-        self._create_table(self._blobtable, self._keys, '_blob', bytes)
+            # Create helper table for fields at all depths. Needed by searches.
+            self._create_table(
+                t, self._auxtable, self._keys, '_field', dict,
+                jsonb_index=True)
 
-        # Create table for fine-grained access control rules.
-        self._create_allow_table()
+            # Create helper table for blobs.
+            self._create_table(t, self._blobtable, self._keys, '_blob', bytes)
 
-    def _create_allow_table(self):
+            # Create table for fine-grained access control rules.
+            self._create_allow_table(t)
+
+    def _create_allow_table(self, t):
         columns = {
             'method': str,
             'client_id': str,
@@ -264,49 +288,47 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             'resource_field': str,
             'resource_value': str,
         }
-        with self._sql.transaction() as t:
-            query = t.create_table(self._allowtable, **columns)
-            t.execute(query, {})
+        query = t.create_table(self._allowtable, **columns)
+        t.execute(query, {})
 
     def _create_table(
-            self, name, col_dict, col_name, col_type, index=False,
+            self, t, name, col_dict, col_name, col_type, index=False,
             jsonb_index=False):
         columns = dict(col_dict)
         columns[col_name] = col_type
-        with self._sql.transaction() as t:
-            query = t.create_table(name, **columns)
+
+        query = t.create_table(name, **columns)
+        t.execute(query, {})
+
+        for index_col in col_dict:
+            index_name = self._index_name(name, index_col, '')
+            query = t.create_index(name, index_name, index_col)
             t.execute(query, {})
 
-            for index_col in col_dict:
-                index_name = self._index_name(name, index_col, '')
-                query = t.create_index(name, index_name, index_col)
-                t.execute(query, {})
+        if index:
+            index_name = self._index_name(name, col_name, '')
+            query = t.create_index(name, index_name, col_name)
+            t.execute(query, {})
+        elif jsonb_index:
+            index_name = self._index_name(name, col_name, 'name')
+            query = t.create_jsonb_index(
+                name, index_name, col_name, 'name')
+            t.execute(query, {})
 
-            if index:
-                index_name = self._index_name(name, col_name, '')
-                query = t.create_index(name, index_name, col_name)
-                t.execute(query, {})
-            elif jsonb_index:
-                index_name = self._index_name(name, col_name, 'name')
-                query = t.create_jsonb_index(
-                    name, index_name, col_name, 'name')
-                t.execute(query, {})
-
-                index_name = self._index_name(name, col_name, 'value')
-                query = t.create_jsonb_index(
-                    name, index_name, col_name, 'value')
-                t.execute(query, {})
+            index_name = self._index_name(name, col_name, 'value')
+            query = t.create_jsonb_index(
+                name, index_name, col_name, 'value')
+            t.execute(query, {})
 
     def _index_name(self, table_name, column_name, field_name):
         name = '_'.join([table_name, column_name, field_name])
         return '{}_idx'.format(name)
 
-    def create_object(self, obj, auxtable=True, **keys):
-        with self._sql.transaction() as t:
-            self._remove_objects_in_transaction(t, **keys)
-            self._insert_into_object_table(t, self._table, obj, **keys)
-            if auxtable:
-                self._insert_into_helper(t, self._auxtable, obj, **keys)
+    def create_object(self, t, obj, auxtable=True, **keys):
+        self._remove_objects_in_transaction(t, **keys)
+        self._insert_into_object_table(t, self._table, obj, **keys)
+        if auxtable:
+            self._insert_into_helper(t, self._auxtable, obj, **keys)
 
     def _insert_into_object_table(self, t, table_name, obj, **keys):
         keys['_obj'] = json.dumps(obj)
@@ -323,15 +345,14 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
             keys['_field'] = json.dumps(x)
             column_names = list(keys.keys())
             query = t.insert_object(table_name, *column_names)
-            t.execute(query, keys)
+            t.execute(query, dict(keys))
 
-    def remove_objects(self, **keys):
-        with self._sql.transaction() as t:
-            query = t.remove_objects(self._table, *keys.keys())
-            t.execute(query, keys)
+    def remove_objects(self, t, **keys):
+        query = t.remove_objects(self._table, *keys.keys())
+        t.execute(query, keys)
 
-            query = t.remove_objects(self._auxtable, *keys.keys())
-            t.execute(query, keys)
+        query = t.remove_objects(self._auxtable, *keys.keys())
+        t.execute(query, keys)
 
     def _remove_objects_in_transaction(self, t, **keys):
         query = t.remove_objects(self._table, *keys.keys())
@@ -339,18 +360,17 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         query = t.remove_objects(self._auxtable, *keys.keys())
         t.execute(query, keys)
 
-    def get_matches(self, cond=None, allow_cond=None, **keys):
+    def get_matches(self, t, cond=None, allow_cond=None, **keys):
         if cond is None:
             cond = qvarn.Yes()
 
-        with self._sql.transaction() as t:
-            query, values = t.select_objects_with_keys_and_cond(
-                self._table, cond, allow_cond, **keys)
-            cursor = t.execute(query, values)
-            return [
-                (self.get_keys_from_row(row), row['_obj'])
-                for row in t.get_rows(cursor)
-            ]
+        query, values = t.select_objects_with_keys_and_cond(
+            self._table, cond, allow_cond, **keys)
+        cursor = t.execute(query, values)
+        return [
+            (self.get_keys_from_row(row), row['_obj'])
+            for row in t.get_rows(cursor)
+        ]
 
     def get_keys_from_row(self, row):
         return {
@@ -363,70 +383,64 @@ class PostgresObjectStore(ObjectStoreInterface):  # pragma: no cover
         obj = row.pop('_obj')
         return keys, obj
 
-    def create_blob(self, blob, subpath=None, **keys):
+    def create_blob(self, t, blob, subpath=None, **keys):
         keys['subpath'] = subpath
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
-        if not self.get_matches(**keys):
+        if not self.get_matches(t, **keys):
             raise NoSuchObject(keys)
 
-        with self._sql.transaction() as t:
-            column_names = list(keys.keys()) + ['_blob']
-            query = t.insert_object(self._blobtable, *column_names)
+        column_names = list(keys.keys()) + ['_blob']
+        query = t.insert_object(self._blobtable, *column_names)
 
-            values = dict(keys)
-            values['_blob'] = blob
+        values = dict(keys)
+        values['_blob'] = blob
 
-            t.execute(query, values)
+        t.execute(query, values)
 
-    def get_blob(self, subpath=None, **keys):
+    def get_blob(self, t, subpath=None, **keys):
         keys['subpath'] = subpath
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
 
         column_names = list(keys.keys())
 
-        with self._sql.transaction() as t:
-            query = t.select_objects(self._blobtable, '_blob', *column_names)
-            blobs = [bytes(row['_blob']) for row in t.execute(query, keys)]
-            if not blobs:
-                raise NoSuchObject(keys)
-            return blobs
+        query = t.select_objects(self._blobtable, '_blob', *column_names)
+        blobs = [bytes(row['_blob']) for row in t.execute(query, keys)]
+        if not blobs:
+            raise NoSuchObject(keys)
+        return blobs
 
-    def remove_blob(self, subpath=None, **keys):
+    def remove_blob(self, t, subpath=None, **keys):
         keys['subpath'] = subpath
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
 
         column_names = list(keys.keys())
-        with self._sql.transaction() as t:
-            query = t.remove_objects(self._blobtable, *column_names)
-            t.execute(query, keys)
+        query = t.remove_objects(self._blobtable, *column_names)
+        t.execute(query, keys)
 
     def get_allow_rules(self):
         return None
 
-    def has_allow_rule(self, rule):
-        with self._sql.transaction() as t:
-            query = t.has_allow_rule(self._allowtable, rule)
-            for row in t.execute(query, rule):
-                return True
+    def has_allow_rule(self, t, rule):
+        query = t.has_allow_rule(self._allowtable, rule)
+        for row in t.execute(query, rule):
+            return True
         return False
 
-    def add_allow_rule(self, rule):
-        with self._sql.transaction() as t:
-            column_names = list(rule.keys())
-            query = t.insert_object(self._allowtable, *column_names)
-            qvarn.log.log(
-                'trace', msg_text='add_allow_rule, SQL',
-                query=query, rule=rule)
-            t.execute(query, rule)
-
-    def remove_allow_rule(self, rule):
+    def add_allow_rule(self, t, rule):
         column_names = list(rule.keys())
-        with self._sql.transaction() as t:
-            query = t.remove_allow_rule(self._allowtable, rule)
-            t.execute(query, rule)
+        query = t.insert_object(self._allowtable, *column_names)
+        qvarn.log.log(
+            'info', msg_text='add_allow_rule, SQL',
+            query=query, rule=rule)
+        t.execute(query, rule)
+
+    def remove_allow_rule(self, t, rule):
+        column_names = list(rule.keys())
+        query = t.remove_allow_rule(self._allowtable, rule)
+        t.execute(query, rule)
 
 
 class KeyCollision(Exception):
