@@ -26,13 +26,14 @@ Build-Depends: debhelper (>= 9),
  python-crypto,
  python3-crypto,
  python-cryptography,
- python3-cryptography
+ python3-cryptography,
+ python3-pymongo
 X-Python3-Version: >= 3.5
 
 Package: qvarn-jsonb
 Architecture: all
 Depends: ${python3:Depends}, ${misc:Depends},
- python3 (>= 3.5),  qvarn-common
+ python3 (>= 3.5),  qvarn-common, python3-pymongo
 Description: web service backend for structured data storage
  This is a backend service for storing structured (JSON) and some
  associated binary data using a REST-ful HTTP API and OpenID Connect
