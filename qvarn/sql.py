@@ -483,7 +483,7 @@ class AccessIsAllowed(Condition):  # pragma: no cover
             "_allow.subpath = _objects.subpath",
             "(_allow.client_id = '*' OR _allow.client_id = {client_id})",
             "(_allow.user_id = '*' OR _allow.user_id = {user_id})",
-            ("(_allow.resource_id = '*' OR _"
-             "allow.resource_id = _objects.obj_id)"),
+            ("(_allow.resource_id = '*' OR"
+             " _allow.resource_id = _objects.obj_id)"),
         ]).format(**placeholders)
         return query, values
