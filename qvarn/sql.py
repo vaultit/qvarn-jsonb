@@ -89,7 +89,7 @@ class Transaction:  # pragma: no cover
         c = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         try:
             c.execute(query, values)
-        except:
+        except Exception:
             qvarn.log.log(
                 'error', msg_text='SQL execution error', query=query,
                 values=values)

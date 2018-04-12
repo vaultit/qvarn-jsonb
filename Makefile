@@ -2,7 +2,7 @@
 env: env/.done env2/.done
 
 env/bin/pip:
-	virtualenv -p python3 env
+	python3.5 -m venv env
 	env/bin/pip install --upgrade pip wheel setuptools
 
 env/.done: env/bin/pip setup.py
