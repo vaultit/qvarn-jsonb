@@ -192,7 +192,7 @@ class MemoryObjectStore(ObjectStoreInterface):
         self.check_all_keys_are_allowed(**keys)
         self.check_value_types(**keys)
         self._blobs = [
-            b
+            (b, s, k)
             for b, s, k in self._blobs
             if not self._keys_match(k, keys) or s != subpath
         ]

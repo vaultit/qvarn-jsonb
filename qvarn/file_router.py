@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 
 import qvarn
 
@@ -128,4 +129,7 @@ class FileRouter(qvarn.Router):
         headers = {
             'Revision': new_sub['revision'],
         }
-        return qvarn.ok_response('', headers)
+        response = {
+            'revision': new_sub['revision'],
+        }
+        return qvarn.ok_response(json.dumps(response), headers)

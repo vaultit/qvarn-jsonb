@@ -117,6 +117,7 @@
 
 import hashlib
 import os
+import binascii
 
 
 class ResourceIdGenerator:
@@ -138,7 +139,7 @@ class ResourceIdGenerator:
         num_bits = 128
         num_bytes = num_bits // 8
         random_bytes = os.urandom(num_bytes)
-        return random_bytes.hex()
+        return binascii.hexlify(random_bytes).decode()
 
     def _compute_checksum(self, rest):
         return hashlib.sha512(rest.encode('ascii')).hexdigest()[:8]
